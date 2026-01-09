@@ -1,0 +1,26 @@
+public import Dimension_Primitives
+
+extension Pool.Fixed where Resource: ~Copyable & Sendable {
+    /// A slot in the pool that can hold a resource.
+    @usableFromInline
+    struct Slot: Sendable {
+        /// Typed index into the slots array.
+        @usableFromInline
+        typealias Index = Tagged<Self, Int>
+        
+        /// The slot index.
+        @usableFromInline
+        let index: Index
+
+        /// Current state.
+        @usableFromInline
+        var state: State
+
+        /// Creates an empty slot.
+        @usableFromInline
+        init(index: Index) {
+            self.index = index
+            self.state = .empty
+        }
+    }
+}

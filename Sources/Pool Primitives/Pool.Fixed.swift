@@ -1,0 +1,141 @@
+public import Synchronization
+public import Async_Primitives
+internal import Container_Primitives
+
+extension Pool {
+    // MARK: - Sendability Contract
+    //
+    // Pool.Fixed is @unchecked Sendable. Safety is guaranteed by:
+    //
+    // 1. All mutable bookkeeping (_state) is protected by Mutex
+    // 2. entries is immutable fixed-capacity storage (let)
+    // 3. Slot ownership (state .out(id)) implies exclusive Entry access
+    // 4. User closures never execute under lock
+    // 5. Waiters are resumed only after removal from queue and outside lock
+    // 6. Cancellation handlers are lock-free (schedule via Task)
+    // 7. Entry access (move.in/move.out) is an external effect - outside lock
+    // 8. Gate.open() and resume() only called via perform(_:) - outside lock
+
+    /// Fixed-capacity resource pool with FIFO fairness.
+    ///
+    /// Supports two policies:
+    /// - **Eager**: Resources created only via `fill()`. Acquire waits for available.
+    /// - **Lazy**: Resources created on-demand up to capacity.
+    public final class Fixed<Resource: ~Copyable & Sendable>: @unchecked Sendable {
+        /// Protected internal state wrapped in stdlib Mutex.
+        @usableFromInline
+        let _state: Mutex<State>
+
+        /// Shutdown notification gate (async, non-blocking).
+        @usableFromInline
+        let shutdownGate: Async.Gate
+
+        /// Pool scope for ID validation.
+        @usableFromInline
+        let scope: Pool.Scope
+
+        /// Resource creation/destruction policy.
+        @usableFromInline
+        let policy: Policy
+
+        /// Optional resource validation closure.
+        @usableFromInline
+        let _check: (@Sendable (inout Resource) -> Bool)?
+
+        /// Immutable fixed-capacity storage for resources.
+        ///
+        /// Each Entry wraps a single resource slot. The array never changes
+        /// after initialization. Slot ownership (state `.out(id)`) implies
+        /// exclusive access to the corresponding entry.
+        ///
+        /// **Strict Stance:** Entry access (move.in/move.out) is an external
+        /// effect and must happen OUTSIDE the pool lock.
+        let entries: Container.Array<Entry>.Fixed
+
+        #if DEBUG
+        /// Test hook called immediately after a waiter is enqueued.
+        /// Use for deterministic test synchronization instead of polling.
+        public var onWaiterEnqueued: (@Sendable () -> Void)?
+        #endif
+
+        /// Creates a fixed-capacity pool with eager policy.
+        ///
+        /// Resources must be created via `fill()` before `acquire` can succeed.
+        ///
+        /// - Parameters:
+        ///   - capacity: Maximum number of resources.
+        ///   - destroy: Destructor closure to dispose resources.
+        ///   - check: Optional validation closure.
+        public init(
+            capacity: Pool.Capacity,
+            destroy: @Sendable @escaping (consuming Resource) -> Void,
+            check: (@Sendable (inout Resource) -> Bool)? = nil
+        ) {
+            self._state = Mutex(State(capacity: capacity.value))
+            self.shutdownGate = Async.Gate()
+            self.scope = Pool.Scope()
+            self.policy = .eager(Destructor(destroy))
+            self._check = check
+            self.entries = Container.Array<Entry>.Fixed(count: capacity.value) { _ in Entry() }
+        }
+
+        /// Creates a fixed-capacity pool with lazy policy.
+        ///
+        /// Resources are created on-demand up to capacity.
+        ///
+        /// - Parameters:
+        ///   - capacity: Maximum number of resources.
+        ///   - create: Factory closure to create new resources.
+        ///   - destroy: Destructor closure to dispose resources.
+        ///   - check: Optional validation closure.
+        public init(
+            capacity: Pool.Capacity,
+            create: @Sendable @escaping () async throws -> Resource,
+            destroy: @Sendable @escaping (consuming Resource) -> Void,
+            check: (@Sendable (inout Resource) -> Bool)? = nil
+        ) {
+            self._state = Mutex(State(capacity: capacity.value))
+            self.shutdownGate = Async.Gate()
+            self.scope = Pool.Scope()
+            self.policy = .lazy(Creator(create: create, destroy: destroy))
+            self._check = check
+            self.entries = Container.Array<Entry>.Fixed(count: capacity.value) { _ in Entry() }
+        }
+    }
+}
+
+// MARK: - Metrics Snapshot
+
+extension Pool.Fixed where Resource: ~Copyable & Sendable {
+    /// Returns a point-in-time snapshot of pool metrics.
+    ///
+    /// This is the only safe way to read metrics externally.
+    /// Reading `_state.metrics` directly without synchronization is undefined behavior.
+    public var metrics: Pool.Metrics {
+        _state.withLock { $0.metrics }
+    }
+}
+
+// MARK: - Effect Execution
+
+extension Pool.Fixed where Resource: ~Copyable & Sendable {
+    /// Execute effect outside lock. Single resumption funnel.
+    ///
+    /// **CRITICAL:** This is the ONLY location where `shutdownGate.open()`
+    /// and `resumption.resume()` may appear. Any other occurrence is a
+    /// pattern violation.
+    @inline(__always)
+    @usableFromInline
+    func perform(_ effect: Effect) {
+        switch effect {
+        case .none:
+            return
+        case .gate(.open):
+            _ = shutdownGate.open()
+        case .waiter(.resume(let resumption)):
+            resumption.resume()
+        case .waiter(.batch(let resumptions)):
+            for r in resumptions { r.resume() }
+        }
+    }
+}
