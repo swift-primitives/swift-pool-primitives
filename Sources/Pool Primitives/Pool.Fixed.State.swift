@@ -5,10 +5,10 @@ public import Async_Primitives
 extension Pool.Fixed where Resource: ~Copyable & Sendable {
     /// Internal synchronized state for the pool.
     ///
-    /// This is plain Copyable bookkeeping - NOT ~Copyable.
+    /// ~Copyable because it contains the waiter queue which is ~Copyable.
     /// Resource is stored ONLY in Entry (class wrapper with manual storage).
     @usableFromInline
-    struct State {
+    struct State: ~Copyable {
         /// Fixed-capacity LIFO buffer for available slot indices.
         /// Contains indices of slots in `.available(id)` state only.
         ///
@@ -18,13 +18,13 @@ extension Pool.Fixed where Resource: ~Copyable & Sendable {
 
         /// FIFO queue of waiters.
         ///
-        /// Uses `Async.Waiter.Queue` as substrate for atomic flagging and
+        /// Uses `Async.Waiter.Queue.Unbounded` as substrate for atomic flagging and
         /// deferred resumption. Pool retains ownership of metrics and precedence.
         ///
         /// **INVARIANT:** Must only be mutated via `addWaiter()`, `popWaiter()`,
         /// and `reapFlaggedWaiters()`. Direct mutation bypasses metrics tracking.
         @usableFromInline
-        let waiters: Async.Waiter.Queue<Outcome>
+        var waiters: Async.Waiter.Queue.Unbounded<Outcome, Waiter.Metadata>
 
         /// Slot states by index.
         @usableFromInline
@@ -61,7 +61,7 @@ extension Pool.Fixed where Resource: ~Copyable & Sendable {
         init(capacity: Int) {
             // Pre-allocate fixed-capacity LIFO buffer for available indices (starts empty)
             self.available = Buffer.Fixed(capacity: capacity)
-            self.waiters = Async.Waiter.Queue()
+            self.waiters = Async.Waiter.Queue.Unbounded()
             self.slots = (0..<capacity).map { Slot(index: Slot.Index($0)) }
             self.next = 0
             self.lifecycle = .open
@@ -258,8 +258,8 @@ extension Pool.Fixed.State where Resource: ~Copyable & Sendable {
 extension Pool.Fixed.State where Resource: ~Copyable & Sendable {
     /// Adds a waiter to the queue and updates metrics.
     @usableFromInline
-    mutating func addWaiter(_ waiter: Pool.Fixed<Resource>.Waiter) {
-        waiters.enqueue(waiter)
+    mutating func addWaiter(_ waiter: consuming Pool.Fixed<Resource>.Waiter.Entry) {
+        waiters.push(waiter)
         metrics.waiters += 1
     }
 
@@ -273,8 +273,8 @@ extension Pool.Fixed.State where Resource: ~Copyable & Sendable {
     ///
     /// - Returns: The removed waiter, or `nil` if queue is empty.
     @usableFromInline
-    mutating func popWaiter() -> Pool.Fixed<Resource>.Waiter? {
-        guard let waiter = waiters.dequeueFirst() else {
+    mutating func popWaiter() -> Pool.Fixed<Resource>.Waiter.Entry? {
+        guard let waiter = waiters.popFront() else {
             return nil
         }
         metrics.waiters -= 1
@@ -299,19 +299,30 @@ extension Pool.Fixed.State where Resource: ~Copyable & Sendable {
         let currentLifecycle = lifecycle
         var timeoutCount = 0
 
-        waiters.reapFlagged(into: &pending) { reason, entry in
+        // Collect flagged entries
+        var flagged = Async.Waiter.Queue.Drain<Pool.Fixed<Resource>.Waiter.Flagged>()
+        waiters.reapFlagged(into: &flagged)
+
+        // Process flagged entries into resumptions
+        flagged.drain { flaggedEntry in
+            // Deconstruct in one step - explicit ownership transition
+            let split = flaggedEntry.split()
+
             // Track waiters resolved as timed out
-            if reason == .timedOut {
+            if split.reason == .timedOut {
                 timeoutCount += 1
             }
 
             // Apply Pool's precedence: shutdown > cancel > timeout
-            return Pool.Lifecycle.Precedence.apply(
+            let outcome: Pool.Fixed<Resource>.Outcome = Pool.Lifecycle.Precedence.apply(
                 lifecycle: currentLifecycle,
-                cancelled: reason == .cancelled,
-                timedOut: reason == .timedOut,
-                outcome: reason == .cancelled ? .failure(.cancelled) : .failure(.timeout)
+                cancelled: split.reason == .cancelled,
+                timedOut: split.reason == .timedOut,
+                outcome: split.reason == .cancelled ? .failure(.cancelled) : .failure(.timeout)
             )
+
+            // Create resumption from consumed entry
+            pending.append(split.entry.resumption(with: outcome))
         }
 
         // Update metrics

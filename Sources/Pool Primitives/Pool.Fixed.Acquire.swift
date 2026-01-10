@@ -249,9 +249,10 @@ extension Pool.Fixed where Resource: ~Copyable & Sendable {
         let outcome: Outcome = await withTaskCancellationHandler {
             await withCheckedContinuation { continuation in
                 _state.withLock { state in
-                    let waiter = Waiter(
+                    let waiter = Waiter.Entry(
                         continuation: continuation,
-                        flag: flag
+                        flag: flag,
+                        metadata: Waiter.Metadata()
                     )
                     state.addWaiter(waiter)
                 }
@@ -426,17 +427,29 @@ extension Pool.Fixed.State where Resource: ~Copyable & Sendable {
     @usableFromInline
     mutating func dequeueEligibleWaiter(
         skipped: inout [Async.Waiter.Resumption]
-    ) -> Pool.Fixed<Resource>.Waiter? {
+    ) -> Pool.Fixed<Resource>.Waiter.Entry? {
         let countBefore = waiters.count
 
-        let entry = waiters.dequeueEligible(into: &skipped) { [lifecycle] reason, _ in
+        // Collect flagged entries
+        var flagged = Async.Waiter.Queue.Drain<Pool.Fixed<Resource>.Waiter.Flagged>()
+        let entry = waiters.popEligible(flaggedInto: &flagged)
+
+        // Process flagged entries into resumptions
+        let currentLifecycle = lifecycle
+        flagged.drain { flaggedEntry in
+            // Deconstruct in one step - explicit ownership transition
+            let split = flaggedEntry.split()
+
             // Apply Pool's precedence: shutdown > cancel > timeout
-            Pool.Lifecycle.Precedence.apply(
-                lifecycle: lifecycle,
-                cancelled: reason == .cancelled,
-                timedOut: reason == .timedOut,
-                outcome: reason == .cancelled ? .failure(.cancelled) : .failure(.timeout)
+            let outcome: Pool.Fixed<Resource>.Outcome = Pool.Lifecycle.Precedence.apply(
+                lifecycle: currentLifecycle,
+                cancelled: split.reason == .cancelled,
+                timedOut: split.reason == .timedOut,
+                outcome: split.reason == .cancelled ? .failure(.cancelled) : .failure(.timeout)
             )
+
+            // Create resumption from consumed entry
+            skipped.append(split.entry.resumption(with: outcome))
         }
 
         // Update metrics for removed entries

@@ -80,10 +80,10 @@ extension Pool.Fixed.Shutdown where Resource: ~Copyable & Sendable {
                 slotsToDrain.append((slotIndex, id))
             }
 
-            // Reap all waiters with shutdown error
+            // Drain all waiters with shutdown error
             var pending: [Async.Waiter.Resumption] = []
-            state.waiters.reapAll(into: &pending) { _ in
-                .failure(.shutdown)
+            state.waiters.drainAll { entry in
+                pending.append(entry.resumption(with: .failure(.shutdown)))
             }
             state.metrics.waiters = 0
 

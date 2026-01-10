@@ -289,9 +289,10 @@ extension Pool.Fixed where Resource: ~Copyable & Sendable {
         let outcome: Outcome = await withTaskCancellationHandler {
             await withCheckedContinuation { continuation in
                 _state.withLock { state in
-                    let waiter = Waiter(
+                    let waiter = Waiter.Entry(
                         continuation: continuation,
-                        flag: flag
+                        flag: flag,
+                        metadata: Waiter.Metadata()
                     )
                     state.addWaiter(waiter)
                 }

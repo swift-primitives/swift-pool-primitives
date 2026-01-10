@@ -9,10 +9,27 @@ extension Pool.Fixed where Resource: ~Copyable & Sendable {
     @usableFromInline
     typealias Outcome = Result<(Slot.Index, Pool.ID), Pool.Lifecycle.Error>
 
+    /// Namespace for waiter-related types.
+    @usableFromInline
+    enum Waiter {}
+}
+
+extension Pool.Fixed.Waiter where Resource: ~Copyable & Sendable {
+    /// Metadata carried with each waiter entry.
+    ///
+    /// Empty for now - can add fields without breaking changes.
+    /// Potential future uses: creation instant, priority, trace IDs.
+    @usableFromInline
+    struct Metadata: Sendable {}
+
     /// Waiter entry type for the FIFO queue.
     ///
-    /// Uses `Async.Waiter.Queue.Entry` directly as the substrate.
+    /// Uses `Async.Waiter.Entry` directly as the substrate.
     /// No wrapper - Pool exercises the primitive in production.
     @usableFromInline
-    typealias Waiter = Async.Waiter.Queue<Outcome>.Entry
+    typealias Entry = Async.Waiter.Entry<Pool.Fixed<Resource>.Outcome, Metadata>
+
+    /// Flagged waiter type for reaping.
+    @usableFromInline
+    typealias Flagged = Async.Waiter.Queue.Flagged<Pool.Fixed<Resource>.Outcome, Metadata>
 }
