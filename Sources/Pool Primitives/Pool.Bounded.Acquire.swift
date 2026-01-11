@@ -14,7 +14,7 @@ internal import Synchronization
 public import Dimension_Primitives
 public import Async_Primitives
 
-extension Pool.Fixed where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable & Sendable {
     // MARK: - Core Acquire (Non-throwing Body)
 
     /// Acquires a resource and executes a body with exclusive access.
@@ -98,7 +98,7 @@ extension Pool.Fixed where Resource: ~Copyable & Sendable {
 
 // MARK: - Acquire Action
 
-extension Pool.Fixed where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Actions computed under lock for slot acquisition.
     @usableFromInline
     enum AcquireAction: Sendable {
@@ -118,7 +118,7 @@ extension Pool.Fixed where Resource: ~Copyable & Sendable {
 
 // MARK: - Slot Acquisition
 
-extension Pool.Fixed where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Acquires a slot, waiting if necessary.
     ///
     /// ## Flow (Action Pattern)
@@ -281,7 +281,7 @@ extension Pool.Fixed where Resource: ~Copyable & Sendable {
 
 // MARK: - Release Action
 
-extension Pool.Fixed where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Actions computed under lock for slot release.
     @usableFromInline
     enum ReleaseAction: Sendable {
@@ -298,7 +298,7 @@ extension Pool.Fixed where Resource: ~Copyable & Sendable {
 
 // MARK: - Slot Release
 
-extension Pool.Fixed where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Releases a slot back to the pool using two-phase commit.
     ///
     /// ## Two-Phase Commit (Strict Stance)
@@ -376,7 +376,7 @@ extension Pool.Fixed where Resource: ~Copyable & Sendable {
 
 // MARK: - Pump Waiters
 
-extension Pool.Fixed where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Pumps the waiter queue, resuming any flagged waiters.
     ///
     /// This is the reaping mechanism for timeout/cancel. When a waiter's flag
@@ -403,15 +403,15 @@ extension Pool.Fixed where Resource: ~Copyable & Sendable {
 
 // MARK: - State Helpers
 
-extension Pool.Fixed.State where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
     /// Finds an empty slot for lazy creation.
     ///
     /// - Returns: The index of an empty slot, or nil if none available.
     @usableFromInline
-    func findEmptySlot() -> Pool.Fixed<Resource>.Slot.Index? {
+    func findEmptySlot() -> Pool.Bounded<Resource>.Slot.Index? {
         for i in 0..<slots.count {
             if case .empty = slots[i].state {
-                return Pool.Fixed<Resource>.Slot.Index(i)
+                return Pool.Bounded<Resource>.Slot.Index(i)
             }
         }
         return nil
@@ -427,11 +427,11 @@ extension Pool.Fixed.State where Resource: ~Copyable & Sendable {
     @usableFromInline
     mutating func dequeueEligibleWaiter(
         skipped: inout [Async.Waiter.Resumption]
-    ) -> Pool.Fixed<Resource>.Waiter.Entry? {
+    ) -> Pool.Bounded<Resource>.Waiter.Entry? {
         let countBefore = waiters.count
 
         // Collect flagged entries
-        var flagged = Async.Waiter.Queue.Drain<Pool.Fixed<Resource>.Waiter.Flagged>()
+        var flagged = Async.Waiter.Queue.Drain<Pool.Bounded<Resource>.Waiter.Flagged>()
         let entry = waiters.popEligible(flaggedInto: &flagged)
 
         // Process flagged entries into resumptions
@@ -441,7 +441,7 @@ extension Pool.Fixed.State where Resource: ~Copyable & Sendable {
             let split = flaggedEntry.split()
 
             // Apply Pool's precedence: shutdown > cancel > timeout
-            let outcome: Pool.Fixed<Resource>.Outcome = Pool.Lifecycle.Precedence.apply(
+            let outcome: Pool.Bounded<Resource>.Outcome = Pool.Lifecycle.Precedence.apply(
                 lifecycle: currentLifecycle,
                 cancelled: split.reason == .cancelled,
                 timedOut: split.reason == .timedOut,

@@ -1,4 +1,4 @@
-extension Pool.Fixed where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Reference-based destructor for eager policy.
     @usableFromInline
     final class Destructor: @unchecked Sendable {
@@ -14,7 +14,7 @@ extension Pool.Fixed where Resource: ~Copyable & Sendable {
 
 // MARK: - Destructor Access
 
-extension Pool.Fixed where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Gets the destructor from either policy.
     @usableFromInline
     var destructor: @Sendable (consuming Resource) -> Void {

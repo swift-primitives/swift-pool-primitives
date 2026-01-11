@@ -1,6 +1,6 @@
 // MARK: - Move Accessor
 
-extension Pool.Fixed.Entry where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Entry where Resource: ~Copyable & Sendable {
     /// Accessor for move operations.
     @usableFromInline
     var move: Move {
@@ -10,15 +10,15 @@ extension Pool.Fixed.Entry where Resource: ~Copyable & Sendable {
 
 // MARK: - Move Type
 
-extension Pool.Fixed.Entry where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Entry where Resource: ~Copyable & Sendable {
     /// Namespace for resource move operations.
     @usableFromInline
     struct Move {
         @usableFromInline
-        let entry: Pool.Fixed<Resource>.Entry
+        let entry: Pool.Bounded<Resource>.Entry
 
         @usableFromInline
-        init(entry: Pool.Fixed<Resource>.Entry) {
+        init(entry: Pool.Bounded<Resource>.Entry) {
             self.entry = entry
         }
     }
@@ -26,7 +26,7 @@ extension Pool.Fixed.Entry where Resource: ~Copyable & Sendable {
 
 // MARK: - Move Operations
 
-extension Pool.Fixed.Entry.Move where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Entry.Move where Resource: ~Copyable & Sendable {
     /// Takes the resource out of storage.
     ///
     /// - Precondition: Entry must be occupied.

@@ -1,7 +1,7 @@
 public import Async_Primitives
 public import Dimension_Primitives
 
-extension Pool.Fixed where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Outcome type for waiter continuation pattern.
     ///
     /// Returns (slot index, Pool.ID) on success, lifecycle error on failure.
@@ -14,7 +14,7 @@ extension Pool.Fixed where Resource: ~Copyable & Sendable {
     enum Waiter {}
 }
 
-extension Pool.Fixed.Waiter where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Waiter where Resource: ~Copyable & Sendable {
     /// Metadata carried with each waiter entry.
     ///
     /// Empty for now - can add fields without breaking changes.
@@ -27,9 +27,9 @@ extension Pool.Fixed.Waiter where Resource: ~Copyable & Sendable {
     /// Uses `Async.Waiter.Entry` directly as the substrate.
     /// No wrapper - Pool exercises the primitive in production.
     @usableFromInline
-    typealias Entry = Async.Waiter.Entry<Pool.Fixed<Resource>.Outcome, Metadata>
+    typealias Entry = Async.Waiter.Entry<Pool.Bounded<Resource>.Outcome, Metadata>
 
     /// Flagged waiter type for reaping.
     @usableFromInline
-    typealias Flagged = Async.Waiter.Queue.Flagged<Pool.Fixed<Resource>.Outcome, Metadata>
+    typealias Flagged = Async.Waiter.Queue.Flagged<Pool.Bounded<Resource>.Outcome, Metadata>
 }

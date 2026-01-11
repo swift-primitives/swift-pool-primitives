@@ -9,14 +9,14 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Async_Primitives
+import Async_Primitives
 public import Dimension_Primitives
 internal import Container_Primitives
 internal import Synchronization
 
 // MARK: - Shutdown Accessor
 
-extension Pool.Fixed where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Accessor for shutdown operations.
     public var shutdown: Shutdown {
         Shutdown(pool: self)
@@ -25,14 +25,14 @@ extension Pool.Fixed where Resource: ~Copyable & Sendable {
 
 // MARK: - Shutdown Type
 
-extension Pool.Fixed where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Namespace for pool shutdown operations.
     public struct Shutdown: Sendable {
         @usableFromInline
-        let pool: Pool.Fixed<Resource>
+        let pool: Pool.Bounded<Resource>
 
         @usableFromInline
-        init(pool: Pool.Fixed<Resource>) {
+        init(pool: Pool.Bounded<Resource>) {
             self.pool = pool
         }
     }
@@ -40,18 +40,18 @@ extension Pool.Fixed where Resource: ~Copyable & Sendable {
 
 // MARK: - Drain Action
 
-extension Pool.Fixed.Shutdown where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Shutdown where Resource: ~Copyable & Sendable {
     /// Actions computed under lock for shutdown drain.
     @usableFromInline
     enum DrainAction: Sendable {
-        case drain([(Pool.Fixed<Resource>.Slot.Index, Pool.ID)])
+        case drain([(Pool.Bounded<Resource>.Slot.Index, Pool.ID)])
         case alreadyShuttingDown
     }
 }
 
 // MARK: - Shutdown Operations
 
-extension Pool.Fixed.Shutdown where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Shutdown where Resource: ~Copyable & Sendable {
     /// Initiates graceful shutdown.
     ///
     /// After calling this:
@@ -70,7 +70,7 @@ extension Pool.Fixed.Shutdown where Resource: ~Copyable & Sendable {
             }
 
             // Collect slots to drain
-            var slotsToDrain: [(Pool.Fixed<Resource>.Slot.Index, Pool.ID)] = []
+            var slotsToDrain: [(Pool.Bounded<Resource>.Slot.Index, Pool.ID)] = []
             while let slotIndex = state.popAvailable() {
                 guard case .available(let id) = state.slots[slotIndex.rawValue].state else {
                     continue
@@ -110,7 +110,7 @@ extension Pool.Fixed.Shutdown where Resource: ~Copyable & Sendable {
                 pool.destructor(resource)
 
                 // Complete disposal and check shutdown
-                let effect: Pool.Fixed<Resource>.Effect = pool._state.withLock { state in
+                let effect: Pool.Bounded<Resource>.Effect = pool._state.withLock { state in
                     state.transition(slot: slotIndex, to: .empty)
                     state.metrics.closed += 1
                     return state.checkShutdownComplete()
@@ -120,7 +120,7 @@ extension Pool.Fixed.Shutdown where Resource: ~Copyable & Sendable {
 
             // Final shutdown completion check (for case with no available slots)
             if slotsToDrain.isEmpty {
-                let effect: Pool.Fixed<Resource>.Effect = pool._state.withLock { state in
+                let effect: Pool.Bounded<Resource>.Effect = pool._state.withLock { state in
                     state.checkShutdownComplete()
                 }
                 pool.perform(effect)

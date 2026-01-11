@@ -1,16 +1,16 @@
-import Test_Support_Primitives
-import Testing
+import Test_Primitives
+import Testing_Extras
 
 @testable import Pool_Primitives
 
-// Pool.Fixed.Slot.State is generic, so we test via a concrete helper namespace
+// Pool.Bounded.Slot.State is generic, so we test via a concrete helper namespace
 enum PoolFixedSlotStateTests {
     #TestSuites
 }
 
 // MARK: - Type Aliases
 
-private typealias TestPool = Pool.Fixed<Int>
+private typealias TestPool = Pool.Bounded<Int>
 private typealias SlotState = TestPool.Slot.State
 
 // MARK: - Unit Tests

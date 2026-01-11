@@ -11,7 +11,7 @@
 
 public import Async_Primitives
 
-extension Pool.Fixed where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// External effects computed under lock, executed outside lock.
     ///
     /// ## Design Contract
@@ -42,7 +42,7 @@ extension Pool.Fixed where Resource: ~Copyable & Sendable {
 
 // MARK: - Gate
 
-extension Pool.Fixed.Effect where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Effect where Resource: ~Copyable & Sendable {
     /// Gate effects for shutdown notification.
     @usableFromInline
     enum Gate: Sendable {
@@ -53,7 +53,7 @@ extension Pool.Fixed.Effect where Resource: ~Copyable & Sendable {
 
 // MARK: - Waiter
 
-extension Pool.Fixed.Effect where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Effect where Resource: ~Copyable & Sendable {
     /// Waiter effects for continuation resumption.
     ///
     /// ## Construction Constraint

@@ -5,7 +5,7 @@ internal import Container_Primitives
 extension Pool {
     // MARK: - Sendability Contract
     //
-    // Pool.Fixed is @unchecked Sendable. Safety is guaranteed by:
+    // Pool.Bounded is @unchecked Sendable. Safety is guaranteed by:
     //
     // 1. All mutable bookkeeping (_state) is protected by Mutex
     // 2. entries is immutable fixed-capacity storage (let)
@@ -21,7 +21,7 @@ extension Pool {
     /// Supports two policies:
     /// - **Eager**: Resources created only via `fill()`. Acquire waits for available.
     /// - **Lazy**: Resources created on-demand up to capacity.
-    public final class Fixed<Resource: ~Copyable & Sendable>: @unchecked Sendable {
+    public final class Bounded<Resource: ~Copyable & Sendable>: @unchecked Sendable {
         /// Protected internal state wrapped in stdlib Mutex.
         @usableFromInline
         let _state: Mutex<State>
@@ -50,7 +50,7 @@ extension Pool {
         ///
         /// **Strict Stance:** Entry access (move.in/move.out) is an external
         /// effect and must happen OUTSIDE the pool lock.
-        let entries: Container.Array<Entry>.Fixed
+        let entries: Container.Array<Entry>.Bounded
 
         #if DEBUG
         /// Test hook called immediately after a waiter is enqueued.
@@ -76,7 +76,7 @@ extension Pool {
             self.scope = Pool.Scope()
             self.policy = .eager(Destructor(destroy))
             self._check = check
-            self.entries = Container.Array<Entry>.Fixed(count: capacity.value) { _ in Entry() }
+            self.entries = Container.Array<Entry>.Bounded(count: capacity.value) { _ in Entry() }
         }
 
         /// Creates a fixed-capacity pool with lazy policy.
@@ -99,14 +99,14 @@ extension Pool {
             self.scope = Pool.Scope()
             self.policy = .lazy(Creator(create: create, destroy: destroy))
             self._check = check
-            self.entries = Container.Array<Entry>.Fixed(count: capacity.value) { _ in Entry() }
+            self.entries = Container.Array<Entry>.Bounded(count: capacity.value) { _ in Entry() }
         }
     }
 }
 
 // MARK: - Metrics Snapshot
 
-extension Pool.Fixed where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Returns a point-in-time snapshot of pool metrics.
     ///
     /// This is the only safe way to read metrics externally.
@@ -118,7 +118,7 @@ extension Pool.Fixed where Resource: ~Copyable & Sendable {
 
 // MARK: - Effect Execution
 
-extension Pool.Fixed where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Execute effect outside lock. Single resumption funnel.
     ///
     /// **CRITICAL:** This is the ONLY location where `shutdownGate.open()`

@@ -1,5 +1,5 @@
-import Test_Support_Primitives
-import Testing
+import Test_Primitives
+import Testing_Extras
 import Async_Primitives
 
 @testable import Pool_Primitives

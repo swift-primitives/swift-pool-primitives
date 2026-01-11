@@ -1,4 +1,4 @@
-extension Pool.Fixed where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Reference-based creator for lazy policy.
     ///
     /// Class avoids ~Copyable closure storage issues under Swift 6.2.

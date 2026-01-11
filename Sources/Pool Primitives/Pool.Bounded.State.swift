@@ -2,7 +2,7 @@ public import Dimension_Primitives
 public import Buffer_Primitives
 public import Async_Primitives
 
-extension Pool.Fixed where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Internal synchronized state for the pool.
     ///
     /// ~Copyable because it contains the waiter queue which is ~Copyable.
@@ -12,9 +12,9 @@ extension Pool.Fixed where Resource: ~Copyable & Sendable {
         /// Fixed-capacity LIFO buffer for available slot indices.
         /// Contains indices of slots in `.available(id)` state only.
         ///
-        /// Uses `Buffer.Fixed` for Copyable COW semantics with no stdlib arrays.
+        /// Uses `Buffer.Bounded` for Copyable COW semantics with no stdlib arrays.
         @usableFromInline
-        var available: Buffer.Fixed<Slot.Index>
+        var available: Buffer.Bounded<Slot.Index>
 
         /// FIFO queue of waiters.
         ///
@@ -60,7 +60,7 @@ extension Pool.Fixed where Resource: ~Copyable & Sendable {
         @usableFromInline
         init(capacity: Int) {
             // Pre-allocate fixed-capacity LIFO buffer for available indices (starts empty)
-            self.available = Buffer.Fixed(capacity: capacity)
+            self.available = Buffer.Bounded(capacity: capacity)
             self.waiters = Async.Waiter.Queue.Unbounded()
             self.slots = (0..<capacity).map { Slot(index: Slot.Index($0)) }
             self.next = 0
@@ -75,7 +75,7 @@ extension Pool.Fixed where Resource: ~Copyable & Sendable {
 
 // MARK: - Shutdown Completion Predicate
 
-extension Pool.Fixed.State where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
     /// Whether shutdown is complete.
     ///
     /// Shutdown is complete when:
@@ -96,7 +96,7 @@ extension Pool.Fixed.State where Resource: ~Copyable & Sendable {
     ///
     /// - Returns: `.gate(.open)` if shutdown is complete, `.none` otherwise.
     @usableFromInline
-    mutating func checkShutdownComplete() -> Pool.Fixed<Resource>.Effect {
+    mutating func checkShutdownComplete() -> Pool.Bounded<Resource>.Effect {
         if isShutdownComplete {
             _ = lifecycle.completeShutdown()
             return .gate(.open)
@@ -107,7 +107,7 @@ extension Pool.Fixed.State where Resource: ~Copyable & Sendable {
 
 // MARK: - Centralized Transition Helper
 
-extension Pool.Fixed.State where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
     /// Transitions a slot to a new state.
     ///
     /// **INVARIANT:** ALL slot state changes MUST go through this helper.
@@ -115,7 +115,7 @@ extension Pool.Fixed.State where Resource: ~Copyable & Sendable {
     ///
     /// This maintains counter invariants and metrics automatically.
     @usableFromInline
-    mutating func transition(slot index: Pool.Fixed<Resource>.Slot.Index, to newState: Pool.Fixed<Resource>.Slot.State) {
+    mutating func transition(slot index: Pool.Bounded<Resource>.Slot.Index, to newState: Pool.Bounded<Resource>.Slot.State) {
         let oldState = slots[index.rawValue].state
 
         #if DEBUG
@@ -179,7 +179,7 @@ extension Pool.Fixed.State where Resource: ~Copyable & Sendable {
     /// Asserts that the transition is legal per the state machine.
     #if DEBUG
     @usableFromInline
-    func assertValidTransition(from oldState: Pool.Fixed<Resource>.Slot.State, to newState: Pool.Fixed<Resource>.Slot.State) {
+    func assertValidTransition(from oldState: Pool.Bounded<Resource>.Slot.State, to newState: Pool.Bounded<Resource>.Slot.State) {
         let valid: Bool
         switch (oldState, newState) {
         // From empty
@@ -214,7 +214,7 @@ extension Pool.Fixed.State where Resource: ~Copyable & Sendable {
 
 // MARK: - ID Generation
 
-extension Pool.Fixed.State where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
     /// Generates the next Pool.ID.
     @usableFromInline
     mutating func nextID(scope: Pool.Scope) -> Pool.ID {
@@ -226,7 +226,7 @@ extension Pool.Fixed.State where Resource: ~Copyable & Sendable {
 
 // MARK: - Available Free-List Helpers
 
-extension Pool.Fixed.State where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
     /// Pushes a slot index to the available free-list (LIFO).
     ///
     /// **INVARIANT:** Each slot index appears in `available` at most once.
@@ -235,7 +235,7 @@ extension Pool.Fixed.State where Resource: ~Copyable & Sendable {
     ///
     /// - Parameter index: The slot index to push.
     @inlinable
-    mutating func pushAvailable(_ index: Pool.Fixed<Resource>.Slot.Index) {
+    mutating func pushAvailable(_ index: Pool.Bounded<Resource>.Slot.Index) {
         available.push(__unchecked: (), index)
     }
 
@@ -243,7 +243,7 @@ extension Pool.Fixed.State where Resource: ~Copyable & Sendable {
     ///
     /// - Returns: The top slot index, or nil if empty.
     @inlinable
-    mutating func popAvailable() -> Pool.Fixed<Resource>.Slot.Index? {
+    mutating func popAvailable() -> Pool.Bounded<Resource>.Slot.Index? {
         do {
             return try available.pop()
         } catch {
@@ -255,10 +255,10 @@ extension Pool.Fixed.State where Resource: ~Copyable & Sendable {
 
 // MARK: - Waiter Management with Metrics
 
-extension Pool.Fixed.State where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
     /// Adds a waiter to the queue and updates metrics.
     @usableFromInline
-    mutating func addWaiter(_ waiter: consuming Pool.Fixed<Resource>.Waiter.Entry) {
+    mutating func addWaiter(_ waiter: consuming Pool.Bounded<Resource>.Waiter.Entry) {
         waiters.push(waiter)
         metrics.waiters += 1
     }
@@ -273,7 +273,7 @@ extension Pool.Fixed.State where Resource: ~Copyable & Sendable {
     ///
     /// - Returns: The removed waiter, or `nil` if queue is empty.
     @usableFromInline
-    mutating func popWaiter() -> Pool.Fixed<Resource>.Waiter.Entry? {
+    mutating func popWaiter() -> Pool.Bounded<Resource>.Waiter.Entry? {
         guard let waiter = waiters.popFront() else {
             return nil
         }
@@ -300,7 +300,7 @@ extension Pool.Fixed.State where Resource: ~Copyable & Sendable {
         var timeoutCount = 0
 
         // Collect flagged entries
-        var flagged = Async.Waiter.Queue.Drain<Pool.Fixed<Resource>.Waiter.Flagged>()
+        var flagged = Async.Waiter.Queue.Drain<Pool.Bounded<Resource>.Waiter.Flagged>()
         waiters.reapFlagged(into: &flagged)
 
         // Process flagged entries into resumptions
@@ -314,7 +314,7 @@ extension Pool.Fixed.State where Resource: ~Copyable & Sendable {
             }
 
             // Apply Pool's precedence: shutdown > cancel > timeout
-            let outcome: Pool.Fixed<Resource>.Outcome = Pool.Lifecycle.Precedence.apply(
+            let outcome: Pool.Bounded<Resource>.Outcome = Pool.Lifecycle.Precedence.apply(
                 lifecycle: currentLifecycle,
                 cancelled: split.reason == .cancelled,
                 timedOut: split.reason == .timedOut,

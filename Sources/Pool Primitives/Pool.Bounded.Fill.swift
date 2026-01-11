@@ -16,7 +16,7 @@ internal import Synchronization
 
 // MARK: - Fill Accessor
 
-extension Pool.Fixed where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Accessor for fill operations (eager policy only).
     public var fill: Fill {
         Fill(pool: self)
@@ -25,14 +25,14 @@ extension Pool.Fixed where Resource: ~Copyable & Sendable {
 
 // MARK: - Fill Type
 
-extension Pool.Fixed where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Namespace for eager pool fill operations.
     public struct Fill: Sendable {
         @usableFromInline
-        let pool: Pool.Fixed<Resource>
+        let pool: Pool.Bounded<Resource>
 
         @usableFromInline
-        init(pool: Pool.Fixed<Resource>) {
+        init(pool: Pool.Bounded<Resource>) {
             self.pool = pool
         }
     }
@@ -40,7 +40,7 @@ extension Pool.Fixed where Resource: ~Copyable & Sendable {
 
 // MARK: - Fill Error
 
-extension Pool.Fixed.Fill where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Fill where Resource: ~Copyable & Sendable {
     /// Errors that can occur during fill operations.
     public enum Error: Swift.Error, Sendable, Equatable {
         /// Pool is not using eager policy.
@@ -56,7 +56,7 @@ extension Pool.Fixed.Fill where Resource: ~Copyable & Sendable {
 
 // MARK: - Fill Action
 
-extension Pool.Fixed.Fill where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Fill where Resource: ~Copyable & Sendable {
     /// Actions computed under lock for fill operations.
     @usableFromInline
     enum Action: Sendable {
@@ -70,13 +70,13 @@ extension Pool.Fixed.Fill where Resource: ~Copyable & Sendable {
         case full
 
         /// Found empty slot - proceed to install.
-        case install(Pool.Fixed<Resource>.Slot.Index, Pool.ID)
+        case install(Pool.Bounded<Resource>.Slot.Index, Pool.ID)
     }
 }
 
 // MARK: - Commit Action
 
-extension Pool.Fixed.Fill where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Fill where Resource: ~Copyable & Sendable {
     /// Actions for committing a filled slot.
     @usableFromInline
     enum CommitAction: Sendable {
@@ -90,7 +90,7 @@ extension Pool.Fixed.Fill where Resource: ~Copyable & Sendable {
 
 // MARK: - Fill Operations
 
-extension Pool.Fixed.Fill where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Fill where Resource: ~Copyable & Sendable {
     /// Fills the pool with a single resource.
     ///
     /// ## Two-Phase Commit (Strict Stance)
@@ -146,7 +146,7 @@ extension Pool.Fixed.Fill where Resource: ~Copyable & Sendable {
             // Phase 3: Commit under lock
             var skippedResumptions: [Async.Waiter.Resumption] = []
 
-            let (commitAction, effect): (CommitAction, Pool.Fixed<Resource>.Effect) = pool._state.withLock { state in
+            let (commitAction, effect): (CommitAction, Pool.Bounded<Resource>.Effect) = pool._state.withLock { state in
                 // Mark as available (creating → available)
                 state.transition(slot: slotIndex, to: .available(id))
                 state.metrics.fills += 1
@@ -186,7 +186,7 @@ extension Pool.Fixed.Fill where Resource: ~Copyable & Sendable {
 
 // MARK: - Batch Fill
 
-extension Pool.Fixed.Fill where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Fill where Resource: ~Copyable & Sendable {
     /// Fills the pool with multiple resources.
     ///
     /// Adds resources up to the remaining capacity. Returns the count of

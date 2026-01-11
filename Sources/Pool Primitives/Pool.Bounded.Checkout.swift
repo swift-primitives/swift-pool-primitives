@@ -1,4 +1,4 @@
-extension Pool.Fixed where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Pure ownership token for a checked-out resource.
     ///
     /// This is ~Copyable but does NOT store the Resource itself.

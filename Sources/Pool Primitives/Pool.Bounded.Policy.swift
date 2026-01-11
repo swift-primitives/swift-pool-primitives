@@ -1,4 +1,4 @@
-extension Pool.Fixed where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Resource creation policy.
     @usableFromInline
     enum Policy: Sendable {

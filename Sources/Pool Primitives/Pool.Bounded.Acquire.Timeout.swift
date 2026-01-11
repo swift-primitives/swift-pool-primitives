@@ -16,7 +16,7 @@ internal import Synchronization
 
 // MARK: - Acquire Accessor
 
-extension Pool.Fixed where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Accessor for acquire operations with timeout support.
     ///
     /// ```swift
@@ -36,14 +36,14 @@ extension Pool.Fixed where Resource: ~Copyable & Sendable {
 
 // MARK: - Acquire Type
 
-extension Pool.Fixed where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Namespace for acquire operations with optional timeout.
     public struct Acquire: Sendable {
         @usableFromInline
-        let pool: Pool.Fixed<Resource>
+        let pool: Pool.Bounded<Resource>
 
         @usableFromInline
-        init(pool: Pool.Fixed<Resource>) {
+        init(pool: Pool.Bounded<Resource>) {
             self.pool = pool
         }
     }
@@ -51,14 +51,14 @@ extension Pool.Fixed where Resource: ~Copyable & Sendable {
 
 // MARK: - Acquire Operations
 
-extension Pool.Fixed.Acquire where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Acquire where Resource: ~Copyable & Sendable {
     /// Acquires a resource with a timeout.
     ///
     /// - Parameter duration: Maximum time to wait for a resource.
     /// - Returns: A timeout acquire accessor.
     @inlinable
-    public func timeout(_ duration: Duration) -> Pool.Fixed<Resource>.TimeoutAcquire {
-        Pool.Fixed<Resource>.TimeoutAcquire(pool: pool, timeout: duration)
+    public func timeout(_ duration: Duration) -> Pool.Bounded<Resource>.TimeoutAcquire {
+        Pool.Bounded<Resource>.TimeoutAcquire(pool: pool, timeout: duration)
     }
 
     /// Acquires a resource and executes a body (no timeout).
@@ -84,17 +84,17 @@ extension Pool.Fixed.Acquire where Resource: ~Copyable & Sendable {
 
 // MARK: - TimeoutAcquire Type
 
-extension Pool.Fixed where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Acquire operation with timeout.
     public struct TimeoutAcquire: Sendable {
         @usableFromInline
-        let pool: Pool.Fixed<Resource>
+        let pool: Pool.Bounded<Resource>
 
         @usableFromInline
         let timeout: Duration
 
         @usableFromInline
-        init(pool: Pool.Fixed<Resource>, timeout: Duration) {
+        init(pool: Pool.Bounded<Resource>, timeout: Duration) {
             self.pool = pool
             self.timeout = timeout
         }
@@ -103,7 +103,7 @@ extension Pool.Fixed where Resource: ~Copyable & Sendable {
 
 // MARK: - TimeoutAcquire Operations
 
-extension Pool.Fixed.TimeoutAcquire where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.TimeoutAcquire where Resource: ~Copyable & Sendable {
     /// Acquires a resource with timeout and executes a body.
     ///
     /// - Parameter body: Closure receiving exclusive mutable access to resource.
@@ -191,7 +191,7 @@ extension Pool.Fixed.TimeoutAcquire where Resource: ~Copyable & Sendable {
 
 // MARK: - Slot Acquisition with Timeout
 
-extension Pool.Fixed where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Acquires a slot with timeout, waiting if necessary.
     ///
     /// ## Flow (Action Pattern)

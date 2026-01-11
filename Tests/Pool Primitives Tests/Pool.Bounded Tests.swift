@@ -1,14 +1,15 @@
 import Async_Primitives
 import Container_Primitives
 import Dimension_Primitives
-import Test_Support_Primitives
-import Testing
+import Test_Primitives
+import Testing_Extras
 import Buffer_Primitives
 import Synchronization
+import Testing_Extras
 
 @testable import Pool_Primitives
 
-// Pool.Fixed is generic, so we test via a concrete helper namespace
+// Pool.Bounded is generic, so we test via a concrete helper namespace
 // .serialized required because async tests may use shared executors
 @Suite(.serialized)
 enum PoolFixedTests {
@@ -17,7 +18,7 @@ enum PoolFixedTests {
 
 // MARK: - Type Aliases
 
-private typealias TestPool = Pool.Fixed<Int>
+private typealias TestPool = Pool.Bounded<Int>
 
 // MARK: - Test Helpers
 
@@ -284,7 +285,7 @@ extension PoolFixedTests.Test.Unit {
     @Test("lazy pool creates resource on demand")
     func lazyPoolCreatesResourceOnDemand() async throws {
         let createCount = Mutex(0)
-        let pool = Pool.Fixed<Int>(
+        let pool = Pool.Bounded<Int>(
             capacity: 2,
             create: {
                 createCount.withLock { $0 += 1 }
@@ -306,7 +307,7 @@ extension PoolFixedTests.Test.Unit {
     @Test("lazy pool reuses returned resource")
     func lazyPoolReusesReturnedResource() async throws {
         let createCount = Mutex(0)
-        let pool = Pool.Fixed<Int>(
+        let pool = Pool.Bounded<Int>(
             capacity: 2,
             create: {
                 createCount.withLock { $0 += 1 }
@@ -332,7 +333,7 @@ extension PoolFixedTests.Test.Unit {
         // Barrier ensures both creates have started before either completes
         let barrier = Async.Barrier(parties: 2)
 
-        let pool = Pool.Fixed<Int>(
+        let pool = Pool.Bounded<Int>(
             capacity: 2,
             create: {
                 // Wait for both creates to start (proves concurrency)
@@ -356,7 +357,7 @@ extension PoolFixedTests.Test.Unit {
 
     @Test("lazy pool increments created metric")
     func lazyPoolIncrementsCreatedMetric() async throws {
-        let pool = Pool.Fixed<Int>(
+        let pool = Pool.Bounded<Int>(
             capacity: 1,
             create: { 42 },
             destroy: { _ in }
