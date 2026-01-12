@@ -18,12 +18,12 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(path: "../swift-async-primitives"),
-        .package(path: "../swift-buffer-primitives"),
-        .package(path: "../swift-container-primitives"),
-        .package(path: "../swift-dimension-primitives"),
-        .package(path: "../swift-test-primitives"),
-        .package(path: "../../swift-foundations/swift-testing-extras"),
+        .package(url: "https://github.com/swift-primitives/swift-async-primitives.git", from: "0.0.1"),
+        .package(url: "https://github.com/swift-primitives/swift-buffer-primitives.git", from: "0.0.1"),
+        .package(url: "https://github.com/swift-primitives/swift-container-primitives.git", from: "0.0.1"),
+        .package(url: "https://github.com/swift-primitives/swift-dimension-primitives.git", from: "0.0.1"),
+        .package(url: "https://github.com/swift-primitives/swift-test-primitives.git", from: "0.0.1"),
+        .package(url: "https://github.com/swift-foundations/swift-testing-extras.git", from: "0.0.1"),
     ],
     targets: [
         .target(
