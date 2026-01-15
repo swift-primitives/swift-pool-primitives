@@ -14,5 +14,10 @@ extension Pool.Lifecycle {
 
         /// Resource creation failed (lazy policy only).
         case creationFailed
+
+        /// No resource available for non-blocking acquisition.
+        ///
+        /// Only returned by `acquire.try` operations.
+        case exhausted
     }
 }

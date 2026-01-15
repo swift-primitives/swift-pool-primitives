@@ -9,10 +9,13 @@
 //
 // ===----------------------------------------------------------------------===//
 
+// Timeout acquire requires async suspension - only available on non-embedded platforms.
+#if !hasFeature(Embedded)
+
+import Synchronization
 public import Dimension_Primitives
-internal import Async_Primitives
+public import Async_Primitives
 internal import Container_Primitives
-internal import Synchronization
 
 // MARK: - Acquire Accessor
 
@@ -290,7 +293,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
             await withCheckedContinuation { continuation in
                 _state.withLock { state in
                     let waiter = Waiter.Entry(
-                        continuation: continuation,
+                        continuation: Async.Continuation(continuation),
                         flag: flag,
                         metadata: Waiter.Metadata()
                     )
@@ -320,3 +323,5 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
         }
     }
 }
+
+#endif  // !hasFeature(Embedded)

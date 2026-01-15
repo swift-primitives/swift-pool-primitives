@@ -1,0 +1,231 @@
+// ===----------------------------------------------------------------------===//
+//
+// This source file is part of the swift-pools open source project
+//
+// Copyright (c) 2025 Coen ten Thije Boonkkamp and the swift-pools project authors
+// Licensed under Apache License v2.0
+//
+// See LICENSE for license information
+//
+// ===----------------------------------------------------------------------===//
+
+#if !hasFeature(Embedded)
+import Synchronization
+#endif
+public import Async_Primitives
+public import Dimension_Primitives
+internal import Container_Primitives
+
+// MARK: - Try Acquire Type
+
+extension Pool.Bounded where Resource: ~Copyable & Sendable {
+    /// Non-blocking acquire operations.
+    ///
+    /// Attempts to acquire a resource immediately without waiting.
+    /// Returns immediately with a result or throws `.exhausted`.
+    ///
+    /// Works on all platforms including embedded Swift.
+    public struct TryAcquire: Sendable {
+        @usableFromInline
+        let pool: Pool.Bounded<Resource>
+
+        @usableFromInline
+        init(pool: Pool.Bounded<Resource>) {
+            self.pool = pool
+        }
+    }
+}
+
+// MARK: - Try Acquire Accessor
+
+extension Pool.Bounded.Acquire where Resource: ~Copyable & Sendable {
+    /// Access non-blocking acquire operations.
+    ///
+    /// ```swift
+    /// // Try to acquire, throws .exhausted if none available
+    /// let result = try pool.acquire.try { resource in
+    ///     // use resource
+    /// }
+    /// ```
+    public var `try`: Pool.Bounded<Resource>.TryAcquire {
+        Pool.Bounded<Resource>.TryAcquire(pool: pool)
+    }
+}
+
+// MARK: - Try Acquire Action
+
+extension Pool.Bounded where Resource: ~Copyable & Sendable {
+    /// Actions computed under lock for non-blocking acquisition.
+    @usableFromInline
+    enum TryAcquireAction: Sendable {
+        /// Slot immediately available.
+        case acquired(Slot.Index, Pool.ID)
+
+        /// Pool is shutting down.
+        case shutdown
+
+        /// No resource available.
+        case exhausted
+    }
+}
+
+// MARK: - Try Acquire Operations
+
+extension Pool.Bounded.TryAcquire where Resource: ~Copyable & Sendable {
+    /// Acquires a resource immediately or throws `.exhausted`.
+    ///
+    /// This is a non-blocking operation that returns immediately.
+    /// If no resource is available, throws `Pool.Lifecycle.Error.exhausted`.
+    ///
+    /// Works on all platforms including embedded Swift.
+    ///
+    /// - Parameter body: Closure receiving exclusive mutable access to resource.
+    /// - Returns: The result of the body closure.
+    /// - Throws: `Pool.Lifecycle.Error.shutdown` if pool is shutting down,
+    ///           `Pool.Lifecycle.Error.exhausted` if no resource available.
+    public func callAsFunction<T: Sendable>(
+        _ body: (inout Resource) -> T
+    ) throws(Pool.Lifecycle.Error) -> T {
+        // Phase 1: Try immediate acquisition under lock
+        let action: Pool.Bounded<Resource>.TryAcquireAction = pool._state.withLock { state in
+            // Check lifecycle
+            guard !state.lifecycle.isShuttingDown else {
+                return .shutdown
+            }
+
+            // Try immediate acquisition (LIFO for cache locality)
+            if let slotIndex = state.popAvailable() {
+                guard case .available(let id) = state.slots[slotIndex.rawValue].state else {
+                    preconditionFailure("Available ring contains non-available slot")
+                }
+
+                // Mark as out under lock
+                state.transition(slot: slotIndex, to: .out(id))
+                state.metrics.acquisitions += 1
+                return .acquired(slotIndex, id)
+            }
+
+            // No resource available - unlike async acquire, we don't wait
+            return .exhausted
+        }
+
+        // Phase 2: Handle action OUTSIDE lock
+        switch action {
+        case .shutdown:
+            throw .shutdown
+
+        case .exhausted:
+            throw .exhausted
+
+        case .acquired(let slotIndex, let id):
+            // Use resource OUTSIDE lock
+            defer { pool.releaseSlot(slotIndex, id: id) }
+
+            var resource = pool.entries[slotIndex.rawValue].move.out
+            let result = body(&resource)
+            pool.entries[slotIndex.rawValue].move.in(resource)
+
+            return result
+        }
+    }
+
+    /// Acquires a resource immediately or throws `.exhausted` (throwing body).
+    ///
+    /// This is a non-blocking operation that returns immediately.
+    /// If no resource is available, throws `Pool.Lifecycle.Error.exhausted`.
+    ///
+    /// Works on all platforms including embedded Swift.
+    ///
+    /// - Parameter body: Throwing closure receiving exclusive mutable access.
+    /// - Returns: `Result.success(T)` on body success, `Result.failure(E)` on body error.
+    /// - Throws: `Pool.Lifecycle.Error.shutdown` if pool is shutting down,
+    ///           `Pool.Lifecycle.Error.exhausted` if no resource available.
+    public func callAsFunction<T: Sendable, E: Error>(
+        _ body: (inout Resource) throws(E) -> T
+    ) throws(Pool.Lifecycle.Error) -> Result<T, E> {
+        // Phase 1: Try immediate acquisition under lock
+        let action: Pool.Bounded<Resource>.TryAcquireAction = pool._state.withLock { state in
+            guard !state.lifecycle.isShuttingDown else {
+                return .shutdown
+            }
+
+            if let slotIndex = state.popAvailable() {
+                guard case .available(let id) = state.slots[slotIndex.rawValue].state else {
+                    preconditionFailure("Available ring contains non-available slot")
+                }
+
+                state.transition(slot: slotIndex, to: .out(id))
+                state.metrics.acquisitions += 1
+                return .acquired(slotIndex, id)
+            }
+
+            return .exhausted
+        }
+
+        // Phase 2: Handle action OUTSIDE lock
+        switch action {
+        case .shutdown:
+            throw .shutdown
+
+        case .exhausted:
+            throw .exhausted
+
+        case .acquired(let slotIndex, let id):
+            defer { pool.releaseSlot(slotIndex, id: id) }
+
+            var resource = pool.entries[slotIndex.rawValue].move.out
+
+            let result: Result<T, E>
+            do {
+                let value = try body(&resource)
+                result = .success(value)
+            } catch {
+                result = .failure(error)
+            }
+
+            pool.entries[slotIndex.rawValue].move.in(resource)
+
+            return result
+        }
+    }
+
+    /// Acquires a resource immediately, returning nil if none available.
+    ///
+    /// This is a non-blocking operation that returns immediately.
+    /// Returns `nil` if no resource is available (does not throw).
+    ///
+    /// Works on all platforms including embedded Swift.
+    ///
+    /// - Parameter body: Closure receiving exclusive mutable access to resource.
+    /// - Returns: The result of the body closure, or nil if no resource available.
+    /// - Throws: `Pool.Lifecycle.Error.shutdown` if pool is shutting down.
+    public func optional<T: Sendable>(
+        _ body: (inout Resource) -> T
+    ) throws(Pool.Lifecycle.Error) -> T? {
+        do {
+            return try self(body)
+        } catch .exhausted {
+            return nil
+        }
+    }
+
+    /// Acquires a resource immediately, returning nil if none available (throwing body).
+    ///
+    /// This is a non-blocking operation that returns immediately.
+    /// Returns `nil` if no resource is available (does not throw).
+    ///
+    /// Works on all platforms including embedded Swift.
+    ///
+    /// - Parameter body: Throwing closure receiving exclusive mutable access.
+    /// - Returns: Result of body, or nil if no resource available.
+    /// - Throws: `Pool.Lifecycle.Error.shutdown` if pool is shutting down.
+    public func optional<T: Sendable, E: Error>(
+        _ body: (inout Resource) throws(E) -> T
+    ) throws(Pool.Lifecycle.Error) -> Result<T, E>? {
+        do {
+            return try self(body)
+        } catch .exhausted {
+            return nil
+        }
+    }
+}

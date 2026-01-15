@@ -9,11 +9,16 @@
 //
 // ===----------------------------------------------------------------------===//
 
+#if !hasFeature(Embedded)
+import Synchronization
+#endif
 internal import Container_Primitives
-internal import Synchronization
 public import Dimension_Primitives
 public import Async_Primitives
 
+// MARK: - Async Acquire (Non-Embedded Only)
+
+#if !hasFeature(Embedded)
 extension Pool.Bounded where Resource: ~Copyable & Sendable {
     // MARK: - Core Acquire (Non-throwing Body)
 
@@ -29,6 +34,9 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// ## Error Semantics
     /// - Pool failure → `throws Pool.Lifecycle.Error`
     /// - Body never throws in this overload
+    ///
+    /// - Note: Only available on non-embedded platforms. On embedded, use
+    ///   `acquire.try` or `acquire.callback` instead.
     ///
     /// - Parameter body: Closure receiving exclusive mutable access to resource.
     /// - Returns: The result of the body closure.
@@ -67,6 +75,9 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     ///
     /// **Never** represent pool failures as `Result.failure` - that breaks typed failure determinism.
     ///
+    /// - Note: Only available on non-embedded platforms. On embedded, use
+    ///   `acquire.try` or `acquire.callback` instead.
+    ///
     /// - Parameter body: Throwing closure receiving exclusive mutable access.
     /// - Returns: `Result.success(T)` on body success, `Result.failure(E)` on body error.
     /// - Throws: `Pool.Lifecycle.Error` on shutdown or cancellation.
@@ -95,6 +106,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
         return result
     }
 }
+#endif
 
 // MARK: - Acquire Action
 
@@ -105,8 +117,10 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
         /// Slot immediately available - return to caller.
         case immediate(Slot.Index, Pool.ID)
 
+        #if !hasFeature(Embedded)
         /// Need to create resource lazily.
         case create(Slot.Index, Pool.ID)
+        #endif
 
         /// Need to suspend and wait for slot.
         case suspend
@@ -116,8 +130,9 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     }
 }
 
-// MARK: - Slot Acquisition
+// MARK: - Async Slot Acquisition (Non-Embedded Only)
 
+#if !hasFeature(Embedded)
 extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Acquires a slot, waiting if necessary.
     ///
@@ -250,7 +265,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
             await withCheckedContinuation { continuation in
                 _state.withLock { state in
                     let waiter = Waiter.Entry(
-                        continuation: continuation,
+                        continuation: Async.Continuation(continuation),
                         flag: flag,
                         metadata: Waiter.Metadata()
                     )
@@ -278,6 +293,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
         }
     }
 }
+#endif
 
 // MARK: - Release Action
 

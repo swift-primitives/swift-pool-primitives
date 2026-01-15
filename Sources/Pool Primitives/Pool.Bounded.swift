@@ -1,4 +1,6 @@
+#if !hasFeature(Embedded)
 public import Synchronization
+#endif
 public import Async_Primitives
 internal import Container_Primitives
 
@@ -22,9 +24,9 @@ extension Pool {
     /// - **Eager**: Resources created only via `fill()`. Acquire waits for available.
     /// - **Lazy**: Resources created on-demand up to capacity.
     public final class Bounded<Resource: ~Copyable & Sendable>: @unchecked Sendable {
-        /// Protected internal state wrapped in stdlib Mutex.
+        /// Protected internal state wrapped in Async.Mutex.
         @usableFromInline
-        let _state: Mutex<State>
+        let _state: Async.Mutex<State>
 
         /// Shutdown notification gate (async, non-blocking).
         @usableFromInline
@@ -71,7 +73,7 @@ extension Pool {
             destroy: @Sendable @escaping (consuming Resource) -> Void,
             check: (@Sendable (inout Resource) -> Bool)? = nil
         ) {
-            self._state = Mutex(State(capacity: capacity.value))
+            self._state = Async.Mutex(State(capacity: capacity.value))
             self.shutdownGate = Async.Gate()
             self.scope = Pool.Scope()
             self.policy = .eager(Destructor(destroy))
@@ -79,9 +81,13 @@ extension Pool {
             self.entries = Container.Array<Entry>.Bounded(count: capacity.value) { _ in Entry() }
         }
 
+        #if !hasFeature(Embedded)
         /// Creates a fixed-capacity pool with lazy policy.
         ///
         /// Resources are created on-demand up to capacity.
+        ///
+        /// - Note: Only available on non-embedded platforms because
+        ///   lazy creation requires async.
         ///
         /// - Parameters:
         ///   - capacity: Maximum number of resources.
@@ -94,13 +100,14 @@ extension Pool {
             destroy: @Sendable @escaping (consuming Resource) -> Void,
             check: (@Sendable (inout Resource) -> Bool)? = nil
         ) {
-            self._state = Mutex(State(capacity: capacity.value))
+            self._state = Async.Mutex(State(capacity: capacity.value))
             self.shutdownGate = Async.Gate()
             self.scope = Pool.Scope()
             self.policy = .lazy(Creator(create: create, destroy: destroy))
             self._check = check
             self.entries = Container.Array<Entry>.Bounded(count: capacity.value) { _ in Entry() }
         }
+        #endif
     }
 }
 
@@ -137,5 +144,21 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
         case .waiter(.batch(let resumptions)):
             for r in resumptions { r.resume() }
         }
+    }
+}
+
+// MARK: - Manual Waiter Pumping
+
+extension Pool.Bounded where Resource: ~Copyable & Sendable {
+    /// Pumps waiters manually.
+    ///
+    /// Required on embedded platforms for callback-based acquire when using
+    /// timeout or cancellation flags. On non-embedded platforms, this is
+    /// called automatically via Task scheduling.
+    ///
+    /// Call this periodically from your embedded event loop to process
+    /// waiters that have been flagged for timeout or cancellation.
+    public func poll() {
+        pumpWaiters()
     }
 }

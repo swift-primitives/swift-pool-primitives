@@ -9,10 +9,12 @@
 //
 // ===----------------------------------------------------------------------===//
 
-import Async_Primitives
+#if !hasFeature(Embedded)
+import Synchronization
+#endif
+public import Async_Primitives
 public import Dimension_Primitives
 internal import Container_Primitives
-internal import Synchronization
 
 // MARK: - Shutdown Accessor
 
@@ -128,13 +130,52 @@ extension Pool.Bounded.Shutdown where Resource: ~Copyable & Sendable {
         }
     }
 
-    /// Waits for shutdown to complete.
+    /// Whether shutdown has completed (all resources disposed).
+    ///
+    /// Use for polling on embedded instead of async `wait()`.
+    public var isComplete: Bool {
+        pool.shutdownGate.isOpen
+    }
+
+    /// Waits for shutdown to complete (callback-based).
+    ///
+    /// Calls the callback when all outstanding checkouts have returned and
+    /// all resources have been destroyed.
+    ///
+    /// This method works on all platforms including embedded Swift.
+    ///
+    /// - Note: Automatically initiates shutdown if not already started.
+    /// - Parameter callback: The callback to invoke when shutdown is complete.
+    public func wait(_ callback: @escaping @Sendable () -> Void) {
+        // Fast path: already complete
+        guard !pool.shutdownGate.isOpen else {
+            callback()
+            return
+        }
+
+        // Ensure shutdown has started
+        let needsShutdown: Bool = pool._state.withLock { state in
+            !state.lifecycle.isShuttingDown && state.lifecycle != .closed
+        }
+
+        if needsShutdown {
+            self()  // Initiate shutdown
+        }
+
+        // Wait for gate (callback-based)
+        pool.shutdownGate.wait(callback)
+    }
+
+    #if !hasFeature(Embedded)
+    /// Waits for shutdown to complete (async).
     ///
     /// Awaits until all outstanding checkouts have returned and
     /// all resources have been destroyed.
     ///
     /// This is async-native and non-blocking - it waits on the shutdown gate.
     ///
+    /// - Note: Only available on non-embedded platforms. On embedded, use
+    ///   `wait(_:)` or poll `isComplete` instead.
     /// - Note: Automatically initiates shutdown if not already started.
     public func wait() async {
         // Fast path: already complete
@@ -152,4 +193,5 @@ extension Pool.Bounded.Shutdown where Resource: ~Copyable & Sendable {
         // Wait for gate (non-blocking)
         await pool.shutdownGate.wait()
     }
+    #endif
 }

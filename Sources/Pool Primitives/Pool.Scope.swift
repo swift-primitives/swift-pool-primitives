@@ -1,8 +1,15 @@
 public import Dimension_Primitives
-import Synchronization
+public import Async_Primitives
 
-/// Global counter for scope generation.
+#if !hasFeature(Embedded)
+import Synchronization
+/// Global counter for scope generation (non-embedded).
 private let _scopeCounter = Atomic<UInt64>(0)
+#else
+/// Global counter for scope generation (embedded).
+/// Uses mutex-protected counter since Atomic isn't available.
+private let _scopeCounterMutex = Async.Mutex<UInt64>(0)
+#endif
 
 extension Pool {
     /// Unique scope identifier for a pool instance.
@@ -18,7 +25,15 @@ extension Pool {
         /// Creates a new unique scope.
         @usableFromInline
         init() {
+            #if !hasFeature(Embedded)
             self.value = RawValue(_scopeCounter.wrappingAdd(1, ordering: .relaxed).oldValue)
+            #else
+            self.value = RawValue(_scopeCounterMutex.withLock { counter in
+                let oldValue = counter
+                counter &+= 1
+                return oldValue
+            })
+            #endif
         }
     }
 }

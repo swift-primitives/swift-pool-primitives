@@ -1,7 +1,12 @@
+// Creator requires async closure - only available on non-embedded platforms.
+#if !hasFeature(Embedded)
 extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Reference-based creator for lazy policy.
     ///
     /// Class avoids ~Copyable closure storage issues under Swift 6.2.
+    ///
+    /// - Note: Only available on non-embedded platforms because the create
+    ///   closure is async.
     @usableFromInline
     final class Creator: @unchecked Sendable {
         @usableFromInline
@@ -20,3 +25,4 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
         }
     }
 }
+#endif
