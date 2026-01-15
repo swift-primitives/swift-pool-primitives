@@ -6,6 +6,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     ///
     /// Uses manual single-slot storage to avoid Optional<Resource>
     /// which would require Resource: Copyable under strict move-only modes.
+    @safe
     @usableFromInline
     final class Entry: @unchecked Sendable {
         /// Single-slot storage for the resource.
@@ -19,23 +20,25 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
         /// Creates an entry with a resource.
         @usableFromInline
         init(_ value: consuming Resource) {
-            self.storage = .allocate(capacity: 1)
-            self.storage.initialize(to: value)
+            let ptr = UnsafeMutablePointer<Resource>.allocate(capacity: 1)
+            unsafe self.storage = ptr
+            unsafe ptr.initialize(to: value)
             self.occupied = true
         }
 
         /// Creates an empty entry (slot allocated but unoccupied).
         @usableFromInline
         init() {
-            self.storage = .allocate(capacity: 1)
+            let ptr = UnsafeMutablePointer<Resource>.allocate(capacity: 1)
+            unsafe self.storage = ptr
             self.occupied = false
         }
 
         deinit {
             if occupied {
-                storage.deinitialize(count: 1)
+                unsafe storage.deinitialize(count: 1)
             }
-            storage.deallocate()
+            unsafe storage.deallocate()
         }
     }
 }

@@ -35,7 +35,7 @@ extension Pool.Bounded.Entry.Move where Resource: ~Copyable & Sendable {
     var out: Resource {
         precondition(entry.occupied, "Entry is not occupied")
         entry.occupied = false
-        return entry.storage.move()
+        return unsafe entry.storage.move()
     }
 
     /// Puts a resource into storage.
@@ -45,7 +45,7 @@ extension Pool.Bounded.Entry.Move where Resource: ~Copyable & Sendable {
     @usableFromInline
     func `in`(_ value: consuming Resource) {
         precondition(!entry.occupied, "Entry is already occupied")
-        entry.storage.initialize(to: value)
+        unsafe entry.storage.initialize(to: value)
         entry.occupied = true
     }
 }
