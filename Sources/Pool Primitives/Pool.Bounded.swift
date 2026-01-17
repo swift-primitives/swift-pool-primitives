@@ -3,7 +3,7 @@ public import Synchronization
 #endif
 public import Async_Primitives
 internal import Container_Primitives
-internal import Reference_Primitives
+public import Reference_Primitives
 
 extension Pool {
     // MARK: - Sendability Contract
@@ -104,7 +104,7 @@ extension Pool {
             self._state = Async.Mutex(State(capacity: capacity.value))
             self.shutdownGate = Async.Gate()
             self.scope = Pool.Scope()
-            self.policy = .lazy(Creator(create: create, destroy: destroy))
+            self.policy = .lazy(Creator(Creation(create: create, destroy: destroy)))
             self._check = check
             self.entries = Container.Array<Entry>.Bounded(count: capacity.value) { _ in Entry() }
         }

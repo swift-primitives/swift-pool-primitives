@@ -211,7 +211,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
         // Phase 1: Create resource OUTSIDE lock (user code)
         let resource: Resource
         do {
-            resource = try await creator.create()
+            resource = try await creator.value.create()
         } catch {
             // Creation failed - release reservation, check shutdown
             let effect: Effect = _state.withLock { state in
