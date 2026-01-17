@@ -15,6 +15,7 @@ import Synchronization
 public import Async_Primitives
 public import Dimension_Primitives
 internal import Container_Primitives
+internal import Reference_Primitives
 
 // MARK: - Fill Accessor
 

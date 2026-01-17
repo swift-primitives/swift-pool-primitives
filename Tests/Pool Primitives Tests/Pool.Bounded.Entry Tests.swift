@@ -1,3 +1,4 @@
+import Reference_Primitives
 import Test_Primitives
 import Testing_Extras
 
@@ -16,23 +17,23 @@ private typealias Entry = TestPool.Entry
 // MARK: - Unit Tests
 
 extension PoolFixedEntryTests.Test.Unit {
-    @Test("empty entry is not occupied")
-    func emptyEntryIsNotOccupied() {
+    @Test("empty entry is empty")
+    func emptyEntryIsEmpty() {
         let entry = Entry()
-        #expect(!entry.occupied)
+        #expect(entry.isEmpty)
     }
 
     @Test("entry with value is occupied")
     func entryWithValueIsOccupied() {
         let entry = Entry(42)
-        #expect(entry.occupied)
+        #expect(entry.isFull)
     }
 
     @Test("move.in stores value")
     func moveInStoresValue() {
         let entry = Entry()
         entry.move.in(99)
-        #expect(entry.occupied)
+        #expect(entry.isFull)
     }
 
     @Test("move.out retrieves value")
@@ -40,7 +41,7 @@ extension PoolFixedEntryTests.Test.Unit {
         let entry = Entry(42)
         let value = entry.move.out
         #expect(value == 42)
-        #expect(!entry.occupied)
+        #expect(entry.isEmpty)
     }
 
     @Test("move.in after move.out works")
@@ -48,7 +49,7 @@ extension PoolFixedEntryTests.Test.Unit {
         let entry = Entry(42)
         _ = entry.move.out
         entry.move.in(100)
-        #expect(entry.occupied)
+        #expect(entry.isFull)
         #expect(entry.move.out == 100)
     }
 }
@@ -66,6 +67,6 @@ extension PoolFixedEntryTests.Test.EdgeCase {
             #expect(value == i)
         }
 
-        #expect(!entry.occupied)
+        #expect(entry.isEmpty)
     }
 }
