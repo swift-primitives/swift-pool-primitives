@@ -23,6 +23,7 @@ let package = Package(
         .package(path: "../swift-container-primitives"),
         .package(path: "../swift-dimension-primitives"),
         .package(path: "../swift-reference-primitives"),
+        .package(path: "../swift-effect-primitives"),
         .package(path: "../swift-test-primitives"),
         .package(path: "../../swift-foundations/swift-testing-extras"),
     ],
@@ -35,6 +36,7 @@ let package = Package(
                 .product(name: "Container Primitives", package: "swift-container-primitives"),
                 .product(name: "Dimension Primitives", package: "swift-dimension-primitives"),
                 .product(name: "Reference Primitives", package: "swift-reference-primitives"),
+                .product(name: "Effect Primitives", package: "swift-effect-primitives"),
             ]
         ),
         .testTarget(
