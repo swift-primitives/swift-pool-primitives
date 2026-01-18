@@ -175,10 +175,15 @@ extension Pool.Bounded.Shutdown where Resource: ~Copyable & Sendable {
     ///
     /// This is async-native and non-blocking - it waits on the shutdown gate.
     ///
+    /// - Parameters:
+    ///   - isolation: The actor isolation context for the operation.
+    ///
     /// - Note: Only available on non-embedded platforms. On embedded, use
     ///   `wait(_:)` or poll `isComplete` instead.
     /// - Note: Automatically initiates shutdown if not already started.
-    public func wait() async {
+    public func wait(
+        isolation: isolated (any Actor)? = #isolation
+    ) async {
         // Fast path: already complete
         guard !pool.shutdownGate.isOpen else { return }
 
@@ -192,7 +197,7 @@ extension Pool.Bounded.Shutdown where Resource: ~Copyable & Sendable {
         }
 
         // Wait for gate (non-blocking)
-        await pool.shutdownGate.wait()
+        await pool.shutdownGate.wait(isolation: isolation)
     }
     #endif
 }
