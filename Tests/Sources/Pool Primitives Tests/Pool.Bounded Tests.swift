@@ -3,10 +3,10 @@ import Container_Primitives
 import Dimension_Primitives
 import Reference_Primitives
 import Test_Primitives
-import Testing_Extras
+import Testing
 import Buffer_Primitives
 import Synchronization
-import Testing_Extras
+import Testing
 
 @testable import Pool_Primitives
 
@@ -14,7 +14,7 @@ import Testing_Extras
 // .serialized required because async tests may use shared executors
 @Suite(.serialized)
 enum PoolFixedTests {
-    #TestSuites
+    #Tests
 }
 
 // MARK: - Type Aliases

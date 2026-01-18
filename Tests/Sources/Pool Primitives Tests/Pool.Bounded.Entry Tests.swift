@@ -1,12 +1,12 @@
 import Reference_Primitives
 import Test_Primitives
-import Testing_Extras
+import Testing
 
 @testable import Pool_Primitives
 
 // Pool.Bounded.Entry is generic, so we test via a concrete helper namespace
 enum PoolFixedEntryTests {
-    #TestSuites
+    #Tests
 }
 
 // MARK: - Type Aliases

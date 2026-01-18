@@ -1,11 +1,11 @@
 import Test_Primitives
-import Testing_Extras
+import Testing
 import Async_Primitives
 
 @testable import Pool_Primitives
 
 extension Pool.Lifecycle.Precedence {
-    #TestSuites
+    #Tests
 }
 
 // MARK: - Unit Tests
