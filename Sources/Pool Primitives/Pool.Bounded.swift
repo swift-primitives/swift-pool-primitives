@@ -2,7 +2,7 @@
 public import Synchronization
 #endif
 public import Async_Primitives
-internal import Container_Primitives
+internal import Array_Primitives
 public import Reference_Primitives
 
 extension Pool {
@@ -53,7 +53,7 @@ extension Pool {
         ///
         /// **Strict Stance:** Entry access (move.in/move.out) is an external
         /// effect and must happen OUTSIDE the pool lock.
-        let entries: Container.Array<Entry>.Bounded
+        let entries: Array_Primitives.Array<Entry>.Bounded
 
         #if DEBUG
         /// Test hook called immediately after a waiter is enqueued.
@@ -79,7 +79,7 @@ extension Pool {
             self.scope = Pool.Scope()
             self.policy = .eager(Destructor(destroy))
             self._check = check
-            self.entries = Container.Array<Entry>.Bounded(count: capacity.value) { _ in Entry() }
+            self.entries = Array_Primitives.Array<Entry>.Bounded(count: capacity.value) { _ in Entry() }
         }
 
         #if !hasFeature(Embedded)
@@ -106,7 +106,7 @@ extension Pool {
             self.scope = Pool.Scope()
             self.policy = .lazy(Creator(Creation(create: create, destroy: destroy)))
             self._check = check
-            self.entries = Container.Array<Entry>.Bounded(count: capacity.value) { _ in Entry() }
+            self.entries = Array_Primitives.Array<Entry>.Bounded(count: capacity.value) { _ in Entry() }
         }
         #endif
     }

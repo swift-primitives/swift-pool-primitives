@@ -12,7 +12,6 @@
 #if !hasFeature(Embedded)
 import Synchronization
 #endif
-internal import Container_Primitives
 public import Dimension_Primitives
 public import Async_Primitives
 internal import Reference_Primitives

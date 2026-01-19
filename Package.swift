@@ -20,7 +20,7 @@ let package = Package(
     dependencies: [
         .package(path: "../swift-async-primitives"),
         .package(path: "../swift-buffer-primitives"),
-        .package(path: "../swift-container-primitives"),
+        .package(path: "../swift-array-primitives"),
         .package(path: "../swift-dimension-primitives"),
         .package(path: "../swift-reference-primitives"),
         .package(path: "../swift-effect-primitives")
@@ -31,7 +31,7 @@ let package = Package(
             dependencies: [
                 .product(name: "Async Primitives", package: "swift-async-primitives"),
                 .product(name: "Buffer Primitives", package: "swift-buffer-primitives"),
-                .product(name: "Container Primitives", package: "swift-container-primitives"),
+                .product(name: "Array Primitives", package: "swift-array-primitives"),
                 .product(name: "Dimension Primitives", package: "swift-dimension-primitives"),
                 .product(name: "Reference Primitives", package: "swift-reference-primitives"),
                 .product(name: "Effect Primitives", package: "swift-effect-primitives")
