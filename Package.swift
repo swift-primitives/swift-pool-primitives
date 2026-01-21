@@ -23,7 +23,9 @@ let package = Package(
         .package(path: "../swift-array-primitives"),
         .package(path: "../swift-dimension-primitives"),
         .package(path: "../swift-reference-primitives"),
-        .package(path: "../swift-effect-primitives")
+        .package(path: "../swift-effect-primitives"),
+        .package(path: "../swift-index-primitives"),
+        .package(path: "../swift-collection-primitives"),
     ],
     targets: [
         .target(
@@ -34,7 +36,9 @@ let package = Package(
                 .product(name: "Array Primitives", package: "swift-array-primitives"),
                 .product(name: "Dimension Primitives", package: "swift-dimension-primitives"),
                 .product(name: "Reference Primitives", package: "swift-reference-primitives"),
-                .product(name: "Effect Primitives", package: "swift-effect-primitives")
+                .product(name: "Effect Primitives", package: "swift-effect-primitives"),
+                .product(name: "Index Primitives", package: "swift-index-primitives"),
+                .product(name: "Collection Primitives", package: "swift-collection-primitives"),
             ]
         )
     ],
