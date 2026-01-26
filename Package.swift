@@ -19,7 +19,7 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../swift-async-primitives"),
-        .package(path: "../swift-buffer-primitives"),
+        .package(path: "../swift-stack-primitives"),
         .package(path: "../swift-array-primitives"),
         .package(path: "../swift-dimension-primitives"),
         .package(path: "../swift-reference-primitives"),
@@ -32,7 +32,7 @@ let package = Package(
             name: "Pool Primitives",
             dependencies: [
                 .product(name: "Async Primitives", package: "swift-async-primitives"),
-                .product(name: "Buffer Primitives", package: "swift-buffer-primitives"),
+                .product(name: "Stack Primitives", package: "swift-stack-primitives"),
                 .product(name: "Array Primitives", package: "swift-array-primitives"),
                 .product(name: "Dimension Primitives", package: "swift-dimension-primitives"),
                 .product(name: "Reference Primitives", package: "swift-reference-primitives"),

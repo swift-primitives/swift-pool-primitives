@@ -1,5 +1,5 @@
 public import Dimension_Primitives
-public import Buffer_Primitives
+public import Stack_Primitives
 public import Async_Primitives
 
 extension Pool.Bounded where Resource: ~Copyable & Sendable {
@@ -9,12 +9,12 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Resource is stored ONLY in Entry (class wrapper with manual storage).
     @usableFromInline
     struct State: ~Copyable {
-        /// Fixed-capacity LIFO buffer for available slot indices.
+        /// Fixed-capacity LIFO stack for available slot indices.
         /// Contains indices of slots in `.available(id)` state only.
         ///
-        /// Uses `Buffer.Bounded` for Copyable COW semantics with no stdlib arrays.
+        /// Uses `Stack.Bounded` for Copyable COW semantics with no stdlib arrays.
         @usableFromInline
-        var available: Buffer.Bounded<Slot.Index>
+        var available: Stack<Slot.Index>.Bounded
 
         /// FIFO queue of waiters.
         ///
@@ -58,9 +58,9 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
 
         /// Creates state for a pool with the given capacity.
         @usableFromInline
-        init(capacity: Int) {
-            // Pre-allocate fixed-capacity LIFO buffer for available indices (starts empty)
-            self.available = Buffer.Bounded(capacity: capacity)
+        init(capacity: Int) throws {
+            // Pre-allocate fixed-capacity LIFO stack for available indices (starts empty)
+            self.available = try Stack<Slot.Index>.Bounded(capacity: capacity)
             self.waiters = Async.Waiter.Queue.Unbounded()
             self.slots = (0..<capacity).map { Slot(index: Slot.Index($0)) }
             self.next = 0
@@ -236,7 +236,8 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
     /// - Parameter index: The slot index to push.
     @inlinable
     mutating func pushAvailable(_ index: Pool.Bounded<Resource>.Slot.Index) {
-        available.push(__unchecked: (), index)
+        // Invariant guarantees no overflow - capacity equals slot count
+        try! available.push(index)
     }
 
     /// Pops a slot index from the available free-list (LIFO).
@@ -244,12 +245,7 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
     /// - Returns: The top slot index, or nil if empty.
     @inlinable
     mutating func popAvailable() -> Pool.Bounded<Resource>.Slot.Index? {
-        do {
-            return try available.pop()
-        } catch {
-            // .empty is the only error pop() throws
-            return nil
-        }
+        available.pop()
     }
 }
 
