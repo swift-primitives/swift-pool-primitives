@@ -1,12 +1,12 @@
-public import Reference_Primitives
+public import Ownership_Primitives
 
 extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Reference-based destructor for eager policy.
     ///
-    /// Uses `Reference.Box` for standardized immutable heap storage with
+    /// Uses `Ownership.Shared` for standardized immutable heap storage with
     /// explicit Sendable semantics.
     @usableFromInline
-    typealias Destructor = Reference.Box<@Sendable (consuming Resource) -> Void>
+    typealias Destructor = Ownership.Shared<@Sendable (consuming Resource) -> Void>
 }
 
 // MARK: - Destructor Access

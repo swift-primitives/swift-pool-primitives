@@ -1,6 +1,6 @@
 // Creation requires async closure - only available on non-embedded platforms.
 #if !hasFeature(Embedded)
-public import Reference_Primitives
+public import Ownership_Primitives
 
 extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Closures for lazy resource creation policy.
@@ -27,12 +27,12 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
 
     /// Reference-based creator for lazy policy.
     ///
-    /// Uses `Reference.Box` for standardized immutable heap storage with
+    /// Uses `Ownership.Shared` for standardized immutable heap storage with
     /// explicit Sendable semantics.
     ///
     /// - Note: Only available on non-embedded platforms because the create
     ///   closure is async.
     @usableFromInline
-    typealias Creator = Reference.Box<Creation>
+    typealias Creator = Ownership.Shared<Creation>
 }
 #endif

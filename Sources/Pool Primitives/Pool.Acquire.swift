@@ -10,7 +10,7 @@
 // ===----------------------------------------------------------------------===//
 
 public import Effect_Primitives
-public import Reference_Primitives
+public import Ownership_Primitives
 
 extension Pool {
     /// Effect performed when acquiring a resource from a pool.
@@ -20,12 +20,12 @@ extension Pool {
     ///
     /// ## Value Type
     ///
-    /// The effect returns `Reference.Box<Resource>` rather than `Resource` directly.
+    /// The effect returns `Ownership.Shared<Resource>` rather than `Resource` directly.
     /// This is required because `Effect.Protocol` cannot currently express
     /// `associatedtype Value: ~Copyable` (awaiting Swift Evolution: Suppressed
     /// Associated Types With Defaults).
     ///
-    /// `Reference.Box` wraps the `~Copyable` resource in a `Sendable` reference
+    /// `Ownership.Shared` wraps the `~Copyable` resource in a `Sendable` reference
     /// type, preserving ownership semantics while satisfying protocol requirements.
     ///
     /// ## Usage
@@ -38,11 +38,11 @@ extension Pool {
     ///
     ///     func handle(
     ///         _ effect: Handled,
-    ///         continuation: consuming Effect.Continuation.One<Reference.Box<Connection>, Pool.Error>
+    ///         continuation: consuming Effect.Continuation.One<Ownership.Shared<Connection>, Pool.Error>
     ///     ) async {
     ///         acquisitions.append(effect.scope)
     ///         let resource = Connection()
-    ///         await continuation.resume(returning: Reference.Box(resource))
+    ///         await continuation.resume(returning: Ownership.Shared(resource))
     ///     }
     /// }
     /// ```
@@ -50,13 +50,13 @@ extension Pool {
     /// ## Migration Path
     ///
     /// When Swift gains `associatedtype Value: ~Copyable` support, this type
-    /// will change to return `Resource` directly instead of `Reference.Box<Resource>`.
+    /// will change to return `Resource` directly instead of `Ownership.Shared<Resource>`.
     public struct Acquire<Resource: ~Copyable & Sendable>: Effect.`Protocol` {
         public typealias Arguments = Pool.Scope
 
         // TODO: Change to `Resource` when Swift supports `associatedtype Value: ~Copyable`
         // See: https://forums.swift.org/t/pitch-suppressed-associated-types-with-defaults/83663
-        public typealias Value = Reference.Box<Resource>
+        public typealias Value = Ownership.Shared<Resource>
 
         public typealias Failure = Pool.Error
 

@@ -3,7 +3,7 @@ public import Synchronization
 #endif
 public import Async_Primitives
 internal import Array_Primitives
-public import Reference_Primitives
+public import Ownership_Primitives
 
 extension Pool {
     // MARK: - Sendability Contract
