@@ -26,6 +26,9 @@ let package = Package(
         .package(path: "../swift-effect-primitives"),
         .package(path: "../swift-index-primitives"),
         .package(path: "../swift-collection-primitives"),
+
+        // SDG(wraps): pool resources wrap managed lifetimes
+        // .package(path: "../swift-lifetime-primitives"),
     ],
     targets: [
         .target(
