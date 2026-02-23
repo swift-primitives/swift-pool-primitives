@@ -179,7 +179,7 @@ extension Pool.Bounded.TryAcquire where Resource: ~Copyable & Sendable {
             do {
                 let value = try body(&resource)
                 result = .success(value)
-            } catch {
+            } catch let error as E {
                 result = .failure(error)
             }
 

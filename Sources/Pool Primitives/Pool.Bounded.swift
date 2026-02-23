@@ -53,7 +53,7 @@ extension Pool {
         ///
         /// **Strict Stance:** Entry access (move.in/move.out) is an external
         /// effect and must happen OUTSIDE the pool lock.
-        let entries: Array_Primitives.Array<Entry>.Bounded
+        let entries: [Entry]
 
         #if DEBUG
         /// Test hook called immediately after a waiter is enqueued.
@@ -79,7 +79,7 @@ extension Pool {
             self.scope = Pool.Scope()
             self.policy = .eager(Destructor(destroy))
             self._check = check
-            self.entries = Array_Primitives.Array<Entry>.Bounded(count: capacity.value) { _ in Entry() }
+            self.entries = (0..<capacity.value).map { _ in Entry() }
         }
 
         #if !hasFeature(Embedded)
@@ -106,7 +106,7 @@ extension Pool {
             self.scope = Pool.Scope()
             self.policy = .lazy(Creator(Creation(create: create, destroy: destroy)))
             self._check = check
-            self.entries = Array_Primitives.Array<Entry>.Bounded(count: capacity.value) { _ in Entry() }
+            self.entries = (0..<capacity.value).map { _ in Entry() }
         }
         #endif
     }

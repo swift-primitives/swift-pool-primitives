@@ -58,11 +58,14 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
 
         /// Creates state for a pool with the given capacity.
         @usableFromInline
-        init(capacity: Int) throws {
+        init(capacity: Int) {
             // Pre-allocate fixed-capacity LIFO stack for available indices (starts empty)
-            self.available = try Stack<Slot.Index>.Bounded(capacity: capacity)
+            let slotCapacity = Stack<Slot.Index>.Index.Count(
+                __unchecked: (), Cardinal(UInt(capacity))
+            )
+            self.available = Stack<Slot.Index>.Bounded(capacity: slotCapacity)
             self.waiters = Async.Waiter.Queue.Unbounded()
-            self.slots = (0..<capacity).map { Slot(index: Slot.Index($0)) }
+            self.slots = (0..<capacity).map { Slot(index: Slot.Index(__unchecked: (), $0)) }
             self.next = 0
             self.lifecycle = .open
             self.metrics = Pool.Metrics()
@@ -300,7 +303,10 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
         waiters.reapFlagged(into: &flagged)
 
         // Process flagged entries into resumptions
+        var reapedCount = 0
         flagged.drain { flaggedEntry in
+            reapedCount += 1
+
             // Deconstruct in one step - explicit ownership transition
             let split = flaggedEntry.split()
 
@@ -323,6 +329,6 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
 
         // Update metrics
         metrics.timeouts += UInt64(timeoutCount)
-        metrics.waiters = waiters.count
+        metrics.waiters -= reapedCount
     }
 }

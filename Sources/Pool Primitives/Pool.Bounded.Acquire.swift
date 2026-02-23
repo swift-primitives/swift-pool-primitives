@@ -97,7 +97,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
         do {
             let value = try body(&resource)
             result = .success(value)
-        } catch {
+        } catch let error as E {
             result = .failure(error)
         }
 
@@ -427,7 +427,7 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
     func findEmptySlot() -> Pool.Bounded<Resource>.Slot.Index? {
         for i in 0..<slots.count {
             if case .empty = slots[i].state {
-                return Pool.Bounded<Resource>.Slot.Index(i)
+                return Pool.Bounded<Resource>.Slot.Index(__unchecked: (), i)
             }
         }
         return nil
@@ -444,15 +444,16 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
     mutating func dequeueEligibleWaiter(
         skipped: inout [Async.Waiter.Resumption]
     ) -> Pool.Bounded<Resource>.Waiter.Entry? {
-        let countBefore = waiters.count
-
         // Collect flagged entries
         var flagged = Async.Waiter.Queue.Drain<Pool.Bounded<Resource>.Waiter.Flagged>()
         let entry = waiters.popEligible(flaggedInto: &flagged)
 
         // Process flagged entries into resumptions
         let currentLifecycle = lifecycle
+        var removedCount = entry != nil ? 1 : 0
         flagged.drain { flaggedEntry in
+            removedCount += 1
+
             // Deconstruct in one step - explicit ownership transition
             let split = flaggedEntry.split()
 
@@ -469,8 +470,7 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
         }
 
         // Update metrics for removed entries
-        let removed = countBefore - waiters.count
-        metrics.waiters -= removed
+        metrics.waiters -= removedCount
 
         return entry
     }
