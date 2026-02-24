@@ -122,9 +122,9 @@ extension Pool.Bounded.TimeoutAcquire where Resource: ~Copyable & Sendable {
         // Phase 2: Use resource OUTSIDE lock
         defer { pool.releaseSlot(slotIndex, id: id) }
 
-        var resource = pool.entries[slotIndex.rawValue].move.out
+        var resource = pool.entries[slotIndex].move.out
         let result = body(&resource)
-        pool.entries[slotIndex.rawValue].move.in(resource)
+        pool.entries[slotIndex].move.in(resource)
 
         return result
     }
@@ -142,7 +142,7 @@ extension Pool.Bounded.TimeoutAcquire where Resource: ~Copyable & Sendable {
 
         defer { pool.releaseSlot(slotIndex, id: id) }
 
-        var resource = pool.entries[slotIndex.rawValue].move.out
+        var resource = pool.entries[slotIndex].move.out
 
         let result: Result<T, E>
         do {
@@ -152,7 +152,7 @@ extension Pool.Bounded.TimeoutAcquire where Resource: ~Copyable & Sendable {
             result = .failure(error)
         }
 
-        pool.entries[slotIndex.rawValue].move.in(resource)
+        pool.entries[slotIndex].move.in(resource)
 
         return result
     }
@@ -217,7 +217,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
 
             // Try immediate acquisition (LIFO for cache locality)
             if let slotIndex = state.popAvailable() {
-                guard case .available(let id) = state.slots[slotIndex.rawValue].state else {
+                guard case .available(let id) = state.slots[slotIndex].state else {
                     preconditionFailure("Available ring contains non-available slot")
                 }
 

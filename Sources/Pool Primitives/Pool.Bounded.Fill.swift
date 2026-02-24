@@ -143,7 +143,7 @@ extension Pool.Bounded.Fill where Resource: ~Copyable & Sendable {
 
         case .install(let slotIndex, let id):
             // Install resource OUTSIDE lock (strict stance)
-            pool.entries[slotIndex.rawValue].move.in(resource)
+            pool.entries[slotIndex].move.in(resource)
 
             // Phase 3: Commit under lock
             var skippedResumptions: [Async.Waiter.Resumption] = []

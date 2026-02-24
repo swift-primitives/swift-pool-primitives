@@ -52,14 +52,14 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
         defer { releaseSlot(slotIndex, id: id) }
 
         // Extract resource to local (OUTSIDE lock)
-        var resource = entries[slotIndex.rawValue].move.out
+        var resource = entries[slotIndex].move.out
 
         // Phase 3: Execute body (NO LOCK HELD)
         // INVARIANT: No user code under lock
         let result = body(&resource)
 
         // Move resource back to entry (OUTSIDE lock)
-        entries[slotIndex.rawValue].move.in(resource)
+        entries[slotIndex].move.in(resource)
 
         return result
     }
@@ -90,7 +90,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
         // Phase 2: Use resource OUTSIDE lock
         defer { releaseSlot(slotIndex, id: id) }
 
-        var resource = entries[slotIndex.rawValue].move.out
+        var resource = entries[slotIndex].move.out
 
         // Phase 3: Execute body, capture result
         let result: Result<T, E>
@@ -101,7 +101,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
             result = .failure(error)
         }
 
-        entries[slotIndex.rawValue].move.in(resource)
+        entries[slotIndex].move.in(resource)
 
         return result
     }
@@ -154,7 +154,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
 
             // Try immediate acquisition (LIFO for cache locality)
             if let slotIndex = state.popAvailable() {
-                guard case .available(let id) = state.slots[slotIndex.rawValue].state else {
+                guard case .available(let id) = state.slots[slotIndex].state else {
                     preconditionFailure("Available ring contains non-available slot")
                 }
 
@@ -243,7 +243,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
         }
 
         // Phase 3: Install resource OUTSIDE lock (strict stance)
-        entries[slotIndex.rawValue].move.in(resource)
+        entries[slotIndex].move.in(resource)
 
         // Phase 4: Commit state transition under lock
         _state.withLock { state in
@@ -330,7 +330,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
         // Phase 1: Decide what to do under lock (no entry access)
         let (action, skippedResumptions): (ReleaseAction, [Async.Waiter.Resumption]) = _state.withLock { state in
             // Validate slot state
-            guard case .out(let currentId) = state.slots[slotIndex.rawValue].state,
+            guard case .out(let currentId) = state.slots[slotIndex].state,
                   currentId == id else {
                 preconditionFailure("Release called with mismatched slot state or ID")
             }
@@ -374,7 +374,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
 
         case .dispose:
             // Move resource out OUTSIDE lock
-            let resource = entries[slotIndex.rawValue].move.out
+            let resource = entries[slotIndex].move.out
 
             // Destroy OUTSIDE lock
             destructor(resource)
@@ -425,9 +425,9 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
     /// - Returns: The index of an empty slot, or nil if none available.
     @usableFromInline
     func findEmptySlot() -> Pool.Bounded<Resource>.Slot.Index? {
-        for i in 0..<slots.count {
-            if case .empty = slots[i].state {
-                return Pool.Bounded<Resource>.Slot.Index(__unchecked: (), i)
+        for slot in slots {
+            if case .empty = slot.state {
+                return slot.index
             }
         }
         return nil

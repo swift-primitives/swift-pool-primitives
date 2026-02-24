@@ -1,6 +1,7 @@
 public import Dimension_Primitives
 public import Stack_Primitives
 public import Async_Primitives
+internal import Array_Primitives
 
 extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Internal synchronized state for the pool.
@@ -28,7 +29,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
 
         /// Slot states by index.
         @usableFromInline
-        var slots: [Slot]
+        var slots: Array<Slot>.Fixed
 
         /// Next ID counter.
         @usableFromInline
@@ -65,7 +66,8 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
             )
             self.available = Stack<Slot.Index>.Bounded(capacity: slotCapacity)
             self.waiters = Async.Waiter.Queue.Unbounded()
-            self.slots = (0..<capacity).map { Slot(index: Slot.Index(__unchecked: (), $0)) }
+            let slotCount = try! Slot.Index.Count(capacity)
+            self.slots = try! Array<Slot>.Fixed(count: slotCount, initializingWith: { Slot(index: $0) })
             self.next = 0
             self.lifecycle = .open
             self.metrics = Pool.Metrics()
@@ -119,7 +121,7 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
     /// This maintains counter invariants and metrics automatically.
     @usableFromInline
     mutating func transition(slot index: Pool.Bounded<Resource>.Slot.Index, to newState: Pool.Bounded<Resource>.Slot.State) {
-        let oldState = slots[index.rawValue].state
+        let oldState = slots[index].state
 
         #if DEBUG
         assertValidTransition(from: oldState, to: newState)
@@ -174,7 +176,7 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
         default: break
         }
 
-        slots[index.rawValue].state = newState
+        slots[index].state = newState
     }
 
     /// Debug-only transition validation.

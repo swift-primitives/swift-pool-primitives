@@ -74,7 +74,7 @@ extension Pool.Bounded.Shutdown where Resource: ~Copyable & Sendable {
             // Collect slots to drain
             var slotsToDrain: [(Pool.Bounded<Resource>.Slot.Index, Pool.ID)] = []
             while let slotIndex = state.popAvailable() {
-                guard case .available(let id) = state.slots[slotIndex.rawValue].state else {
+                guard case .available(let id) = state.slots[slotIndex].state else {
                     continue
                 }
                 // Mark for disposal under lock
@@ -106,7 +106,7 @@ extension Pool.Bounded.Shutdown where Resource: ~Copyable & Sendable {
             // Dispose each resource OUTSIDE lock (strict stance)
             for (slotIndex, _) in slotsToDrain {
                 // Move resource out OUTSIDE lock
-                let resource = pool.entries[slotIndex.rawValue].move.out
+                let resource = pool.entries[slotIndex].move.out
 
                 // Destroy resource OUTSIDE lock
                 pool.destructor(resource)

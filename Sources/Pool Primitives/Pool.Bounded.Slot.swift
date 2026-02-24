@@ -6,7 +6,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     struct Slot: Sendable {
         /// Typed index into the slots array.
         @usableFromInline
-        typealias Index = Tagged<Self, Int>
+        typealias Index = Tagged<Self, Ordinal>
         
         /// The slot index.
         @usableFromInline

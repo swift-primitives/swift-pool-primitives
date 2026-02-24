@@ -105,7 +105,7 @@ extension Pool.Bounded.CallbackAcquire where Resource: ~Copyable & Sendable {
 
             // Try immediate acquisition (LIFO for cache locality)
             if let slotIndex = state.popAvailable() {
-                guard case .available(let id) = state.slots[slotIndex.rawValue].state else {
+                guard case .available(let id) = state.slots[slotIndex].state else {
                     preconditionFailure("Available ring contains non-available slot")
                 }
 
@@ -171,9 +171,9 @@ extension Pool.Bounded.CallbackAcquire where Resource: ~Copyable & Sendable {
         completion: @escaping @Sendable (Result<T, Pool.Lifecycle.Error>) -> Void
     ) {
         // Execute body OUTSIDE lock
-        var resource = pool.entries[slotIndex.rawValue].move.out
+        var resource = pool.entries[slotIndex].move.out
         let result = body(&resource)
-        pool.entries[slotIndex.rawValue].move.in(resource)
+        pool.entries[slotIndex].move.in(resource)
 
         // Release slot
         pool.releaseSlot(slotIndex, id: id)
@@ -194,9 +194,9 @@ extension Pool.Bounded.CallbackAcquire where Resource: ~Copyable & Sendable {
             switch outcome {
             case .success((let slotIndex, let id)):
                 // Execute body OUTSIDE lock
-                var resource = pool.entries[slotIndex.rawValue].move.out
+                var resource = pool.entries[slotIndex].move.out
                 let result = body(&resource)
-                pool.entries[slotIndex.rawValue].move.in(resource)
+                pool.entries[slotIndex].move.in(resource)
 
                 // Release slot
                 pool.releaseSlot(slotIndex, id: id)
