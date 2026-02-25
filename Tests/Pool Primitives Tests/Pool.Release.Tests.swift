@@ -1,15 +1,6 @@
-// ===----------------------------------------------------------------------===//
-//
-// This source file is part of the swift-pools open source project
-//
-// Copyright (c) 2025 Coen ten Thije Boonkkamp and the swift-pools project authors
-// Licensed under Apache License v2.0
-//
-// See LICENSE for license information
-//
-// ===----------------------------------------------------------------------===//
-
 import Testing
+import Pool_Primitives_Test_Support
+
 @testable import Pool_Primitives
 
 // MARK: - Test Resource
@@ -20,11 +11,15 @@ private struct TestResource: Sendable {
 
 // MARK: - Tests
 
-@Suite("Pool.Release")
+// Pool.Release is generic — parallel namespace per [TEST-004]
+@Suite
 struct PoolReleaseTests {
+    @Suite struct Unit {}
+}
 
-    @Test("effect stores id as arguments")
-    func effectStoresId() {
+extension PoolReleaseTests.Unit {
+    @Test
+    func `effect stores id as arguments`() {
         let scope = Pool.Scope()
         let id = Pool.ID(raw: 1, scope: scope)
         let effect = Pool.Release<TestResource>(id: id)
@@ -33,24 +28,24 @@ struct PoolReleaseTests {
         #expect(effect.arguments == id)
     }
 
-    @Test("effect is Sendable")
-    func effectIsSendable() {
+    @Test
+    func `effect is Sendable`() {
         func requiresSendable<T: Sendable>(_: T.Type) {}
         requiresSendable(Pool.Release<TestResource>.self)
     }
 
-    @Test("value type is Void")
-    func valueTypeIsVoid() {
+    @Test
+    func `value type is Void`() {
         let _: Pool.Release<TestResource>.Value.Type = Void.self
     }
 
-    @Test("failure type is Never")
-    func failureTypeIsNever() {
+    @Test
+    func `failure type is Never`() {
         let _: Pool.Release<TestResource>.Failure.Type = Never.self
     }
 
-    @Test("different ids produce different effects")
-    func differentIds() {
+    @Test
+    func `different ids produce different effects`() {
         let scope = Pool.Scope()
         let id1 = Pool.ID(raw: 1, scope: scope)
         let id2 = Pool.ID(raw: 2, scope: scope)

@@ -1,12 +1,13 @@
-import Reference_Primitives
-import Test_Primitives
 import Testing
+import Pool_Primitives_Test_Support
 
 @testable import Pool_Primitives
 
-// Pool.Bounded.Entry is generic, so we test via a concrete helper namespace
-enum PoolFixedEntryTests {
-    #Tests
+// Pool.Bounded.Entry is generic — parallel namespace per [TEST-004]
+@Suite
+struct PoolBoundedEntryTests {
+    @Suite struct Unit {}
+    @Suite struct EdgeCase {}
 }
 
 // MARK: - Type Aliases
@@ -16,36 +17,36 @@ private typealias Entry = TestPool.Entry
 
 // MARK: - Unit Tests
 
-extension PoolFixedEntryTests.Test.Unit {
-    @Test("empty entry is empty")
-    func emptyEntryIsEmpty() {
+extension PoolBoundedEntryTests.Unit {
+    @Test
+    func `empty entry is empty`() {
         let entry = Entry()
         #expect(entry.isEmpty)
     }
 
-    @Test("entry with value is occupied")
-    func entryWithValueIsOccupied() {
+    @Test
+    func `entry with value is occupied`() {
         let entry = Entry(42)
         #expect(entry.isFull)
     }
 
-    @Test("move.in stores value")
-    func moveInStoresValue() {
+    @Test
+    func `move in stores value`() {
         let entry = Entry()
         entry.move.in(99)
         #expect(entry.isFull)
     }
 
-    @Test("move.out retrieves value")
-    func moveOutRetrievesValue() {
+    @Test
+    func `move out retrieves value`() {
         let entry = Entry(42)
         let value = entry.move.out
         #expect(value == 42)
         #expect(entry.isEmpty)
     }
 
-    @Test("move.in after move.out works")
-    func moveInAfterMoveOutWorks() {
+    @Test
+    func `move in after move out works`() {
         let entry = Entry(42)
         _ = entry.move.out
         entry.move.in(100)
@@ -56,9 +57,9 @@ extension PoolFixedEntryTests.Test.Unit {
 
 // MARK: - Edge Cases
 
-extension PoolFixedEntryTests.Test.EdgeCase {
-    @Test("multiple move cycles work correctly")
-    func multipleMovesCyclesWorkCorrectly() {
+extension PoolBoundedEntryTests.EdgeCase {
+    @Test
+    func `multiple move cycles work correctly`() {
         let entry = Entry()
 
         for i in 0..<10 {

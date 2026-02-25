@@ -15,7 +15,11 @@ let package = Package(
         .library(
             name: "Pool Primitives",
             targets: ["Pool Primitives"]
-        )
+        ),
+        .library(
+            name: "Pool Primitives Test Support",
+            targets: ["Pool Primitives Test Support"]
+        ),
     ],
     dependencies: [
         .package(path: "../swift-async-primitives"),
@@ -45,7 +49,23 @@ let package = Package(
                 .product(name: "Index Primitives", package: "swift-index-primitives"),
                 .product(name: "Collection Primitives", package: "swift-collection-primitives"),
             ]
-        )
+        ),
+        .target(
+            name: "Pool Primitives Test Support",
+            dependencies: [
+                "Pool Primitives",
+                .product(name: "Index Primitives Test Support", package: "swift-index-primitives"),
+            ],
+            path: "Tests/Support"
+        ),
+        .testTarget(
+            name: "Pool Primitives Tests",
+            dependencies: [
+                "Pool Primitives",
+                "Pool Primitives Test Support",
+            ],
+            path: "Tests/Pool Primitives Tests"
+        ),
     ],
     swiftLanguageModes: [.v6]
 )
@@ -56,6 +76,7 @@ for target in package.targets where ![.system, .binary, .plugin, .macro].contain
         .enableUpcomingFeature("ExistentialAny"),
         .enableUpcomingFeature("InternalImportsByDefault"),
         .enableUpcomingFeature("MemberImportVisibility"),
+        .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
         .enableExperimentalFeature("Lifetimes"),
         .enableExperimentalFeature("SuppressedAssociatedTypes"),
         .enableExperimentalFeature("SuppressedAssociatedTypesWithDefaults"),

@@ -1,18 +1,22 @@
-import Test_Primitives
 import Testing
-import Async_Primitives
+import Pool_Primitives_Test_Support
 
 @testable import Pool_Primitives
 
+// Pool.Lifecycle.Precedence is non-generic — type extension per [TEST-003]
 extension Pool.Lifecycle.Precedence {
-    #Tests
+    @Suite
+    struct Test {
+        @Suite struct Unit {}
+        @Suite struct EdgeCase {}
+    }
 }
 
 // MARK: - Unit Tests
 
 extension Pool.Lifecycle.Precedence.Test.Unit {
-    @Test("success passes through when no flags set")
-    func successPassesThrough() {
+    @Test
+    func `success passes through when no flags set`() {
         let result = Pool.Lifecycle.Precedence.apply(
             lifecycle: .open,
             cancelled: false,
@@ -23,8 +27,8 @@ extension Pool.Lifecycle.Precedence.Test.Unit {
         #expect(result == .success(42))
     }
 
-    @Test("shutdown dominates success")
-    func shutdownDominatesSuccess() {
+    @Test
+    func `shutdown dominates success`() {
         let result = Pool.Lifecycle.Precedence.apply(
             lifecycle: .closing,
             cancelled: false,
@@ -35,8 +39,8 @@ extension Pool.Lifecycle.Precedence.Test.Unit {
         #expect(result == .failure(.shutdown))
     }
 
-    @Test("shutdown dominates cancellation")
-    func shutdownDominatesCancellation() {
+    @Test
+    func `shutdown dominates cancellation`() {
         let result = Pool.Lifecycle.Precedence.apply(
             lifecycle: .closing,
             cancelled: true,
@@ -47,8 +51,8 @@ extension Pool.Lifecycle.Precedence.Test.Unit {
         #expect(result == .failure(.shutdown))
     }
 
-    @Test("shutdown dominates timeout")
-    func shutdownDominatesTimeout() {
+    @Test
+    func `shutdown dominates timeout`() {
         let result = Pool.Lifecycle.Precedence.apply(
             lifecycle: .closing,
             cancelled: false,
@@ -59,8 +63,8 @@ extension Pool.Lifecycle.Precedence.Test.Unit {
         #expect(result == .failure(.shutdown))
     }
 
-    @Test("cancellation dominates success")
-    func cancellationDominatesSuccess() {
+    @Test
+    func `cancellation dominates success`() {
         let result = Pool.Lifecycle.Precedence.apply(
             lifecycle: .open,
             cancelled: true,
@@ -71,8 +75,8 @@ extension Pool.Lifecycle.Precedence.Test.Unit {
         #expect(result == .failure(.cancelled))
     }
 
-    @Test("cancellation dominates timeout")
-    func cancellationDominatesTimeout() {
+    @Test
+    func `cancellation dominates timeout`() {
         let result = Pool.Lifecycle.Precedence.apply(
             lifecycle: .open,
             cancelled: true,
@@ -83,8 +87,8 @@ extension Pool.Lifecycle.Precedence.Test.Unit {
         #expect(result == .failure(.cancelled))
     }
 
-    @Test("timeout dominates success")
-    func timeoutDominatesSuccess() {
+    @Test
+    func `timeout dominates success`() {
         let result = Pool.Lifecycle.Precedence.apply(
             lifecycle: .open,
             cancelled: false,
@@ -95,8 +99,8 @@ extension Pool.Lifecycle.Precedence.Test.Unit {
         #expect(result == .failure(.timeout))
     }
 
-    @Test("failure passes through when no flags set")
-    func failurePassesThrough() {
+    @Test
+    func `failure passes through when no flags set`() {
         let result = Pool.Lifecycle.Precedence.apply(
             lifecycle: .open,
             cancelled: false,
@@ -111,8 +115,8 @@ extension Pool.Lifecycle.Precedence.Test.Unit {
 // MARK: - Edge Cases
 
 extension Pool.Lifecycle.Precedence.Test.EdgeCase {
-    @Test("all flags set returns shutdown")
-    func allFlagsSetReturnsShutdown() {
+    @Test
+    func `all flags set returns shutdown`() {
         let result = Pool.Lifecycle.Precedence.apply(
             lifecycle: .closing,
             cancelled: true,

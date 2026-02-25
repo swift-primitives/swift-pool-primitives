@@ -1,11 +1,12 @@
-import Test_Primitives
 import Testing
+import Pool_Primitives_Test_Support
 
 @testable import Pool_Primitives
 
-// Pool.Bounded.Slot.State is generic, so we test via a concrete helper namespace
-enum PoolFixedSlotStateTests {
-    #Tests
+// Pool.Bounded.Slot.State is generic — parallel namespace per [TEST-004]
+@Suite
+struct PoolBoundedSlotStateTests {
+    @Suite struct Unit {}
 }
 
 // MARK: - Type Aliases
@@ -15,9 +16,9 @@ private typealias SlotState = TestPool.Slot.State
 
 // MARK: - Unit Tests
 
-extension PoolFixedSlotStateTests.Test.Unit {
-    @Test("empty state has no ID")
-    func emptyStateHasNoID() {
+extension PoolBoundedSlotStateTests.Unit {
+    @Test
+    func `empty state has no ID`() {
         let state = SlotState.empty
 
         if case .empty = state {
@@ -27,8 +28,8 @@ extension PoolFixedSlotStateTests.Test.Unit {
         }
     }
 
-    @Test("available state carries ID")
-    func availableStateCarriesID() {
+    @Test
+    func `available state carries ID`() {
         let id = Pool.ID(raw: 42, scope: Pool.Scope())
         let state = SlotState.available(id)
 
@@ -39,8 +40,8 @@ extension PoolFixedSlotStateTests.Test.Unit {
         }
     }
 
-    @Test("out state carries ID")
-    func outStateCarriesID() {
+    @Test
+    func `out state carries ID`() {
         let id = Pool.ID(raw: 42, scope: Pool.Scope())
         let state = SlotState.out(id)
 
@@ -51,8 +52,8 @@ extension PoolFixedSlotStateTests.Test.Unit {
         }
     }
 
-    @Test("creating state carries ID")
-    func creatingStateCarriesID() {
+    @Test
+    func `creating state carries ID`() {
         let id = Pool.ID(raw: 42, scope: Pool.Scope())
         let state = SlotState.creating(id)
 
@@ -63,8 +64,8 @@ extension PoolFixedSlotStateTests.Test.Unit {
         }
     }
 
-    @Test("disposing state carries ID")
-    func disposingStateCarriesID() {
+    @Test
+    func `disposing state carries ID`() {
         let id = Pool.ID(raw: 42, scope: Pool.Scope())
         let state = SlotState.disposing(id)
 

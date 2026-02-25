@@ -80,7 +80,10 @@ extension Pool {
             self.policy = .eager(Destructor(destroy))
             self._check = check
             self.entries = Array<Entry>.Fixed.Indexed(
-                repeating: Entry(), count: try! Slot.Index.Count(capacity.value)
+                try! Array<Entry>.Fixed(
+                    count: Index<Entry>.Count(capacity.value),
+                    initializingWith: { _ in Entry() }
+                )
             )
         }
 
@@ -109,7 +112,10 @@ extension Pool {
             self.policy = .lazy(Creator(Creation(create: create, destroy: destroy)))
             self._check = check
             self.entries = Array<Entry>.Fixed.Indexed(
-                repeating: Entry(), count: try! Slot.Index.Count(capacity.value)
+                try! Array<Entry>.Fixed(
+                    count: Index<Entry>.Count(capacity.value),
+                    initializingWith: { _ in Entry() }
+                )
             )
         }
         #endif

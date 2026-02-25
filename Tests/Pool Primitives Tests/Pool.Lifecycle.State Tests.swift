@@ -1,24 +1,28 @@
-import Test_Primitives
 import Testing
-import Async_Primitives
+import Pool_Primitives_Test_Support
 
 @testable import Pool_Primitives
 
+// Pool.Lifecycle.State is non-generic — type extension per [TEST-003]
 extension Pool.Lifecycle.State {
-    #Tests
+    @Suite
+    struct Test {
+        @Suite struct Unit {}
+        @Suite struct EdgeCase {}
+    }
 }
 
 // MARK: - Unit Tests
 
 extension Pool.Lifecycle.State.Test.Unit {
-    @Test("initial state is open")
-    func initialStateIsOpen() {
+    @Test
+    func `initial state is open`() {
         let state = Pool.Lifecycle.State.open
         #expect(!state.isShuttingDown)
     }
 
-    @Test("beginShutdown transitions to closing")
-    func beginShutdownTransitionsToClosing() {
+    @Test
+    func `beginShutdown transitions to closing`() {
         var state = Pool.Lifecycle.State.open
         let transitioned = state.beginShutdown()
 
@@ -27,8 +31,8 @@ extension Pool.Lifecycle.State.Test.Unit {
         #expect(state.isShuttingDown)
     }
 
-    @Test("beginShutdown is idempotent")
-    func beginShutdownIsIdempotent() {
+    @Test
+    func `beginShutdown is idempotent`() {
         var state = Pool.Lifecycle.State.open
         _ = state.beginShutdown()
         let secondAttempt = state.beginShutdown()
@@ -37,8 +41,8 @@ extension Pool.Lifecycle.State.Test.Unit {
         #expect(state == .closing)
     }
 
-    @Test("completeShutdown transitions to closed")
-    func completeShutdownTransitionsToClosed() {
+    @Test
+    func `completeShutdown transitions to closed`() {
         var state = Pool.Lifecycle.State.closing
         let transitioned = state.completeShutdown()
 
@@ -46,8 +50,8 @@ extension Pool.Lifecycle.State.Test.Unit {
         #expect(state == .closed)
     }
 
-    @Test("completeShutdown from open fails")
-    func completeShutdownFromOpenFails() {
+    @Test
+    func `completeShutdown from open fails`() {
         var state = Pool.Lifecycle.State.open
         let transitioned = state.completeShutdown()
 
@@ -55,8 +59,8 @@ extension Pool.Lifecycle.State.Test.Unit {
         #expect(state == .open)
     }
 
-    @Test("isShuttingDown for all states")
-    func isShuttingDownForAllStates() {
+    @Test
+    func `isShuttingDown for all states`() {
         #expect(!Pool.Lifecycle.State.open.isShuttingDown)
         #expect(Pool.Lifecycle.State.closing.isShuttingDown)
         #expect(Pool.Lifecycle.State.closed.isShuttingDown)
@@ -66,8 +70,8 @@ extension Pool.Lifecycle.State.Test.Unit {
 // MARK: - Edge Cases
 
 extension Pool.Lifecycle.State.Test.EdgeCase {
-    @Test("closed state cannot transition further")
-    func closedStateCannotTransitionFurther() {
+    @Test
+    func `closed state cannot transition further`() {
         var state = Pool.Lifecycle.State.closed
 
         let beginResult = state.beginShutdown()
