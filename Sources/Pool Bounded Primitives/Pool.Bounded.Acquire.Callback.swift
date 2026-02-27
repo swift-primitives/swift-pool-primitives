@@ -15,6 +15,7 @@ import Synchronization
 public import Async_Primitives
 public import Dimension_Primitives
 internal import Ownership_Primitives
+internal import Array_Primitives
 
 // MARK: - Callback Acquire Type
 

@@ -2,7 +2,8 @@ import Testing
 import Pool_Primitives_Test_Support
 import Ownership_Primitives
 
-@testable import Pool_Primitives
+@_spi(Internal) @testable import Pool_Primitives_Core
+import Pool_Primitives
 
 // MARK: - Test Resource
 

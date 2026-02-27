@@ -1,11 +1,5 @@
 // exports.swift
-// Re-export dependencies for consumers.
+// Pool Primitives umbrella module exports.
 
-@_exported import Async_Primitives
-@_exported import Buffer_Primitives
-@_exported import Array_Primitives
-@_exported import Dimension_Primitives
-@_exported import Ownership_Primitives
-@_exported import Effect_Primitives
-@_exported import Index_Primitives
-@_exported import Collection_Primitives
+@_exported public import Pool_Primitives_Core
+@_exported public import Pool_Bounded_Primitives

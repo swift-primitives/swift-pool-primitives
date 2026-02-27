@@ -15,8 +15,8 @@ extension Pool {
         let scope: Scope
 
         /// Creates a new ID within the given scope.
-        @usableFromInline
-        init(raw: UInt64, scope: Pool.Scope) {
+        @_spi(Internal)
+        public init(raw: UInt64, scope: Pool.Scope) {
             self.raw = RawValue(__unchecked: (), raw)
             self.scope = scope
         }

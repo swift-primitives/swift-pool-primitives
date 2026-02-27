@@ -23,8 +23,8 @@ extension Pool {
         let value: RawValue
 
         /// Creates a new unique scope.
-        @usableFromInline
-        init() {
+        @_spi(Internal)
+        public init() {
             #if !hasFeature(Embedded)
             self.value = RawValue(__unchecked: (), _scopeCounter.wrappingAdd(1, ordering: .relaxed).oldValue)
             #else

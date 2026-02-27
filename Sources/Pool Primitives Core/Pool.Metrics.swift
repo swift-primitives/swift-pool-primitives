@@ -32,8 +32,8 @@ extension Pool {
         public var peakCheckedOut: Int
 
         /// Creates empty metrics.
-        @usableFromInline
-        init() {
+        @_spi(Internal)
+        public init() {
             self.created = 0
             self.fills = 0
             self.closed = 0

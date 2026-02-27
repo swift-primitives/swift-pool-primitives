@@ -4,6 +4,7 @@ public import Synchronization
 public import Async_Primitives
 internal import Array_Primitives
 public import Ownership_Primitives
+@_spi(Internal) internal import Pool_Primitives_Core
 
 extension Pool {
     // MARK: - Sendability Contract

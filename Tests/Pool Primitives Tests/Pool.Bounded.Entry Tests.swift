@@ -1,7 +1,8 @@
 import Testing
 import Pool_Primitives_Test_Support
 
-@testable import Pool_Primitives
+@testable import Pool_Bounded_Primitives
+import Pool_Primitives
 
 // Pool.Bounded.Entry is generic — parallel namespace per [TEST-004]
 @Suite

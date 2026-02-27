@@ -12,6 +12,17 @@ let package = Package(
         .visionOS(.v26)
     ],
     products: [
+        // MARK: - Core
+        .library(
+            name: "Pool Primitives Core",
+            targets: ["Pool Primitives Core"]
+        ),
+        // MARK: - Variants
+        .library(
+            name: "Pool Bounded Primitives",
+            targets: ["Pool Bounded Primitives"]
+        ),
+        // MARK: - Umbrella
         .library(
             name: "Pool Primitives",
             targets: ["Pool Primitives"]
@@ -23,33 +34,44 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../swift-async-primitives"),
-        .package(path: "../swift-buffer-primitives"),
         .package(path: "../swift-stack-primitives"),
         .package(path: "../swift-array-primitives"),
         .package(path: "../swift-dimension-primitives"),
         .package(path: "../swift-ownership-primitives"),
         .package(path: "../swift-effect-primitives"),
         .package(path: "../swift-index-primitives"),
-        .package(path: "../swift-collection-primitives"),
-
-        // SDG(wraps): pool resources wrap managed lifetimes
-        // .package(path: "../swift-lifetime-primitives"),
     ],
     targets: [
+        // MARK: - Core
+        .target(
+            name: "Pool Primitives Core",
+            dependencies: [
+                .product(name: "Async Primitives", package: "swift-async-primitives"),
+                .product(name: "Dimension Primitives", package: "swift-dimension-primitives"),
+                .product(name: "Effect Primitives", package: "swift-effect-primitives"),
+                .product(name: "Ownership Primitives", package: "swift-ownership-primitives"),
+            ]
+        ),
+
+        // MARK: - Variants
+        .target(
+            name: "Pool Bounded Primitives",
+            dependencies: [
+                "Pool Primitives Core",
+                .product(name: "Stack Primitives", package: "swift-stack-primitives"),
+                .product(name: "Array Primitives", package: "swift-array-primitives"),
+            ]
+        ),
+
+        // MARK: - Umbrella
         .target(
             name: "Pool Primitives",
             dependencies: [
-                .product(name: "Async Primitives", package: "swift-async-primitives"),
-                .product(name: "Buffer Primitives", package: "swift-buffer-primitives"),
-                .product(name: "Stack Primitives", package: "swift-stack-primitives"),
-                .product(name: "Array Primitives", package: "swift-array-primitives"),
-                .product(name: "Dimension Primitives", package: "swift-dimension-primitives"),
-                .product(name: "Ownership Primitives", package: "swift-ownership-primitives"),
-                .product(name: "Effect Primitives", package: "swift-effect-primitives"),
-                .product(name: "Index Primitives", package: "swift-index-primitives"),
-                .product(name: "Collection Primitives", package: "swift-collection-primitives"),
+                "Pool Primitives Core",
+                "Pool Bounded Primitives",
             ]
         ),
+
         .target(
             name: "Pool Primitives Test Support",
             dependencies: [
@@ -58,6 +80,8 @@ let package = Package(
             ],
             path: "Tests/Support"
         ),
+
+        // MARK: - Tests
         .testTarget(
             name: "Pool Primitives Tests",
             dependencies: [

@@ -1,7 +1,7 @@
 import Testing
 import Pool_Primitives_Test_Support
 
-@testable import Pool_Primitives
+import Pool_Primitives
 
 // Pool.Lifecycle.Precedence is non-generic — type extension per [TEST-003]
 extension Pool.Lifecycle.Precedence {
