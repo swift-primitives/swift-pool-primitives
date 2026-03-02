@@ -145,7 +145,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// pattern violation.
     @inline(__always)
     @usableFromInline
-    func perform(_ effect: Effect) {
+    func perform(_ effect: consuming Effect) {
         switch effect {
         case .none:
             return
@@ -153,8 +153,8 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
             _ = shutdownGate.open()
         case .waiter(.resume(let resumption)):
             resumption.resume()
-        case .waiter(.batch(let resumptions)):
-            for r in resumptions { r.resume() }
+        case .waiter(.batch(var resumptions)):
+            resumptions.drain { $0.resume() }
         }
     }
 }

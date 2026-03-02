@@ -9,6 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
+public import Array_Primitives
 public import Async_Primitives
 
 extension Pool.Bounded where Resource: ~Copyable & Sendable {
@@ -28,7 +29,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// perform(effect)  // OUTSIDE lock
     /// ```
     @usableFromInline
-    enum Effect: Sendable {
+    enum Effect: ~Copyable, Sendable {
         /// No effect needed.
         case none
 
@@ -61,11 +62,11 @@ extension Pool.Bounded.Effect where Resource: ~Copyable & Sendable {
     /// operations (e.g., `reapFlagged`, `reapAll`). Never construct batch
     /// arrays ad-hoc in application code.
     @usableFromInline
-    enum Waiter: Sendable {
+    enum Waiter: ~Copyable, Sendable {
         /// Resume a single waiter.
         case resume(Async.Waiter.Resumption)
 
         /// Resume multiple waiters (from queue operations only).
-        case batch([Async.Waiter.Resumption])
+        case batch(Array<Async.Waiter.Resumption>)
     }
 }

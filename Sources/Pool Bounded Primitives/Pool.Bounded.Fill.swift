@@ -15,7 +15,7 @@ import Synchronization
 public import Async_Primitives
 public import Dimension_Primitives
 internal import Ownership_Primitives
-internal import Array_Primitives
+public import Array_Primitives
 
 // MARK: - Fill Accessor
 
@@ -81,13 +81,16 @@ extension Pool.Bounded.Fill where Resource: ~Copyable & Sendable {
 
 extension Pool.Bounded.Fill where Resource: ~Copyable & Sendable {
     /// Actions for committing a filled slot.
+    ///
+    /// Embeds skipped resumptions and shutdown effect into each case to avoid
+    /// capturing mutable variables across the `withLock` sending boundary.
     @usableFromInline
-    enum CommitAction: Sendable {
+    enum CommitAction: ~Copyable, Sendable {
         /// Add slot to available pool.
-        case addToPool
+        case addToPool(effect: Pool.Bounded<Resource>.Effect, skipped: Array<Async.Waiter.Resumption>)
 
         /// Hand off directly to waiter.
-        case handOff(Async.Waiter.Resumption)
+        case handOff(Async.Waiter.Resumption, skipped: Array<Async.Waiter.Resumption>)
     }
 }
 
@@ -147,40 +150,39 @@ extension Pool.Bounded.Fill where Resource: ~Copyable & Sendable {
             pool.entries[slotIndex].move.in(resource)
 
             // Phase 3: Commit under lock
-            var skippedResumptions: [Async.Waiter.Resumption] = []
-
-            let (commitAction, effect): (CommitAction, Pool.Bounded<Resource>.Effect) = pool._state.withLock { state in
+            // All side-outputs embedded in CommitAction to avoid capturing
+            // mutable variables across the withLock sending boundary.
+            let commitAction: CommitAction = pool._state.withLock { state in
                 // Mark as available (creating → available)
                 state.transition(slot: slotIndex, to: .available(id))
                 state.metrics.fills += 1
 
+                // Local array for skipped resumptions (no external capture)
+                var skipped = Array<Async.Waiter.Resumption>()
+
                 // Check if we should hand off to a waiter directly
-                if let waiter = state.dequeueEligibleWaiter(skipped: &skippedResumptions) {
+                if let waiter = state.dequeueEligibleWaiter(skipped: &skipped) {
                     // Hand off directly to waiter (available → out)
                     state.transition(slot: slotIndex, to: .out(id))
                     state.metrics.acquisitions += 1
                     let resumption = waiter.resumption(with: .success((slotIndex, id)))
-                    return (.handOff(resumption), .none)
+                    return .handOff(resumption, skipped: skipped)
                 } else {
                     // Make available in pool
                     state.pushAvailable(slotIndex)
-                    return (.addToPool, state.checkShutdownComplete())
+                    let effect = state.checkShutdownComplete()
+                    return .addToPool(effect: effect, skipped: skipped)
                 }
             }
 
             // Phase 4: Execute effects OUTSIDE lock
-
-            // Resume skipped waiters (cancelled/timed out)
-            for resumption in skippedResumptions {
-                resumption.resume()
-            }
-
-            // Execute commit action
-            switch commitAction {
-            case .addToPool:
+            switch consume commitAction {
+            case .addToPool(let effect, var skipped):
+                skipped.drain { $0.resume() }
                 pool.perform(effect)
 
-            case .handOff(let resumption):
+            case .handOff(let resumption, var skipped):
+                skipped.drain { $0.resume() }
                 pool.perform(.waiter(.resume(resumption)))
             }
         }

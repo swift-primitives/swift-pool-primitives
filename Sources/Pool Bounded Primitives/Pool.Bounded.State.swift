@@ -261,7 +261,7 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
     /// Adds a waiter to the queue and updates metrics.
     @usableFromInline
     mutating func addWaiter(_ waiter: consuming Pool.Bounded<Resource>.Waiter.Entry) {
-        waiters.push(waiter)
+        waiters.enqueue(waiter)
         metrics.waiters += 1
     }
 
@@ -276,7 +276,7 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
     /// - Returns: The removed waiter, or `nil` if queue is empty.
     @usableFromInline
     mutating func popWaiter() -> Pool.Bounded<Resource>.Waiter.Entry? {
-        guard let waiter = waiters.popFront() else {
+        guard let waiter = waiters.dequeue() else {
             return nil
         }
         metrics.waiters -= 1
@@ -294,9 +294,11 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
     ///
     /// **Must be called with the pool lock held. Does not resume.**
     ///
-    /// - Parameter pending: Array to collect pending resumptions.
+    /// - Returns: Array of pending resumptions to execute outside the lock.
     @usableFromInline
-    mutating func reapFlaggedWaiters(into pending: inout [Async.Waiter.Resumption]) {
+    mutating func reapFlaggedWaiters() -> Array<Async.Waiter.Resumption> {
+        var pending = Array<Async.Waiter.Resumption>()
+
         // Copy lifecycle to local to avoid capturing self
         let currentLifecycle = lifecycle
         var timeoutCount = 0
@@ -333,5 +335,7 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
         // Update metrics
         metrics.timeouts += UInt64(timeoutCount)
         metrics.waiters -= reapedCount
+
+        return pending
     }
 }

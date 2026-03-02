@@ -15,7 +15,7 @@ import Synchronization
 public import Async_Primitives
 public import Dimension_Primitives
 internal import Ownership_Primitives
-internal import Array_Primitives
+public import Array_Primitives
 
 // MARK: - Shutdown Accessor
 
@@ -45,9 +45,12 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
 
 extension Pool.Bounded.Shutdown where Resource: ~Copyable & Sendable {
     /// Actions computed under lock for shutdown drain.
+    ///
+    /// Embeds waiter resumptions into the drain case to avoid capturing
+    /// mutable variables across the `withLock` sending boundary.
     @usableFromInline
-    enum DrainAction: Sendable {
-        case drain([(Pool.Bounded<Resource>.Slot.Index, Pool.ID)])
+    enum DrainAction: ~Copyable, Sendable {
+        case drain([(Pool.Bounded<Resource>.Slot.Index, Pool.ID)], resumptions: Array<Async.Waiter.Resumption>)
         case alreadyShuttingDown
     }
 }
@@ -66,10 +69,12 @@ extension Pool.Bounded.Shutdown where Resource: ~Copyable & Sendable {
     /// Use `wait()` to await until all resources are disposed.
     public func callAsFunction() {
         // Phase 1: Begin shutdown and collect what needs to be done
-        let (action, waiterResumptions): (DrainAction, [Async.Waiter.Resumption]) = pool._state.withLock { state in
+        // All side-outputs embedded in DrainAction to avoid capturing
+        // mutable variables across the withLock sending boundary.
+        let action: DrainAction = pool._state.withLock { state in
             // Begin shutdown (idempotent)
             guard state.lifecycle.beginShutdown() else {
-                return (.alreadyShuttingDown, [])
+                return .alreadyShuttingDown
             }
 
             // Collect slots to drain
@@ -83,27 +88,25 @@ extension Pool.Bounded.Shutdown where Resource: ~Copyable & Sendable {
                 slotsToDrain.append((slotIndex, id))
             }
 
-            // Drain all waiters with shutdown error
-            var pending: [Async.Waiter.Resumption] = []
-            state.waiters.drainAll { entry in
-                pending.append(entry.resumption(with: .failure(.shutdown)))
+            // Drain all waiters with shutdown error (local array, no external capture)
+            var resumptions = Array<Async.Waiter.Resumption>()
+            state.waiters.drain { entry in
+                resumptions.append(entry.resumption(with: .failure(.shutdown)))
             }
             state.metrics.waiters = 0
 
-            return (.drain(slotsToDrain), pending)
+            return .drain(slotsToDrain, resumptions: resumptions)
         }
 
-        // Phase 2: Execute waiter resumptions OUTSIDE lock
-        for resumption in waiterResumptions {
-            resumption.resume()
-        }
-
-        // Phase 3: Handle drain action
-        switch action {
+        // Phase 2: Execute action OUTSIDE lock
+        switch consume action {
         case .alreadyShuttingDown:
             return
 
-        case .drain(let slotsToDrain):
+        case .drain(let slotsToDrain, var resumptions):
+            // Resume all waiters with shutdown error OUTSIDE lock
+            resumptions.drain { $0.resume() }
+
             // Dispose each resource OUTSIDE lock (strict stance)
             for (slotIndex, _) in slotsToDrain {
                 // Move resource out OUTSIDE lock

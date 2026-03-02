@@ -15,7 +15,7 @@ import Synchronization
 public import Dimension_Primitives
 public import Async_Primitives
 internal import Ownership_Primitives
-internal import Array_Primitives
+public import Array_Primitives
 
 // MARK: - Async Acquire (Non-Embedded Only)
 
@@ -300,16 +300,19 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
 
 extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Actions computed under lock for slot release.
+    ///
+    /// Embeds skipped resumptions into each case to avoid capturing
+    /// mutable variables across the `withLock` sending boundary.
     @usableFromInline
-    enum ReleaseAction: Sendable {
+    enum ReleaseAction: ~Copyable, Sendable {
         /// Hand off to waiting waiter.
-        case handOff(Async.Waiter.Resumption)
+        case handOff(Async.Waiter.Resumption, skipped: Array<Async.Waiter.Resumption>)
 
         /// Return to available pool.
-        case returnToPool
+        case returnToPool(skipped: Array<Async.Waiter.Resumption>)
 
         /// Dispose during shutdown.
-        case dispose
+        case dispose(skipped: Array<Async.Waiter.Resumption>)
     }
 }
 
@@ -329,7 +332,9 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     @usableFromInline
     func releaseSlot(_ slotIndex: Slot.Index, id: Pool.ID) {
         // Phase 1: Decide what to do under lock (no entry access)
-        let (action, skippedResumptions): (ReleaseAction, [Async.Waiter.Resumption]) = _state.withLock { state in
+        // All side-outputs embedded in ReleaseAction to avoid capturing
+        // mutable variables across the withLock sending boundary.
+        let action: ReleaseAction = _state.withLock { state in
             // Validate slot state
             guard case .out(let currentId) = state.slots[slotIndex].state,
                   currentId == id else {
@@ -338,42 +343,42 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
 
             state.metrics.releases += 1
 
+            // Local array for skipped resumptions (no external capture)
+            var skipped = Array<Async.Waiter.Resumption>()
+
             // Try to hand off to waiter
-            var skipped: [Async.Waiter.Resumption] = []
             if let waiter = state.dequeueEligibleWaiter(skipped: &skipped) {
                 // Slot stays .out - waiter takes ownership
                 state.metrics.acquisitions += 1
                 let resumption = waiter.resumption(with: .success((slotIndex, id)))
-                return (.handOff(resumption), skipped)
+                return .handOff(resumption, skipped: skipped)
             } else if state.lifecycle.isShuttingDown {
                 state.transition(slot: slotIndex, to: .disposing(id))
-                return (.dispose, skipped)
+                return .dispose(skipped: skipped)
             } else {
                 state.transition(slot: slotIndex, to: .available(id))
                 state.pushAvailable(slotIndex)
-                return (.returnToPool, skipped)
+                return .returnToPool(skipped: skipped)
             }
         }
 
-        // Resume skipped (cancelled/timed out) waiters OUTSIDE lock
-        for resumption in skippedResumptions {
-            resumption.resume()
-        }
-
         // Phase 2: Execute action OUTSIDE lock
-        switch action {
-        case .handOff(let resumption):
+        switch consume action {
+        case .handOff(let resumption, var skipped):
+            skipped.drain { $0.resume() }
             // Resource stays in entry - waiter gets it
             perform(.waiter(.resume(resumption)))
 
-        case .returnToPool:
+        case .returnToPool(var skipped):
+            skipped.drain { $0.resume() }
             // Resource stays in entry - check shutdown
             let effect: Effect = _state.withLock { state in
                 state.checkShutdownComplete()
             }
             perform(effect)
 
-        case .dispose:
+        case .dispose(var skipped):
+            skipped.drain { $0.resume() }
             // Move resource out OUTSIDE lock
             let resource = entries[slotIndex].move.out
 
@@ -405,16 +410,13 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// - Cancellation handler after `flag.cancel()` returns `true`
     @usableFromInline
     func pumpWaiters() {
-        var pending: [Async.Waiter.Resumption] = []
-
-        _state.withLock { state in
-            state.reapFlaggedWaiters(into: &pending)
+        // Return resumptions from withLock (no external capture)
+        var pending: Array<Async.Waiter.Resumption> = _state.withLock { state in
+            state.reapFlaggedWaiters()
         }
 
         // Resume OUTSIDE lock via single funnel
-        for resumption in pending {
-            resumption.resume()
-        }
+        pending.drain { $0.resume() }
     }
 }
 
@@ -443,7 +445,7 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
     /// - Returns: First eligible waiter, or nil.
     @usableFromInline
     mutating func dequeueEligibleWaiter(
-        skipped: inout [Async.Waiter.Resumption]
+        skipped: inout Array<Async.Waiter.Resumption>
     ) -> Pool.Bounded<Resource>.Waiter.Entry? {
         // Collect flagged entries
         var flagged = Async.Waiter.Queue.Drain<Pool.Bounded<Resource>.Waiter.Flagged>()
