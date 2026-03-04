@@ -84,7 +84,7 @@ extension Pool.Bounded.TryAcquire where Resource: ~Copyable & Sendable {
     /// - Returns: The result of the body closure.
     /// - Throws: `Pool.Lifecycle.Error.shutdown` if pool is shutting down,
     ///           `Pool.Lifecycle.Error.exhausted` if no resource available.
-    public func callAsFunction<T: Sendable>(
+    public func callAsFunction<T>(
         _ body: (inout Resource) -> T
     ) throws(Pool.Lifecycle.Error) -> T {
         // Phase 1: Try immediate acquisition under lock
@@ -141,7 +141,7 @@ extension Pool.Bounded.TryAcquire where Resource: ~Copyable & Sendable {
     /// - Returns: `Result.success(T)` on body success, `Result.failure(E)` on body error.
     /// - Throws: `Pool.Lifecycle.Error.shutdown` if pool is shutting down,
     ///           `Pool.Lifecycle.Error.exhausted` if no resource available.
-    public func callAsFunction<T: Sendable, E: Error>(
+    public func callAsFunction<T, E: Error>(
         _ body: (inout Resource) throws(E) -> T
     ) throws(Pool.Lifecycle.Error) -> Result<T, E> {
         // Phase 1: Try immediate acquisition under lock
@@ -200,7 +200,7 @@ extension Pool.Bounded.TryAcquire where Resource: ~Copyable & Sendable {
     /// - Parameter body: Closure receiving exclusive mutable access to resource.
     /// - Returns: The result of the body closure, or nil if no resource available.
     /// - Throws: `Pool.Lifecycle.Error.shutdown` if pool is shutting down.
-    public func optional<T: Sendable>(
+    public func optional<T>(
         _ body: (inout Resource) -> T
     ) throws(Pool.Lifecycle.Error) -> T? {
         do {
@@ -220,7 +220,7 @@ extension Pool.Bounded.TryAcquire where Resource: ~Copyable & Sendable {
     /// - Parameter body: Throwing closure receiving exclusive mutable access.
     /// - Returns: Result of body, or nil if no resource available.
     /// - Throws: `Pool.Lifecycle.Error.shutdown` if pool is shutting down.
-    public func optional<T: Sendable, E: Error>(
+    public func optional<T, E: Error>(
         _ body: (inout Resource) throws(E) -> T
     ) throws(Pool.Lifecycle.Error) -> Result<T, E>? {
         do {
