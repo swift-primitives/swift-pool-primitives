@@ -9,6 +9,10 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// and the destructor closure for disposing them.
     @usableFromInline
     struct Creation: Sendable {
+        // DESIGN: Untyped `throws` is intentional. The user's factory closure throws
+        // domain-specific errors (e.g., database, network). The pool catches any error
+        // and erases it to `Pool.Lifecycle.Error.creationFailed`. Making this
+        // `throws(Pool.Error)` would force callers to wrap their errors unnecessarily.
         @usableFromInline
         let create: @Sendable () async throws -> Resource
 
