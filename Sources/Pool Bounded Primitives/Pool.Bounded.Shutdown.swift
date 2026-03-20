@@ -41,7 +41,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     }
 }
 
-// MARK: - Drain Action
+// MARK: - Drain
 
 extension Pool.Bounded.Shutdown where Resource: ~Copyable & Sendable {
     /// Actions computed under lock for shutdown drain.
@@ -49,7 +49,7 @@ extension Pool.Bounded.Shutdown where Resource: ~Copyable & Sendable {
     /// Embeds waiter resumptions into the drain case to avoid capturing
     /// mutable variables across the `withLock` sending boundary.
     @usableFromInline
-    enum DrainAction: ~Copyable, Sendable {
+    enum Drain: ~Copyable, Sendable {
         case drain([(Pool.Bounded<Resource>.Slot.Index, Pool.ID)], resumptions: Array<Async.Waiter.Resumption>)
         case alreadyShuttingDown
     }
@@ -69,9 +69,9 @@ extension Pool.Bounded.Shutdown where Resource: ~Copyable & Sendable {
     /// Use `wait()` to await until all resources are disposed.
     public func callAsFunction() {
         // Phase 1: Begin shutdown and collect what needs to be done
-        // All side-outputs embedded in DrainAction to avoid capturing
+        // All side-outputs embedded in Drain to avoid capturing
         // mutable variables across the withLock sending boundary.
-        let action: DrainAction = pool._state.withLock { state in
+        let action: Drain = pool._state.withLock { state in
             // Begin shutdown (idempotent)
             guard state.lifecycle.beginShutdown() else {
                 return .alreadyShuttingDown

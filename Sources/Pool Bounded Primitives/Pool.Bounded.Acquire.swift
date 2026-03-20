@@ -111,16 +111,16 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
 
 // MARK: - Acquire Action
 
-extension Pool.Bounded where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Acquire where Resource: ~Copyable & Sendable {
     /// Actions computed under lock for slot acquisition.
     @usableFromInline
-    enum AcquireAction: Sendable {
+    enum Action: Sendable {
         /// Slot immediately available - return to caller.
-        case immediate(Slot.Index, Pool.ID)
+        case immediate(Pool.Bounded<Resource>.Slot.Index, Pool.ID)
 
         #if !hasFeature(Embedded)
         /// Need to create resource lazily.
-        case create(Slot.Index, Pool.ID)
+        case create(Pool.Bounded<Resource>.Slot.Index, Pool.ID)
         #endif
 
         /// Need to suspend and wait for slot.
@@ -147,7 +147,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     @usableFromInline
     func acquireSlot() async throws(Pool.Lifecycle.Error) -> (Slot.Index, Pool.ID) {
         // Phase 1: Compute action under lock
-        let action: AcquireAction = _state.withLock { state in
+        let action: Acquire.Action = _state.withLock { state in
             // Check lifecycle
             guard !state.lifecycle.isShuttingDown else {
                 return .shutdown
@@ -296,15 +296,21 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
 }
 #endif
 
-// MARK: - Release Action
+// MARK: - Release
 
 extension Pool.Bounded where Resource: ~Copyable & Sendable {
+    /// Namespace for release operations.
+    @usableFromInline
+    enum Release {}
+}
+
+extension Pool.Bounded.Release where Resource: ~Copyable & Sendable {
     /// Actions computed under lock for slot release.
     ///
     /// Embeds skipped resumptions into each case to avoid capturing
     /// mutable variables across the `withLock` sending boundary.
     @usableFromInline
-    enum ReleaseAction: ~Copyable, Sendable {
+    enum Action: ~Copyable, Sendable {
         /// Hand off to waiting waiter.
         case handOff(Async.Waiter.Resumption, skipped: Array<Async.Waiter.Resumption>)
 
@@ -332,9 +338,9 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     @usableFromInline
     func releaseSlot(_ slotIndex: Slot.Index, id: Pool.ID) {
         // Phase 1: Decide what to do under lock (no entry access)
-        // All side-outputs embedded in ReleaseAction to avoid capturing
+        // All side-outputs embedded in Release.Action to avoid capturing
         // mutable variables across the withLock sending boundary.
-        let action: ReleaseAction = _state.withLock { state in
+        let action: Release.Action = _state.withLock { state in
             // Validate slot state
             guard case .out(let currentId) = state.slots[slotIndex].state,
                   currentId == id else {

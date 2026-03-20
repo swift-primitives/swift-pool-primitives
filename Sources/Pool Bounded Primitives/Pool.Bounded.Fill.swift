@@ -77,7 +77,7 @@ extension Pool.Bounded.Fill where Resource: ~Copyable & Sendable {
     }
 }
 
-// MARK: - Commit Action
+// MARK: - Commit
 
 extension Pool.Bounded.Fill where Resource: ~Copyable & Sendable {
     /// Actions for committing a filled slot.
@@ -85,7 +85,7 @@ extension Pool.Bounded.Fill where Resource: ~Copyable & Sendable {
     /// Embeds skipped resumptions and shutdown effect into each case to avoid
     /// capturing mutable variables across the `withLock` sending boundary.
     @usableFromInline
-    enum CommitAction: ~Copyable, Sendable {
+    enum Commit: ~Copyable, Sendable {
         /// Add slot to available pool.
         case addToPool(effect: Pool.Bounded<Resource>.Effect, skipped: Array<Async.Waiter.Resumption>)
 
@@ -150,9 +150,9 @@ extension Pool.Bounded.Fill where Resource: ~Copyable & Sendable {
             pool.entries[slotIndex].move.in(resource)
 
             // Phase 3: Commit under lock
-            // All side-outputs embedded in CommitAction to avoid capturing
+            // All side-outputs embedded in Commit to avoid capturing
             // mutable variables across the withLock sending boundary.
-            let commitAction: CommitAction = pool._state.withLock { state in
+            let commitAction: Commit = pool._state.withLock { state in
                 // Mark as available (creating → available)
                 state.transition(slot: slotIndex, to: .available(id))
                 state.metrics.fills += 1

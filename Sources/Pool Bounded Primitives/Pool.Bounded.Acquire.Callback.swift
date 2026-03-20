@@ -17,9 +17,9 @@ public import Dimension_Primitives
 internal import Ownership_Primitives
 internal import Array_Primitives
 
-// MARK: - Callback Acquire Type
+// MARK: - Callback
 
-extension Pool.Bounded where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Acquire where Resource: ~Copyable & Sendable {
     /// Callback-based acquire operations.
     ///
     /// Acquires a resource and calls back when available. If no resource
@@ -29,7 +29,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// waiters for timeout/cancellation processing.
     ///
     /// Works on all platforms including embedded Swift.
-    public struct CallbackAcquire: Sendable {
+    public struct Callback: Sendable {
         @usableFromInline
         let pool: Pool.Bounded<Resource>
 
@@ -40,7 +40,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     }
 }
 
-// MARK: - Callback Acquire Accessor
+// MARK: - Callback Accessor
 
 extension Pool.Bounded.Acquire where Resource: ~Copyable & Sendable {
     /// Access callback-based acquire operations.
@@ -57,19 +57,19 @@ extension Pool.Bounded.Acquire where Resource: ~Copyable & Sendable {
     ///     }
     /// }
     /// ```
-    public var callback: Pool.Bounded<Resource>.CallbackAcquire {
-        Pool.Bounded<Resource>.CallbackAcquire(pool: pool)
+    public var callback: Callback {
+        Callback(pool: pool)
     }
 }
 
-// MARK: - Callback Acquire Action
+// MARK: - Callback Action
 
-extension Pool.Bounded where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Acquire.Callback where Resource: ~Copyable & Sendable {
     /// Actions computed under lock for callback-based acquisition.
     @usableFromInline
-    enum CallbackAcquireAction: Sendable {
+    enum Action: Sendable {
         /// Slot immediately available.
-        case immediate(Slot.Index, Pool.ID)
+        case immediate(Pool.Bounded<Resource>.Slot.Index, Pool.ID)
 
         /// Need to wait for a slot.
         case enqueue
@@ -79,9 +79,9 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     }
 }
 
-// MARK: - Callback Acquire Operations
+// MARK: - Callback Operations
 
-extension Pool.Bounded.CallbackAcquire where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Acquire.Callback where Resource: ~Copyable & Sendable {
     /// Acquires a resource and calls back with the result.
     ///
     /// If a resource is immediately available, the body is executed and
@@ -98,7 +98,7 @@ extension Pool.Bounded.CallbackAcquire where Resource: ~Copyable & Sendable {
         completion: @escaping @Sendable (Result<T, Pool.Lifecycle.Error>) -> Void
     ) {
         // Phase 1: Try immediate acquisition under lock
-        let action: Pool.Bounded<Resource>.CallbackAcquireAction = pool._state.withLock { state in
+        let action: Action = pool._state.withLock { state in
             // Check lifecycle
             guard !state.lifecycle.isShuttingDown else {
                 return .shutdown

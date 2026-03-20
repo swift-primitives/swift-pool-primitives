@@ -61,8 +61,8 @@ extension Pool.Bounded.Acquire where Resource: ~Copyable & Sendable {
     /// - Parameter duration: Maximum time to wait for a resource.
     /// - Returns: A timeout acquire accessor.
     @inlinable
-    public func timeout(_ duration: Duration) -> Pool.Bounded<Resource>.TimeoutAcquire {
-        Pool.Bounded<Resource>.TimeoutAcquire(pool: pool, timeout: duration)
+    public func timeout(_ duration: Duration) -> Timeout {
+        Timeout(pool: pool, timeout: duration)
     }
 
     /// Acquires a resource and executes a body (no timeout).
@@ -86,11 +86,11 @@ extension Pool.Bounded.Acquire where Resource: ~Copyable & Sendable {
     }
 }
 
-// MARK: - TimeoutAcquire Type
+// MARK: - Timeout
 
-extension Pool.Bounded where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Acquire where Resource: ~Copyable & Sendable {
     /// Acquire operation with timeout.
-    public struct TimeoutAcquire: Sendable {
+    public struct Timeout: Sendable {
         @usableFromInline
         let pool: Pool.Bounded<Resource>
 
@@ -105,9 +105,9 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     }
 }
 
-// MARK: - TimeoutAcquire Operations
+// MARK: - Timeout Operations
 
-extension Pool.Bounded.TimeoutAcquire where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Acquire.Timeout where Resource: ~Copyable & Sendable {
     /// Acquires a resource with timeout and executes a body.
     ///
     /// - Parameter body: Closure receiving exclusive mutable access to resource.
@@ -210,7 +210,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     @usableFromInline
     func acquireSlotWithTimeout(_ timeout: Duration) async throws(Pool.Lifecycle.Error) -> (Slot.Index, Pool.ID) {
         // Phase 1: Compute action under lock
-        let action: AcquireAction = _state.withLock { state in
+        let action: Acquire.Action = _state.withLock { state in
             // Check lifecycle
             guard !state.lifecycle.isShuttingDown else {
                 return .shutdown

@@ -17,16 +17,16 @@ public import Dimension_Primitives
 internal import Ownership_Primitives
 internal import Array_Primitives
 
-// MARK: - Try Acquire Type
+// MARK: - Try
 
-extension Pool.Bounded where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Acquire where Resource: ~Copyable & Sendable {
     /// Non-blocking acquire operations.
     ///
     /// Attempts to acquire a resource immediately without waiting.
     /// Returns immediately with a result or throws `.exhausted`.
     ///
     /// Works on all platforms including embedded Swift.
-    public struct TryAcquire: Sendable {
+    public struct Try: Sendable {
         @usableFromInline
         let pool: Pool.Bounded<Resource>
 
@@ -37,7 +37,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     }
 }
 
-// MARK: - Try Acquire Accessor
+// MARK: - Try Accessor
 
 extension Pool.Bounded.Acquire where Resource: ~Copyable & Sendable {
     /// Access non-blocking acquire operations.
@@ -48,19 +48,19 @@ extension Pool.Bounded.Acquire where Resource: ~Copyable & Sendable {
     ///     // use resource
     /// }
     /// ```
-    public var `try`: Pool.Bounded<Resource>.TryAcquire {
-        Pool.Bounded<Resource>.TryAcquire(pool: pool)
+    public var `try`: Try {
+        Try(pool: pool)
     }
 }
 
-// MARK: - Try Acquire Action
+// MARK: - Try Action
 
-extension Pool.Bounded where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Acquire.Try where Resource: ~Copyable & Sendable {
     /// Actions computed under lock for non-blocking acquisition.
     @usableFromInline
-    enum TryAcquireAction: Sendable {
+    enum Action: Sendable {
         /// Slot immediately available.
-        case acquired(Slot.Index, Pool.ID)
+        case acquired(Pool.Bounded<Resource>.Slot.Index, Pool.ID)
 
         /// Pool is shutting down.
         case shutdown
@@ -70,9 +70,9 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     }
 }
 
-// MARK: - Try Acquire Operations
+// MARK: - Try Operations
 
-extension Pool.Bounded.TryAcquire where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Acquire.Try where Resource: ~Copyable & Sendable {
     /// Acquires a resource immediately or throws `.exhausted`.
     ///
     /// This is a non-blocking operation that returns immediately.
@@ -88,7 +88,7 @@ extension Pool.Bounded.TryAcquire where Resource: ~Copyable & Sendable {
         _ body: (inout Resource) -> T
     ) throws(Pool.Lifecycle.Error) -> T {
         // Phase 1: Try immediate acquisition under lock
-        let action: Pool.Bounded<Resource>.TryAcquireAction = pool._state.withLock { state in
+        let action: Action = pool._state.withLock { state in
             // Check lifecycle
             guard !state.lifecycle.isShuttingDown else {
                 return .shutdown
@@ -145,7 +145,7 @@ extension Pool.Bounded.TryAcquire where Resource: ~Copyable & Sendable {
         _ body: (inout Resource) throws(E) -> T
     ) throws(Pool.Lifecycle.Error) -> Result<T, E> {
         // Phase 1: Try immediate acquisition under lock
-        let action: Pool.Bounded<Resource>.TryAcquireAction = pool._state.withLock { state in
+        let action: Action = pool._state.withLock { state in
             guard !state.lifecycle.isShuttingDown else {
                 return .shutdown
             }
