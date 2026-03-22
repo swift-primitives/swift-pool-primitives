@@ -13,7 +13,7 @@
 import Synchronization
 #endif
 public import Async_Primitives
-public import Dimension_Primitives
+internal import Dimension_Primitives
 internal import Ownership_Primitives
 internal import Array_Primitives
 

@@ -10,7 +10,7 @@
 // ===----------------------------------------------------------------------===//
 
 public import Effect_Primitives
-public import Ownership_Primitives
+internal import Ownership_Primitives
 
 extension Pool {
     /// Effect performed when releasing a resource back to a pool.

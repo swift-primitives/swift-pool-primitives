@@ -1,5 +1,5 @@
 public import Dimension_Primitives
-public import Async_Primitives
+internal import Async_Primitives
 
 #if !hasFeature(Embedded)
 import Synchronization

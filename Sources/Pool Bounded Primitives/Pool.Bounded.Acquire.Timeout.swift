@@ -14,7 +14,7 @@
 
 import Synchronization
 public import Dimension_Primitives
-public import Async_Primitives
+internal import Async_Primitives
 internal import Ownership_Primitives
 internal import Array_Primitives
 

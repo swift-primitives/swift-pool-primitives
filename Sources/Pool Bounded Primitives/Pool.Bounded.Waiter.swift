@@ -1,5 +1,5 @@
 public import Async_Primitives
-public import Dimension_Primitives
+internal import Dimension_Primitives
 
 extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// Outcome type for waiter continuation pattern.
