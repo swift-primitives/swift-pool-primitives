@@ -144,7 +144,6 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// and `resumption.resume()` may appear. Any other occurrence is a
     /// pattern violation.
     @inline(always)
-    @usableFromInline
     func perform(_ effect: consuming Effect) {
         switch effect {
         case .none:
