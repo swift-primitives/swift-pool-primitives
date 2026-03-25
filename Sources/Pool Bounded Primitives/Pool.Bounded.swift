@@ -143,7 +143,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// **CRITICAL:** This is the ONLY location where `shutdownGate.open()`
     /// and `resumption.resume()` may appear. Any other occurrence is a
     /// pattern violation.
-    @inline(__always)
+    @inline(always)
     @usableFromInline
     func perform(_ effect: consuming Effect) {
         switch effect {
