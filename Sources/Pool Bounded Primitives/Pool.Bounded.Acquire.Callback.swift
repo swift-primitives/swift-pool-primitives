@@ -191,7 +191,7 @@ extension Pool.Bounded.Acquire.Callback where Resource: ~Copyable & Sendable {
         let flag = Pool.Bounded<Resource>.Flag()
 
         // Create callback that will be invoked when resource available
-        let callback: @Sendable (Pool.Bounded<Resource>.Outcome) -> Void = { [pool] outcome in
+        let callback: @Sendable (sending Pool.Bounded<Resource>.Outcome) -> Void = { [pool] outcome in
             switch outcome {
             case .success((let slotIndex, let id)):
                 // Execute body OUTSIDE lock
