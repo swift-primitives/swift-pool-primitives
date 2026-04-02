@@ -90,7 +90,7 @@ extension Pool.Bounded.Acquire.Try where Resource: ~Copyable & Sendable {
         // Phase 1: Try immediate acquisition under lock
         let action: Action = pool._state.withLock { state in
             // Check lifecycle
-            guard !state.lifecycle.isShuttingDown else {
+            guard !state.lifecycle.shutdown.isActive else {
                 return .shutdown
             }
 
@@ -146,7 +146,7 @@ extension Pool.Bounded.Acquire.Try where Resource: ~Copyable & Sendable {
     ) throws(Pool.Lifecycle.Error) -> Result<T, E> {
         // Phase 1: Try immediate acquisition under lock
         let action: Action = pool._state.withLock { state in
-            guard !state.lifecycle.isShuttingDown else {
+            guard !state.lifecycle.shutdown.isActive else {
                 return .shutdown
             }
 

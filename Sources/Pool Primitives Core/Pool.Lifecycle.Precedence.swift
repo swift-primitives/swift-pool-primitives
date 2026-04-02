@@ -36,7 +36,7 @@ extension Pool.Lifecycle.Precedence {
         outcome: Result<Success, Pool.Lifecycle.Error>
     ) -> Result<Success, Pool.Lifecycle.Error> {
         Async.Precedence.resolve(
-            shutdown: lifecycle.isShuttingDown,
+            shutdown: !lifecycle.isOpen,
             cancelled: cancelled,
             timedOut: timedOut,
             success: outcome,

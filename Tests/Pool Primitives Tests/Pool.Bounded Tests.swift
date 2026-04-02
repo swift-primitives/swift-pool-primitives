@@ -181,7 +181,7 @@ extension PoolBoundedTests.EdgeCase {
         )
 
         pool._state.withLock { state in
-            _ = state.lifecycle.beginShutdown()
+            _ = state.lifecycle.shutdown.begin()
         }
 
         await #expect(throws: Pool.Lifecycle.Error.shutdown) {
@@ -211,7 +211,7 @@ extension PoolBoundedTests.EdgeCase {
         )
 
         pool._state.withLock { state in
-            _ = state.lifecycle.beginShutdown()
+            _ = state.lifecycle.shutdown.begin()
         }
 
         #expect(throws: TestPool.Fill.Error.shutdown) {

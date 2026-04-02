@@ -212,7 +212,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
         // Phase 1: Compute action under lock
         let action: Acquire.Action = _state.withLock { state in
             // Check lifecycle
-            guard !state.lifecycle.isShuttingDown else {
+            guard !state.lifecycle.shutdown.isActive else {
                 return .shutdown
             }
 

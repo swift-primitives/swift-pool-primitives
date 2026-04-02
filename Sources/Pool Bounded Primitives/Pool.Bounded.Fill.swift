@@ -116,7 +116,7 @@ extension Pool.Bounded.Fill where Resource: ~Copyable & Sendable {
             }
 
             // Check lifecycle
-            guard !state.lifecycle.isShuttingDown else {
+            guard !state.lifecycle.shutdown.isActive else {
                 return .shutdown
             }
 

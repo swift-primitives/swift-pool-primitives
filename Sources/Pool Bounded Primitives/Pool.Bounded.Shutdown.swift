@@ -73,7 +73,7 @@ extension Pool.Bounded.Shutdown where Resource: ~Copyable & Sendable {
         // mutable variables across the withLock sending boundary.
         let action: Drain = pool._state.withLock { state in
             // Begin shutdown (idempotent)
-            guard state.lifecycle.beginShutdown() else {
+            guard state.lifecycle.shutdown.begin() else {
                 return .alreadyShuttingDown
             }
 
@@ -159,7 +159,7 @@ extension Pool.Bounded.Shutdown where Resource: ~Copyable & Sendable {
 
         // Ensure shutdown has started
         let needsShutdown: Bool = pool._state.withLock { state in
-            !state.lifecycle.isShuttingDown && state.lifecycle != .closed
+            !state.lifecycle.shutdown.isActive && state.lifecycle != .closed
         }
 
         if needsShutdown {
@@ -189,7 +189,7 @@ extension Pool.Bounded.Shutdown where Resource: ~Copyable & Sendable {
 
         // Ensure shutdown has started
         let needsShutdown: Bool = pool._state.withLock { state in
-            !state.lifecycle.isShuttingDown && state.lifecycle != .closed
+            !state.lifecycle.shutdown.isActive && state.lifecycle != .closed
         }
 
         if needsShutdown {

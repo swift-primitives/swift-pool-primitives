@@ -104,7 +104,7 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
     @usableFromInline
     mutating func checkShutdownComplete() -> Pool.Bounded<Resource>.Effect {
         if isShutdownComplete {
-            _ = lifecycle.completeShutdown()
+            _ = lifecycle.shutdown.complete()
             return .gate(.open)
         }
         return .none

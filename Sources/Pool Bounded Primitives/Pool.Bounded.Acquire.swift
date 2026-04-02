@@ -149,7 +149,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
         // Phase 1: Compute action under lock
         let action: Acquire.Action = _state.withLock { state in
             // Check lifecycle
-            guard !state.lifecycle.isShuttingDown else {
+            guard !state.lifecycle.shutdown.isActive else {
                 return .shutdown
             }
 
@@ -224,7 +224,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
 
         // Phase 2: Recheck lifecycle before commit
         let shouldInstall: Bool = _state.withLock { state in
-            if state.lifecycle.isShuttingDown {
+            if state.lifecycle.shutdown.isActive {
                 // Shutdown began during create - will dispose
                 state.transition(slot: slotIndex, to: .empty)
                 return false
@@ -358,7 +358,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
                 state.metrics.acquisitions += 1
                 let resumption = waiter.resumption(with: .success((slotIndex, id)))
                 return .handOff(resumption, skipped: skipped)
-            } else if state.lifecycle.isShuttingDown {
+            } else if state.lifecycle.shutdown.isActive {
                 state.transition(slot: slotIndex, to: .disposing(id))
                 return .dispose(skipped: skipped)
             } else {
