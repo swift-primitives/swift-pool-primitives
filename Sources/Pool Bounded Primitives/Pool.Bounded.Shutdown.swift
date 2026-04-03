@@ -12,10 +12,10 @@
 #if !hasFeature(Embedded)
 import Synchronization
 #endif
-public import Async_Primitives
+public import Async_Primitives_Core
 internal import Dimension_Primitives
 internal import Ownership_Primitives
-public import Array_Primitives
+public import Array_Primitives_Core
 
 // MARK: - Shutdown Accessor
 

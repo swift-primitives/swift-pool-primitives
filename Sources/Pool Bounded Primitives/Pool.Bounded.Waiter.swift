@@ -1,4 +1,4 @@
-public import Async_Primitives
+public import Async_Primitives_Core
 internal import Dimension_Primitives
 
 extension Pool.Bounded where Resource: ~Copyable & Sendable {

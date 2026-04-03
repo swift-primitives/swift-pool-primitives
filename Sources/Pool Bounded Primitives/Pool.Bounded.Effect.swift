@@ -9,8 +9,8 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Array_Primitives
-public import Async_Primitives
+public import Array_Primitives_Core
+public import Async_Primitives_Core
 
 extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// External effects computed under lock, executed outside lock.

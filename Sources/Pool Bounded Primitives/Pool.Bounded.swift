@@ -1,8 +1,8 @@
 #if !hasFeature(Embedded)
 public import Synchronization
 #endif
-public import Async_Primitives
-internal import Array_Primitives
+public import Async_Primitives_Core
+internal import Array_Primitives_Core
 internal import Ownership_Primitives
 @_spi(Internal) internal import Pool_Primitives_Core
 

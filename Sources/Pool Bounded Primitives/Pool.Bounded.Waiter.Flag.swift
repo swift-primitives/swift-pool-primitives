@@ -1,4 +1,4 @@
-public import Async_Primitives
+public import Async_Primitives_Core
 
 extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// External flags for cancellation and timeout.

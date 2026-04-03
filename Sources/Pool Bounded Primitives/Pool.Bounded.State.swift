@@ -1,7 +1,7 @@
 public import Dimension_Primitives
 public import Stack_Primitives
-public import Async_Primitives
-public import Array_Primitives
+public import Async_Primitives_Core
+public import Array_Primitives_Core
 @_spi(Internal) internal import Pool_Primitives_Core
 
 extension Pool.Bounded where Resource: ~Copyable & Sendable {

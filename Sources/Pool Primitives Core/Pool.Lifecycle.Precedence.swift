@@ -1,4 +1,4 @@
-public import Async_Primitives
+public import Async_Primitives_Core
 
 extension Pool.Lifecycle {
     /// Precedence rules for error handling.

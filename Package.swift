@@ -46,7 +46,7 @@ let package = Package(
         .target(
             name: "Pool Primitives Core",
             dependencies: [
-                .product(name: "Async Primitives", package: "swift-async-primitives"),
+                .product(name: "Async Primitives Core", package: "swift-async-primitives"),
                 .product(name: "Dimension Primitives", package: "swift-dimension-primitives"),
                 .product(name: "Effect Primitives", package: "swift-effect-primitives"),
                 .product(name: "Ownership Primitives", package: "swift-ownership-primitives"),
@@ -59,7 +59,7 @@ let package = Package(
             dependencies: [
                 "Pool Primitives Core",
                 .product(name: "Stack Primitives", package: "swift-stack-primitives"),
-                .product(name: "Array Primitives", package: "swift-array-primitives"),
+                .product(name: "Array Primitives Core", package: "swift-array-primitives"),
             ]
         ),
 
