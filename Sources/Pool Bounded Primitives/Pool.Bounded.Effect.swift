@@ -11,6 +11,8 @@
 
 public import Array_Primitives_Core
 public import Async_Primitives_Core
+public import Async_Mutex_Primitives
+public import Async_Waiter_Primitives
 
 extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// External effects computed under lock, executed outside lock.

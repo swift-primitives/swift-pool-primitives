@@ -15,8 +15,10 @@
 import Synchronization
 public import Dimension_Primitives
 internal import Async_Primitives_Core
+public import Async_Mutex_Primitives
+public import Async_Waiter_Primitives
 internal import Ownership_Primitives
-internal import Array_Primitives_Core
+internal import Array_Fixed_Primitives
 
 // MARK: - Acquire Accessor
 

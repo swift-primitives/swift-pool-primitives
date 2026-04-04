@@ -14,8 +14,12 @@ import Synchronization
 #endif
 public import Dimension_Primitives
 public import Async_Primitives_Core
+public import Async_Mutex_Primitives
+public import Async_Waiter_Primitives
 internal import Ownership_Primitives
 public import Array_Primitives_Core
+internal import Array_Dynamic_Primitives
+internal import Array_Fixed_Primitives
 
 // MARK: - Async Acquire (Non-Embedded Only)
 
