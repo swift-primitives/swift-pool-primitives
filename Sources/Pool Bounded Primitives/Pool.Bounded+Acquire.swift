@@ -22,10 +22,19 @@ internal import Array_Dynamic_Primitives
 internal import Array_Fixed_Primitives
 
 // MARK: - Direct Acquire (Non-Embedded Only)
+//
+// Convention: ownership-transfer-conventions.md
+// - No `T: Sendable` constraint: T flows out only via the body return; the
+//   function is `nonisolated(nonsending)` so the caller's isolation is
+//   preserved and `T` never crosses a boundary.
+// - Returns are `sending T`: one-time ownership transfer back to the caller.
+// - `nonisolated(nonsending)` is explicit (canonical form) even though
+//   `NonisolatedNonsendingByDefault` is enabled.
+// - Async-body overloads use the double-nonsending pattern.
 
 #if !hasFeature(Embedded)
 extension Pool.Bounded where Resource: ~Copyable & Sendable {
-    // MARK: - Core Acquire (Non-throwing Body)
+    // MARK: - Sync Body (Non-throwing)
 
     /// Acquires a resource and executes a body with exclusive access.
     ///
@@ -46,9 +55,10 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// - Parameter body: Closure receiving exclusive mutable access to resource.
     /// - Returns: The result of the body closure.
     /// - Throws: `Pool.Lifecycle.Error` on shutdown or cancellation.
-    public func callAsFunction<T: Sendable>(
+    nonisolated(nonsending)
+    public func callAsFunction<T>(
         _ body: (inout Resource) -> T
-    ) async throws(Pool.Lifecycle.Error) -> T {
+    ) async throws(Pool.Lifecycle.Error) -> sending T {
         // Phase 1: Acquire slot (may suspend)
         let (slotIndex, id) = try await acquireSlot()
 
@@ -69,7 +79,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
         return result
     }
 
-    // MARK: - Core Acquire (Throwing Body)
+    // MARK: - Sync Body (Throwing)
 
     /// Acquires a resource and executes a throwing body with exclusive access.
     ///
@@ -86,9 +96,10 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// - Parameter body: Throwing closure receiving exclusive mutable access.
     /// - Returns: `Result.success(T)` on body success, `Result.failure(E)` on body error.
     /// - Throws: `Pool.Lifecycle.Error` on shutdown or cancellation.
-    public func callAsFunction<T: Sendable, E: Error>(
+    nonisolated(nonsending)
+    public func callAsFunction<T, E: Error>(
         _ body: (inout Resource) throws(E) -> T
-    ) async throws(Pool.Lifecycle.Error) -> Result<T, E> {
+    ) async throws(Pool.Lifecycle.Error) -> sending Result<T, E> {
         // Phase 1: Acquire slot (may suspend)
         let (slotIndex, id) = try await acquireSlot()
 
@@ -108,6 +119,56 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
 
         entries[slotIndex].move.in(resource)
 
+        return result
+    }
+
+    // MARK: - Async Body (Non-throwing)
+
+    /// Acquires a resource and executes an async body with exclusive access.
+    ///
+    /// The body may suspend; the slot is held across `await`. The resource is
+    /// borrowed inout for the duration of the body.
+    ///
+    /// - Note: Only available on non-embedded platforms.
+    ///
+    /// - Parameter body: Async closure receiving exclusive mutable access to resource.
+    /// - Returns: The result of the body closure.
+    /// - Throws: `Pool.Lifecycle.Error` on shutdown or cancellation.
+    nonisolated(nonsending)
+    public func callAsFunction<T>(
+        _ body: nonisolated(nonsending) (inout Resource) async -> sending T
+    ) async throws(Pool.Lifecycle.Error) -> sending T {
+        let (slotIndex, id) = try await acquireSlot()
+        defer { releaseSlot(slotIndex, id: id) }
+        var resource = entries[slotIndex].move.out
+        let result = await body(&resource)
+        entries[slotIndex].move.in(resource)
+        return result
+    }
+
+    // MARK: - Async Body (Throwing)
+
+    /// Acquires a resource and executes a throwing async body with exclusive access.
+    ///
+    /// - Note: Only available on non-embedded platforms.
+    ///
+    /// - Parameter body: Throwing async closure receiving exclusive mutable access.
+    /// - Returns: `Result.success(T)` on body success, `Result.failure(E)` on body error.
+    /// - Throws: `Pool.Lifecycle.Error` on shutdown or cancellation.
+    nonisolated(nonsending)
+    public func callAsFunction<T, E: Error>(
+        _ body: nonisolated(nonsending) (inout Resource) async throws(E) -> T
+    ) async throws(Pool.Lifecycle.Error) -> sending Result<T, E> {
+        let (slotIndex, id) = try await acquireSlot()
+        defer { releaseSlot(slotIndex, id: id) }
+        var resource = entries[slotIndex].move.out
+        let result: Result<T, E>
+        do {
+            result = .success(try await body(&resource))
+        } catch let error {
+            result = .failure(error)
+        }
+        entries[slotIndex].move.in(resource)
         return result
     }
 }

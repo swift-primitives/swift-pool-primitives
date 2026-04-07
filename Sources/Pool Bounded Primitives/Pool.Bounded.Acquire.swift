@@ -62,13 +62,16 @@ extension Pool.Bounded.Acquire where Resource: ~Copyable & Sendable {
 
 #if !hasFeature(Embedded)
 extension Pool.Bounded.Acquire where Resource: ~Copyable & Sendable {
+    // MARK: - Sync Body
+
     /// Acquires a resource and executes a body (no timeout).
     ///
     /// Equivalent to calling `pool { ... }` directly.
     @inlinable
-    public func callAsFunction<T: Sendable>(
+    nonisolated(nonsending)
+    public func callAsFunction<T>(
         _ body: (inout Resource) -> T
-    ) async throws(Pool.Lifecycle.Error) -> T {
+    ) async throws(Pool.Lifecycle.Error) -> sending T {
         try await pool(body)
     }
 
@@ -76,9 +79,34 @@ extension Pool.Bounded.Acquire where Resource: ~Copyable & Sendable {
     ///
     /// Equivalent to calling `pool { ... }` directly.
     @inlinable
-    public func callAsFunction<T: Sendable, E: Error>(
+    nonisolated(nonsending)
+    public func callAsFunction<T, E: Error>(
         _ body: (inout Resource) throws(E) -> T
-    ) async throws(Pool.Lifecycle.Error) -> Result<T, E> {
+    ) async throws(Pool.Lifecycle.Error) -> sending Result<T, E> {
+        try await pool(body)
+    }
+
+    // MARK: - Async Body
+
+    /// Acquires a resource and executes an async body (no timeout).
+    ///
+    /// Equivalent to calling `pool { ... }` directly with an async closure.
+    @inlinable
+    nonisolated(nonsending)
+    public func callAsFunction<T>(
+        _ body: nonisolated(nonsending) (inout Resource) async -> sending T
+    ) async throws(Pool.Lifecycle.Error) -> sending T {
+        try await pool(body)
+    }
+
+    /// Acquires a resource and executes a throwing async body (no timeout).
+    ///
+    /// Equivalent to calling `pool { ... }` directly with an async closure.
+    @inlinable
+    nonisolated(nonsending)
+    public func callAsFunction<T, E: Error>(
+        _ body: nonisolated(nonsending) (inout Resource) async throws(E) -> T
+    ) async throws(Pool.Lifecycle.Error) -> sending Result<T, E> {
         try await pool(body)
     }
 }

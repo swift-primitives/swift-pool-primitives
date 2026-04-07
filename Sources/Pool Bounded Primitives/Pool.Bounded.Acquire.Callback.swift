@@ -78,7 +78,7 @@ extension Pool.Bounded.Acquire.Callback where Resource: ~Copyable & Sendable {
     /// - Parameters:
     ///   - body: Closure receiving exclusive mutable access to resource.
     ///   - completion: Called with the result when acquisition completes.
-    public func callAsFunction<T: Sendable>(
+    public func callAsFunction<T>(
         _ body: @escaping @Sendable (inout Resource) -> T,
         completion: @escaping @Sendable (Result<T, Pool.Lifecycle.Error>) -> Void
     ) {
@@ -131,7 +131,7 @@ extension Pool.Bounded.Acquire.Callback where Resource: ~Copyable & Sendable {
     /// - Parameters:
     ///   - body: Throwing closure receiving exclusive mutable access.
     ///   - completion: Called with the result when acquisition completes.
-    public func callAsFunction<T: Sendable, E: Error>(
+    public func callAsFunction<T, E: Error>(
         _ body: @escaping @Sendable (inout Resource) throws(E) -> T,
         completion: @escaping @Sendable (Result<Result<T, E>, Pool.Lifecycle.Error>) -> Void
     ) {
@@ -150,7 +150,7 @@ extension Pool.Bounded.Acquire.Callback where Resource: ~Copyable & Sendable {
     // MARK: - Private Helpers
 
     @usableFromInline
-    func executeAndRelease<T: Sendable>(
+    func executeAndRelease<T>(
         slotIndex: Pool.Bounded<Resource>.Slot.Index,
         id: Pool.ID,
         body: @escaping @Sendable (inout Resource) -> T,
@@ -169,7 +169,7 @@ extension Pool.Bounded.Acquire.Callback where Resource: ~Copyable & Sendable {
     }
 
     @usableFromInline
-    func enqueueWaiter<T: Sendable>(
+    func enqueueWaiter<T>(
         body: @escaping @Sendable (inout Resource) -> T,
         completion: @escaping @Sendable (Result<T, Pool.Lifecycle.Error>) -> Void
     ) {

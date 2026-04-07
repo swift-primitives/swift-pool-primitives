@@ -215,3 +215,118 @@ extension Pool.Bounded.Acquire.Try where Resource: ~Copyable & Sendable {
         }
     }
 }
+
+// MARK: - Async Body
+//
+// Slot acquisition itself is non-blocking (Try never waits), but the body
+// may be async — useful for symmetry with the other variants and for cases
+// where the work performed on a checked-out resource is asynchronous.
+
+#if !hasFeature(Embedded)
+extension Pool.Bounded.Acquire.Try where Resource: ~Copyable & Sendable {
+    /// Acquires a resource immediately or throws `.exhausted` (async body).
+    ///
+    /// Slot acquisition is non-blocking; only the body may suspend.
+    ///
+    /// - Parameter body: Async closure receiving exclusive mutable access to resource.
+    /// - Returns: The result of the body closure.
+    /// - Throws: `Pool.Lifecycle.Error.shutdown` if pool is shutting down,
+    ///           `Pool.Lifecycle.Error.exhausted` if no resource available.
+    nonisolated(nonsending)
+    public func callAsFunction<T>(
+        _ body: nonisolated(nonsending) (inout Resource) async -> sending T
+    ) async throws(Pool.Lifecycle.Error) -> sending T {
+        // Phase 1: Try immediate acquisition under lock
+        let action: Action = pool._state.withLock { state in
+            guard !state.lifecycle.shutdown.isActive else {
+                return .shutdown
+            }
+            if let slotIndex = state.popAvailable() {
+                guard case .available(let id) = state.slots[slotIndex].state else {
+                    preconditionFailure("Available ring contains non-available slot")
+                }
+                state.transition(slot: slotIndex, to: .out(id))
+                state.metrics.acquisitions += 1
+                return .acquired(slotIndex, id)
+            }
+            return .exhausted
+        }
+
+        switch action {
+        case .shutdown:
+            throw .shutdown
+        case .exhausted:
+            throw .exhausted
+        case .acquired(let slotIndex, let id):
+            defer { pool.releaseSlot(slotIndex, id: id) }
+            var resource = pool.entries[slotIndex].move.out
+            let result = await body(&resource)
+            pool.entries[slotIndex].move.in(resource)
+            return result
+        }
+    }
+
+    /// Acquires a resource immediately or throws `.exhausted` (throwing async body).
+    nonisolated(nonsending)
+    public func callAsFunction<T, E: Error>(
+        _ body: nonisolated(nonsending) (inout Resource) async throws(E) -> T
+    ) async throws(Pool.Lifecycle.Error) -> sending Result<T, E> {
+        let action: Action = pool._state.withLock { state in
+            guard !state.lifecycle.shutdown.isActive else {
+                return .shutdown
+            }
+            if let slotIndex = state.popAvailable() {
+                guard case .available(let id) = state.slots[slotIndex].state else {
+                    preconditionFailure("Available ring contains non-available slot")
+                }
+                state.transition(slot: slotIndex, to: .out(id))
+                state.metrics.acquisitions += 1
+                return .acquired(slotIndex, id)
+            }
+            return .exhausted
+        }
+
+        switch action {
+        case .shutdown:
+            throw .shutdown
+        case .exhausted:
+            throw .exhausted
+        case .acquired(let slotIndex, let id):
+            defer { pool.releaseSlot(slotIndex, id: id) }
+            var resource = pool.entries[slotIndex].move.out
+            let result: Result<T, E>
+            do {
+                result = .success(try await body(&resource))
+            } catch let error {
+                result = .failure(error)
+            }
+            pool.entries[slotIndex].move.in(resource)
+            return result
+        }
+    }
+
+    /// Acquires a resource immediately, returning nil if none available (async body).
+    nonisolated(nonsending)
+    public func optional<T>(
+        _ body: nonisolated(nonsending) (inout Resource) async -> sending T
+    ) async throws(Pool.Lifecycle.Error) -> sending T? {
+        do {
+            return try await self(body)
+        } catch .exhausted {
+            return nil
+        }
+    }
+
+    /// Acquires a resource immediately, returning nil if none available (throwing async body).
+    nonisolated(nonsending)
+    public func optional<T, E: Error>(
+        _ body: nonisolated(nonsending) (inout Resource) async throws(E) -> T
+    ) async throws(Pool.Lifecycle.Error) -> sending Result<T, E>? {
+        do {
+            return try await self(body)
+        } catch .exhausted {
+            return nil
+        }
+    }
+}
+#endif

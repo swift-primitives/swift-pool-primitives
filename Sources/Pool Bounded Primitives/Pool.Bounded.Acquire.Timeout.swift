@@ -33,7 +33,7 @@ extension Pool.Bounded.Acquire where Resource: ~Copyable & Sendable {
     }
 }
 
-// MARK: - Operations
+// MARK: - Sync Body
 
 extension Pool.Bounded.Acquire.Timeout where Resource: ~Copyable & Sendable {
     /// Acquires a resource with timeout and executes a body.
@@ -42,9 +42,10 @@ extension Pool.Bounded.Acquire.Timeout where Resource: ~Copyable & Sendable {
     /// - Returns: The result of the body closure.
     /// - Throws: `Pool.Lifecycle.Error.timeout` if timeout expires,
     ///           or other lifecycle errors (shutdown, cancelled).
-    public func callAsFunction<T: Sendable>(
+    nonisolated(nonsending)
+    public func callAsFunction<T>(
         _ body: (inout Resource) -> T
-    ) async throws(Pool.Lifecycle.Error) -> T {
+    ) async throws(Pool.Lifecycle.Error) -> sending T {
         // Phase 1: Acquire slot with timeout (may suspend)
         let (slotIndex, id) = try await pool.acquireSlotWithTimeout(timeout)
 
@@ -64,9 +65,10 @@ extension Pool.Bounded.Acquire.Timeout where Resource: ~Copyable & Sendable {
     /// - Returns: `Result.success(T)` on body success, `Result.failure(E)` on body error.
     /// - Throws: `Pool.Lifecycle.Error.timeout` if timeout expires,
     ///           or other lifecycle errors (shutdown, cancelled).
-    public func callAsFunction<T: Sendable, E: Error>(
+    nonisolated(nonsending)
+    public func callAsFunction<T, E: Error>(
         _ body: (inout Resource) throws(E) -> T
-    ) async throws(Pool.Lifecycle.Error) -> Result<T, E> {
+    ) async throws(Pool.Lifecycle.Error) -> sending Result<T, E> {
         let (slotIndex, id) = try await pool.acquireSlotWithTimeout(timeout)
 
         defer { pool.releaseSlot(slotIndex, id: id) }
@@ -93,9 +95,10 @@ extension Pool.Bounded.Acquire.Timeout where Resource: ~Copyable & Sendable {
     /// - Parameter body: Closure receiving exclusive mutable access to resource.
     /// - Returns: The result of the body, or nil if timeout expired.
     /// - Throws: `Pool.Lifecycle.Error.shutdown` or `.cancelled` (not `.timeout`).
-    public func optional<T: Sendable>(
+    nonisolated(nonsending)
+    public func optional<T>(
         _ body: (inout Resource) -> T
-    ) async throws(Pool.Lifecycle.Error) -> T? {
+    ) async throws(Pool.Lifecycle.Error) -> sending T? {
         do {
             return try await self(body)
         } catch .timeout {
@@ -110,9 +113,83 @@ extension Pool.Bounded.Acquire.Timeout where Resource: ~Copyable & Sendable {
     /// - Parameter body: Throwing closure receiving exclusive mutable access.
     /// - Returns: Result of body, or nil if timeout expired.
     /// - Throws: `Pool.Lifecycle.Error.shutdown` or `.cancelled` (not `.timeout`).
-    public func optional<T: Sendable, E: Error>(
+    nonisolated(nonsending)
+    public func optional<T, E: Error>(
         _ body: (inout Resource) throws(E) -> T
-    ) async throws(Pool.Lifecycle.Error) -> Result<T, E>? {
+    ) async throws(Pool.Lifecycle.Error) -> sending Result<T, E>? {
+        do {
+            return try await self(body)
+        } catch .timeout {
+            return nil
+        }
+    }
+}
+
+// MARK: - Async Body
+
+extension Pool.Bounded.Acquire.Timeout where Resource: ~Copyable & Sendable {
+    /// Acquires a resource with timeout and executes an async body.
+    ///
+    /// - Parameter body: Async closure receiving exclusive mutable access.
+    /// - Returns: The result of the body closure.
+    /// - Throws: `Pool.Lifecycle.Error.timeout` if timeout expires,
+    ///           or other lifecycle errors (shutdown, cancelled).
+    nonisolated(nonsending)
+    public func callAsFunction<T>(
+        _ body: nonisolated(nonsending) (inout Resource) async -> sending T
+    ) async throws(Pool.Lifecycle.Error) -> sending T {
+        let (slotIndex, id) = try await pool.acquireSlotWithTimeout(timeout)
+        defer { pool.releaseSlot(slotIndex, id: id) }
+        var resource = pool.entries[slotIndex].move.out
+        let result = await body(&resource)
+        pool.entries[slotIndex].move.in(resource)
+        return result
+    }
+
+    /// Acquires a resource with timeout and executes a throwing async body.
+    ///
+    /// - Parameter body: Throwing async closure receiving exclusive mutable access.
+    /// - Returns: `Result.success(T)` on body success, `Result.failure(E)` on body error.
+    /// - Throws: `Pool.Lifecycle.Error.timeout` if timeout expires,
+    ///           or other lifecycle errors (shutdown, cancelled).
+    nonisolated(nonsending)
+    public func callAsFunction<T, E: Error>(
+        _ body: nonisolated(nonsending) (inout Resource) async throws(E) -> T
+    ) async throws(Pool.Lifecycle.Error) -> sending Result<T, E> {
+        let (slotIndex, id) = try await pool.acquireSlotWithTimeout(timeout)
+        defer { pool.releaseSlot(slotIndex, id: id) }
+        var resource = pool.entries[slotIndex].move.out
+        let result: Result<T, E>
+        do {
+            result = .success(try await body(&resource))
+        } catch let error {
+            result = .failure(error)
+        }
+        pool.entries[slotIndex].move.in(resource)
+        return result
+    }
+
+    /// Acquires a resource with timeout, returning nil on timeout (async body).
+    ///
+    /// Only timeout results in nil. Other errors (shutdown, cancelled) still throw.
+    nonisolated(nonsending)
+    public func optional<T>(
+        _ body: nonisolated(nonsending) (inout Resource) async -> sending T
+    ) async throws(Pool.Lifecycle.Error) -> sending T? {
+        do {
+            return try await self(body)
+        } catch .timeout {
+            return nil
+        }
+    }
+
+    /// Acquires a resource with timeout, returning nil on timeout (throwing async body).
+    ///
+    /// Only timeout results in nil. Other errors (shutdown, cancelled) still throw.
+    nonisolated(nonsending)
+    public func optional<T, E: Error>(
+        _ body: nonisolated(nonsending) (inout Resource) async throws(E) -> T
+    ) async throws(Pool.Lifecycle.Error) -> sending Result<T, E>? {
         do {
             return try await self(body)
         } catch .timeout {
