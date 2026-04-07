@@ -19,17 +19,14 @@ extension Pool {
         /// Total timeouts.
         public var timeouts: UInt64
 
-        /// Current checked-out count.
-        public var checkedOut: Int
+        /// Outstanding (currently checked-out) resource counts.
+        public var outstanding: Outstanding
 
         /// Current available count.
         public var available: Int
 
         /// Current waiter queue depth.
         public var waiters: Int
-
-        /// Peak checked-out count.
-        public var peakCheckedOut: Int
 
         /// Creates empty metrics.
         @_spi(Internal)
@@ -40,10 +37,9 @@ extension Pool {
             self.acquisitions = 0
             self.releases = 0
             self.timeouts = 0
-            self.checkedOut = 0
+            self.outstanding = Outstanding()
             self.available = 0
             self.waiters = 0
-            self.peakCheckedOut = 0
         }
     }
 }

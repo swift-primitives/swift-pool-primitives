@@ -46,20 +46,6 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     }
 }
 
-// MARK: - Drain
-
-extension Pool.Bounded.Shutdown where Resource: ~Copyable & Sendable {
-    /// Actions computed under lock for shutdown drain.
-    ///
-    /// Embeds waiter resumptions into the drain case to avoid capturing
-    /// mutable variables across the `withLock` sending boundary.
-    @usableFromInline
-    enum Drain: ~Copyable, Sendable {
-        case drain([(Pool.Bounded<Resource>.Slot.Index, Pool.ID)], resumptions: Array<Async.Waiter.Resumption>)
-        case alreadyShuttingDown
-    }
-}
-
 // MARK: - Shutdown Operations
 
 extension Pool.Bounded.Shutdown where Resource: ~Copyable & Sendable {

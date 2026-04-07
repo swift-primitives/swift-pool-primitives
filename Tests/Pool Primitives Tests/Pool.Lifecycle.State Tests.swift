@@ -18,17 +18,19 @@ extension Pool.Lifecycle.State.Test.Unit {
     @Test
     func `initial state is open`() {
         var state = Pool.Lifecycle.State.open
-        #expect(!state.shutdown.isActive)
+        let isActive = state.shutdown.isActive
+        #expect(!isActive)
     }
 
     @Test
     func `shutdown begin transitions to closing`() {
         var state = Pool.Lifecycle.State.open
         let transitioned = state.shutdown.begin()
+        let isActive = state.shutdown.isActive
 
         #expect(transitioned)
         #expect(state == .closing)
-        #expect(state.shutdown.isActive)
+        #expect(isActive)
     }
 
     @Test
@@ -64,9 +66,12 @@ extension Pool.Lifecycle.State.Test.Unit {
         var open = Pool.Lifecycle.State.open
         var closing = Pool.Lifecycle.State.closing
         var closed = Pool.Lifecycle.State.closed
-        #expect(!open.shutdown.isActive)
-        #expect(closing.shutdown.isActive)
-        #expect(closed.shutdown.isActive)
+        let openIsActive = open.shutdown.isActive
+        let closingIsActive = closing.shutdown.isActive
+        let closedIsActive = closed.shutdown.isActive
+        #expect(!openIsActive)
+        #expect(closingIsActive)
+        #expect(closedIsActive)
     }
 }
 

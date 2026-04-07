@@ -55,23 +55,6 @@ extension Pool.Bounded.Acquire where Resource: ~Copyable & Sendable {
     }
 }
 
-// MARK: - Try Action
-
-extension Pool.Bounded.Acquire.Try where Resource: ~Copyable & Sendable {
-    /// Actions computed under lock for non-blocking acquisition.
-    @usableFromInline
-    enum Action: Sendable {
-        /// Slot immediately available.
-        case acquired(Pool.Bounded<Resource>.Slot.Index, Pool.ID)
-
-        /// Pool is shutting down.
-        case shutdown
-
-        /// No resource available.
-        case exhausted
-    }
-}
-
 // MARK: - Try Operations
 
 extension Pool.Bounded.Acquire.Try where Resource: ~Copyable & Sendable {

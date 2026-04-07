@@ -16,13 +16,6 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
 }
 
 extension Pool.Bounded.Waiter where Resource: ~Copyable & Sendable {
-    /// Metadata carried with each waiter entry.
-    ///
-    /// Empty for now - can add fields without breaking changes.
-    /// Potential future uses: creation instant, priority, trace IDs.
-    @usableFromInline
-    struct Metadata: Sendable {}
-
     /// Waiter entry type for the FIFO queue.
     ///
     /// Uses `Async.Waiter.Entry` directly as the substrate.

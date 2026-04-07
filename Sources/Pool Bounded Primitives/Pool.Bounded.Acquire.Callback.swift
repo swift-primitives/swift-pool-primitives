@@ -64,23 +64,6 @@ extension Pool.Bounded.Acquire where Resource: ~Copyable & Sendable {
     }
 }
 
-// MARK: - Callback Action
-
-extension Pool.Bounded.Acquire.Callback where Resource: ~Copyable & Sendable {
-    /// Actions computed under lock for callback-based acquisition.
-    @usableFromInline
-    enum Action: Sendable {
-        /// Slot immediately available.
-        case immediate(Pool.Bounded<Resource>.Slot.Index, Pool.ID)
-
-        /// Need to wait for a slot.
-        case enqueue
-
-        /// Pool is shutting down.
-        case shutdown
-    }
-}
-
 // MARK: - Callback Operations
 
 extension Pool.Bounded.Acquire.Callback where Resource: ~Copyable & Sendable {
@@ -223,7 +206,7 @@ extension Pool.Bounded.Acquire.Callback where Resource: ~Copyable & Sendable {
         }
 
         #if DEBUG
-        pool.onWaiterEnqueued?()
+        pool.onEnqueue?()
         #endif
     }
 }

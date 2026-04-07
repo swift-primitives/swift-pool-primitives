@@ -43,32 +43,3 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     }
 }
 
-// MARK: - Gate
-
-extension Pool.Bounded.Effect where Resource: ~Copyable & Sendable {
-    /// Gate effects for shutdown notification.
-    @usableFromInline
-    enum Gate: Sendable {
-        /// Open the shutdown gate (signal completion).
-        case open
-    }
-}
-
-// MARK: - Waiter
-
-extension Pool.Bounded.Effect where Resource: ~Copyable & Sendable {
-    /// Waiter effects for continuation resumption.
-    ///
-    /// ## Construction Constraint
-    /// `batch([Resumption])` must ONLY originate from `Async.Waiter.Queue`
-    /// operations (e.g., `reapFlagged`, `reapAll`). Never construct batch
-    /// arrays ad-hoc in application code.
-    @usableFromInline
-    enum Waiter: ~Copyable, Sendable {
-        /// Resume a single waiter.
-        case resume(Async.Waiter.Resumption)
-
-        /// Resume multiple waiters (from queue operations only).
-        case batch(Array<Async.Waiter.Resumption>)
-    }
-}

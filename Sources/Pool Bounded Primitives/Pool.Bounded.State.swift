@@ -162,13 +162,13 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
         //   out → disposing           return during shutdown
         //   disposing → empty         disposal complete
 
-        // checkedOut: increment on available→out or creating→out, decrement on out→available/disposing
+        // outstanding: increment on available→out or creating→out, decrement on out→available/disposing
         switch (oldState, newState) {
         case (.available, .out), (.creating, .out):
-            metrics.checkedOut += 1
-            metrics.peakCheckedOut = max(metrics.peakCheckedOut, metrics.checkedOut)
+            metrics.outstanding.current += 1
+            metrics.outstanding.peak = max(metrics.outstanding.peak, metrics.outstanding.current)
         case (.out, .available), (.out, .disposing):
-            metrics.checkedOut -= 1
+            metrics.outstanding.current -= 1
         default: break
         }
 
@@ -259,6 +259,23 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
     }
 }
 
+// MARK: - Slot Lookup
+
+extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
+    /// Finds an empty slot for lazy creation.
+    ///
+    /// - Returns: The index of an empty slot, or nil if none available.
+    @usableFromInline
+    func findEmptySlot() -> Pool.Bounded<Resource>.Slot.Index? {
+        for slot in slots {
+            if case .empty = slot.state {
+                return slot.index
+            }
+        }
+        return nil
+    }
+}
+
 // MARK: - Waiter Management with Metrics
 
 extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
@@ -285,6 +302,48 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
         }
         metrics.waiters -= 1
         return waiter
+    }
+
+    /// Dequeues the first eligible waiter (not cancelled/timed out).
+    ///
+    /// Skipped waiters (cancelled/timed out) have their resumptions collected
+    /// for execution outside the lock.
+    ///
+    /// - Parameter skipped: Array to collect resumptions for skipped waiters.
+    /// - Returns: First eligible waiter, or nil.
+    @usableFromInline
+    mutating func dequeueEligibleWaiter(
+        skipped: inout Array<Async.Waiter.Resumption>
+    ) -> Pool.Bounded<Resource>.Waiter.Entry? {
+        // Collect flagged entries
+        var flagged = Async.Waiter.Queue.Drain<Pool.Bounded<Resource>.Waiter.Flagged>()
+        let entry = waiters.popEligible(flaggedInto: &flagged)
+
+        // Process flagged entries into resumptions
+        let currentLifecycle = lifecycle
+        var removedCount = entry != nil ? 1 : 0
+        flagged.drain { flaggedEntry in
+            removedCount += 1
+
+            // Deconstruct in one step - explicit ownership transition
+            let split = flaggedEntry.split()
+
+            // Apply Pool's precedence: shutdown > cancel > timeout
+            let outcome: Pool.Bounded<Resource>.Outcome = Pool.Lifecycle.Precedence.apply(
+                lifecycle: currentLifecycle,
+                cancelled: split.reason == .cancelled,
+                timedOut: split.reason == .timedOut,
+                outcome: split.reason == .cancelled ? .failure(.cancelled) : .failure(.timeout)
+            )
+
+            // Create resumption from consumed entry
+            skipped.append(split.entry.resumption(with: outcome))
+        }
+
+        // Update metrics for removed entries
+        metrics.waiters -= removedCount
+
+        return entry
     }
 
     /// Reaps all flagged waiters from the queue.

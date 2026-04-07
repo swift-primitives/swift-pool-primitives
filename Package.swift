@@ -92,6 +92,8 @@ let package = Package(
             dependencies: [
                 "Pool Primitives",
                 "Pool Primitives Test Support",
+                .product(name: "Async Primitives", package: "swift-async-primitives"),
+                .product(name: "Array Primitives", package: "swift-array-primitives"),
             ],
             path: "Tests/Pool Primitives Tests"
         ),

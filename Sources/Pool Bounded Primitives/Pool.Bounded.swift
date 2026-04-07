@@ -64,7 +64,7 @@ extension Pool {
         #if DEBUG
         /// Test hook called immediately after a waiter is enqueued.
         /// Use for deterministic test synchronization instead of polling.
-        public var onWaiterEnqueued: (@Sendable () -> Void)?
+        public var onEnqueue: (@Sendable () -> Void)?
         #endif
 
         /// Creates a fixed-capacity pool with eager policy.

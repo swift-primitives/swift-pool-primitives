@@ -118,7 +118,7 @@ extension PoolBoundedTests.Unit {
         )
 
         let waiterEnqueued = Async.Gate()
-        pool.onWaiterEnqueued = { waiterEnqueued.open() }
+        pool.onEnqueue = { waiterEnqueued.open() }
 
         let task = Task {
             try await pool { resource -> Int in
@@ -249,7 +249,7 @@ extension PoolBoundedTests.EdgeCase {
         )
 
         let waiterEnqueued = Async.Gate()
-        pool.onWaiterEnqueued = { waiterEnqueued.open() }
+        pool.onEnqueue = { waiterEnqueued.open() }
 
         let task = Task {
             do {
@@ -432,7 +432,7 @@ extension PoolBoundedTests.Unit {
         )
 
         let waiterEnqueued = Async.Gate()
-        pool.onWaiterEnqueued = { waiterEnqueued.open() }
+        pool.onEnqueue = { waiterEnqueued.open() }
 
         let task = Task {
             try await pool.acquire.timeout(.seconds(60))({ $0 })
@@ -458,7 +458,7 @@ extension PoolBoundedTests.EdgeCase {
         )
 
         let waiterEnqueued = Async.Gate()
-        pool.onWaiterEnqueued = { waiterEnqueued.open() }
+        pool.onEnqueue = { waiterEnqueued.open() }
 
         let task = Task {
             do {
@@ -488,7 +488,7 @@ extension PoolBoundedTests.EdgeCase {
         )
 
         let waiterEnqueued = Async.Gate()
-        pool.onWaiterEnqueued = { waiterEnqueued.open() }
+        pool.onEnqueue = { waiterEnqueued.open() }
 
         let task = Task {
             do {

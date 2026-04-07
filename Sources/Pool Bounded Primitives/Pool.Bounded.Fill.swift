@@ -45,59 +45,6 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     }
 }
 
-// MARK: - Fill Error
-
-extension Pool.Bounded.Fill where Resource: ~Copyable & Sendable {
-    /// Errors that can occur during fill operations.
-    public enum Error: Swift.Error, Sendable, Equatable {
-        /// Pool is not using eager policy.
-        case notEager
-
-        /// Pool is shutting down or closed.
-        case shutdown
-
-        /// Pool is already at capacity (no empty slots).
-        case full
-    }
-}
-
-// MARK: - Fill Action
-
-extension Pool.Bounded.Fill where Resource: ~Copyable & Sendable {
-    /// Actions computed under lock for fill operations.
-    @usableFromInline
-    enum Action: Sendable {
-        /// Policy check failed - not eager.
-        case notEager
-
-        /// Pool is shutting down.
-        case shutdown
-
-        /// Pool is full - no empty slots.
-        case full
-
-        /// Found empty slot - proceed to install.
-        case install(Pool.Bounded<Resource>.Slot.Index, Pool.ID)
-    }
-}
-
-// MARK: - Commit
-
-extension Pool.Bounded.Fill where Resource: ~Copyable & Sendable {
-    /// Actions for committing a filled slot.
-    ///
-    /// Embeds skipped resumptions and shutdown effect into each case to avoid
-    /// capturing mutable variables across the `withLock` sending boundary.
-    @usableFromInline
-    enum Commit: ~Copyable, Sendable {
-        /// Add slot to available pool.
-        case addToPool(effect: Pool.Bounded<Resource>.Effect, skipped: Array<Async.Waiter.Resumption>)
-
-        /// Hand off directly to waiter.
-        case handOff(Async.Waiter.Resumption, skipped: Array<Async.Waiter.Resumption>)
-    }
-}
-
 // MARK: - Fill Operations
 
 extension Pool.Bounded.Fill where Resource: ~Copyable & Sendable {
