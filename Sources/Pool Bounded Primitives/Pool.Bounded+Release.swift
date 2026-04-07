@@ -22,7 +22,7 @@ internal import Array_Fixed_Primitives
 
 // MARK: - Slot Release
 
-extension Pool.Bounded where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable {
     /// Releases a slot back to the pool using two-phase commit.
     ///
     /// ## Two-Phase Commit (Strict Stance)
@@ -102,7 +102,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
 
 // MARK: - Pump Waiters
 
-extension Pool.Bounded where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable {
     /// Pumps the waiter queue, resuming any flagged waiters.
     ///
     /// This is the reaping mechanism for timeout/cancel. When a waiter's flag

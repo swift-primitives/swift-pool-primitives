@@ -12,7 +12,7 @@
 public import Async_Waiter_Primitives
 public import Array_Primitives_Core
 
-extension Pool.Bounded.Effect where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Effect where Resource: ~Copyable {
     /// Waiter effects for continuation resumption.
     ///
     /// ## Construction Constraint

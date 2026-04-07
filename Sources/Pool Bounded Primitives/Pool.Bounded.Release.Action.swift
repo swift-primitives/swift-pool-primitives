@@ -12,7 +12,7 @@
 public import Async_Waiter_Primitives
 public import Array_Primitives_Core
 
-extension Pool.Bounded.Release where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Release where Resource: ~Copyable {
     /// Actions computed under lock for slot release.
     ///
     /// Embeds skipped resumptions into each case to avoid capturing

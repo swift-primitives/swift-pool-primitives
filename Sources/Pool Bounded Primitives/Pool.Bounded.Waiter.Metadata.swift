@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-extension Pool.Bounded.Waiter where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Waiter where Resource: ~Copyable {
     /// Metadata carried with each waiter entry.
     ///
     /// Empty for now - can add fields without breaking changes.

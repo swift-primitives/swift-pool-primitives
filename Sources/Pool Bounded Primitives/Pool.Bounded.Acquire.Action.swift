@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-extension Pool.Bounded.Acquire where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Acquire where Resource: ~Copyable {
     /// Actions computed under lock for slot acquisition.
     @usableFromInline
     enum Action: Sendable {

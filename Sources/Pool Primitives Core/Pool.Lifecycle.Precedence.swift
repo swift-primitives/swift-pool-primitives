@@ -18,31 +18,28 @@ extension Pool.Lifecycle.Precedence {
     ///
     /// ## Precedence Order
     /// 1. **Shutdown** dominates ALL
-    /// 2. **Cancellation** dominates timeout and success
-    /// 3. **Timeout** dominates success
-    /// 4. **Outcome** returned as-is
+    /// 2. **Cancellation** dominates success
+    /// 3. **Outcome** returned as-is
     ///
     /// - Parameters:
     ///   - lifecycle: Current lifecycle state
     ///   - cancelled: Whether the waiter was cancelled
-    ///   - timedOut: Whether the waiter timed out
     ///   - outcome: The raw outcome (success or operational error)
     /// - Returns: Final outcome after applying precedence rules
     @inlinable
     public static func apply<Success>(
         lifecycle: Pool.Lifecycle.State,
         cancelled: Bool,
-        timedOut: Bool,
         outcome: Result<Success, Pool.Lifecycle.Error>
     ) -> Result<Success, Pool.Lifecycle.Error> {
         Async.Precedence.resolve(
             shutdown: !lifecycle.isOpen,
             cancelled: cancelled,
-            timedOut: timedOut,
+            timedOut: false,
             success: outcome,
             onShutdown: .failure(.shutdown),
             onCancelled: .failure(.cancelled),
-            onTimeout: .failure(.timeout)
+            onTimeout: .failure(.cancelled)  // unused — kept for upstream API compat
         )
     }
 }

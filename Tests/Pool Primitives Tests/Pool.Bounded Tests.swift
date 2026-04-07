@@ -37,7 +37,7 @@ extension PoolBoundedTests.Unit {
             state.pushAvailable(0)
         }
 
-        let result = try await pool { resource in
+        let result: Int = try await pool.acquire { resource in
             resource
         }
 
@@ -58,7 +58,7 @@ extension PoolBoundedTests.Unit {
             state.pushAvailable(0)
         }
 
-        _ = try await pool { $0 }
+        let _: Int = try await pool.acquire { $0 }
 
         let (acquisitions, releases) = pool._state.withLock { state in
             (state.metrics.acquisitions, state.metrics.releases)
@@ -82,11 +82,11 @@ extension PoolBoundedTests.Unit {
             state.pushAvailable(0)
         }
 
-        _ = try await pool { resource in
+        try await pool.acquire { (resource: inout sending Int) async -> Void in
             resource += 10
         }
 
-        let value = try await pool { resource in
+        let value: Int = try await pool.acquire { resource in
             resource
         }
 
@@ -106,7 +106,7 @@ extension PoolBoundedTests.Unit {
 
         try pool.fill(42)
 
-        let value = try await pool { $0 }
+        let value: Int = try await pool.acquire { $0 }
         #expect(value == 42)
     }
 
@@ -121,7 +121,7 @@ extension PoolBoundedTests.Unit {
         pool.onEnqueue = { waiterEnqueued.open() }
 
         let task = Task {
-            try await pool { resource -> Int in
+            try await pool.acquire { (resource: inout sending Int) async -> Int in
                 resource
             }
         }
@@ -184,8 +184,17 @@ extension PoolBoundedTests.EdgeCase {
             _ = state.lifecycle.shutdown.begin()
         }
 
-        await #expect(throws: Pool.Lifecycle.Error.shutdown) {
-            try await pool { _ in }
+        // Per [IMPL-075]: do throws(E) { } catch { } — no cast.
+        do throws(Either<Pool.Lifecycle.Error, Never>) {
+            try await pool.acquire { (_: inout sending Int) async -> Void in }
+            Issue.record("Expected shutdown")
+        } catch {
+            switch error {
+            case .left(.shutdown):
+                break  // Expected
+            case .left(let other):
+                Issue.record("Expected .shutdown, got \(other)")
+            }
         }
     }
 
@@ -251,14 +260,15 @@ extension PoolBoundedTests.EdgeCase {
         let waiterEnqueued = Async.Gate()
         pool.onEnqueue = { waiterEnqueued.open() }
 
-        let task = Task {
-            do {
-                _ = try await pool { $0 }
+        let task: Task<Bool, Never> = Task {
+            do throws(Either<Pool.Lifecycle.Error, Never>) {
+                let _: Int = try await pool.acquire { $0 }
                 return false
-            } catch is Pool.Lifecycle.Error {
-                return true
             } catch {
-                return false
+                switch error {
+                case .left:
+                    return true
+                }
             }
         }
 
@@ -287,11 +297,11 @@ extension PoolBoundedTests.Unit {
             destroy: { _ in }
         )
 
-        let value = try await pool { $0 }
+        let value: Int = try await pool.acquire { $0 }
         #expect(value == 42)
         #expect(createCount.withLock { $0 } == 1)
 
-        _ = try await pool { $0 }
+        let _: Int = try await pool.acquire { $0 }
         #expect(createCount.withLock { $0 } == 1)
     }
 
@@ -307,11 +317,11 @@ extension PoolBoundedTests.Unit {
             destroy: { _ in }
         )
 
-        let v1 = try await pool { $0 }
+        let v1: Int = try await pool.acquire { $0 }
         #expect(v1 == 42)
         #expect(createCount.withLock { $0 } == 1)
 
-        let v2 = try await pool { $0 }
+        let v2: Int = try await pool.acquire { $0 }
         #expect(v2 == 42)
         #expect(createCount.withLock { $0 } == 1)
     }
@@ -333,8 +343,8 @@ extension PoolBoundedTests.Unit {
             destroy: { _ in }
         )
 
-        async let r1 = pool { $0 }
-        async let r2 = pool { $0 }
+        async let r1: Int = pool.acquire { $0 }
+        async let r2: Int = pool.acquire { $0 }
 
         let results = try await [r1, r2]
         #expect(Set(results) == Set([1, 2]))
@@ -349,7 +359,7 @@ extension PoolBoundedTests.Unit {
             destroy: { _ in }
         )
 
-        _ = try await pool { $0 }
+        let _: Int = try await pool.acquire { $0 }
 
         let created = pool._state.withLock { state in
             state.metrics.created
@@ -359,99 +369,11 @@ extension PoolBoundedTests.Unit {
     }
 }
 
-// MARK: - Timeout Tests
-
-extension PoolBoundedTests.Unit {
-    @Test
-    func `acquire with timeout succeeds when resource available`() async throws {
-        let pool = TestPool(
-            capacity: 1,
-            destroy: { _ in }
-        )
-
-        try pool.fill(42)
-
-        let result = try await pool.acquire.timeout(.seconds(1))({ $0 })
-        #expect(result == 42)
-    }
-
-    @Test
-    func `acquire with timeout times out when no resource`() async throws {
-        let pool = TestPool(
-            capacity: 1,
-            destroy: { _ in }
-        )
-
-        await #expect(throws: Pool.Lifecycle.Error.timeout) {
-            try await pool.acquire.timeout(.nanoseconds(1))({ $0 })
-        }
-    }
-
-    @Test
-    func `acquire with timeout optional returns nil on timeout`() async throws {
-        let pool = TestPool(
-            capacity: 1,
-            destroy: { _ in }
-        )
-
-        let result = try await pool.acquire.timeout(.nanoseconds(1)).optional({ $0 })
-        #expect(result == nil)
-    }
-
-    @Test
-    func `acquire with timeout optional returns value when available`() async throws {
-        let pool = TestPool(
-            capacity: 1,
-            destroy: { _ in }
-        )
-
-        try pool.fill(99)
-
-        let result = try await pool.acquire.timeout(.seconds(1)).optional({ $0 })
-        #expect(result == 99)
-    }
-
-    @Test
-    func `timeout increments metrics`() async throws {
-        let pool = TestPool(
-            capacity: 1,
-            destroy: { _ in }
-        )
-
-        _ = try? await pool.acquire.timeout(.nanoseconds(1))({ $0 })
-
-        let metrics = pool.metrics
-        #expect(metrics.timeouts == 1)
-    }
-
-    @Test
-    func `acquire succeeds before timeout expires`() async throws {
-        let pool = TestPool(
-            capacity: 1,
-            destroy: { _ in }
-        )
-
-        let waiterEnqueued = Async.Gate()
-        pool.onEnqueue = { waiterEnqueued.open() }
-
-        let task = Task {
-            try await pool.acquire.timeout(.seconds(60))({ $0 })
-        }
-
-        await waiterEnqueued.wait()
-
-        try pool.fill(42)
-
-        let result = try await task.value
-        #expect(result == 42)
-
-        #expect(pool.metrics.timeouts == 0)
-    }
-}
+// MARK: - Cancellation (replaces Timeout tests; deadlines compose externally)
 
 extension PoolBoundedTests.EdgeCase {
     @Test
-    func `shutdown wins over timeout`() async throws {
+    func `cancellation while waiting throws cancelled`() async throws {
         let pool = TestPool(
             capacity: 1,
             destroy: { _ in }
@@ -460,14 +382,49 @@ extension PoolBoundedTests.EdgeCase {
         let waiterEnqueued = Async.Gate()
         pool.onEnqueue = { waiterEnqueued.open() }
 
+        // The Task returns the lifecycle error directly. Because the
+        // do/catch is INSIDE the Task closure, the implicit `error` binding
+        // inside catch is typed as Either<...> per [IMPL-075] — no cast,
+        // no Mutex capture, no Task<Success, Failure> erasure dance.
         let task = Task {
-            do {
-                _ = try await pool.acquire.timeout(.seconds(60))({ $0 })
+            do throws(Either<Pool.Lifecycle.Error, Never>) {
+                let _: Int = try await pool.acquire { (resource: inout sending Int) async -> Int in
+                    resource
+                }
                 return Pool.Lifecycle.Error?.none
-            } catch let error as Pool.Lifecycle.Error {
-                return error
             } catch {
-                return nil
+                switch error {
+                case .left(let lifecycleError):
+                    return lifecycleError
+                }
+            }
+        }
+
+        await waiterEnqueued.wait()
+        task.cancel()
+
+        #expect(await task.value == .cancelled)
+    }
+
+    @Test
+    func `shutdown wins over cancellation`() async throws {
+        let pool = TestPool(
+            capacity: 1,
+            destroy: { _ in }
+        )
+
+        let waiterEnqueued = Async.Gate()
+        pool.onEnqueue = { waiterEnqueued.open() }
+
+        let task: Task<Pool.Lifecycle.Error?, Never> = Task {
+            do throws(Either<Pool.Lifecycle.Error, Never>) {
+                let _: Int = try await pool.acquire { $0 }
+                return Pool.Lifecycle.Error?.none
+            } catch {
+                switch error {
+                case .left(let err):
+                    return err
+                }
             }
         }
 
@@ -479,34 +436,38 @@ extension PoolBoundedTests.EdgeCase {
         let error = await task.value
         #expect(error == .shutdown)
     }
+}
 
+// MARK: - Constraint Relaxation Proof
+//
+// Pool.Bounded<Resource> works with `Resource: ~Copyable` only — no Sendable
+// constraint. This test proves the relaxation by instantiating the pool with
+// a struct that is `~Copyable` and explicitly NOT Sendable.
+
+private struct NonSendableHandle: ~Copyable {
+    var value: Int
+}
+
+extension PoolBoundedTests.Unit {
     @Test
-    func `cancellation wins over timeout`() async throws {
-        let pool = TestPool(
+    func `pool works with non-Sendable Resource`() async throws {
+        let pool = Pool.Bounded<NonSendableHandle>(
             capacity: 1,
             destroy: { _ in }
         )
 
-        let waiterEnqueued = Async.Gate()
-        pool.onEnqueue = { waiterEnqueued.open() }
+        try pool.fill(NonSendableHandle(value: 7))
 
-        let task = Task {
-            do {
-                _ = try await pool.acquire.timeout(.seconds(60))({ $0 })
-                return Pool.Lifecycle.Error?.none
-            } catch let error as Pool.Lifecycle.Error {
-                return error
-            } catch {
-                return nil
-            }
+        let result: Int = try await pool.acquire { (handle: inout sending NonSendableHandle) async -> Int in
+            handle.value += 1
+            return handle.value
         }
 
-        await waiterEnqueued.wait()
+        #expect(result == 8)
 
-        task.cancel()
-
-        let error = await task.value
-        #expect(error == .cancelled)
+        // Mutation persisted across acquire-release.
+        let after: Int = try await pool.acquire { handle in handle.value }
+        #expect(after == 8)
     }
 }
 
@@ -529,12 +490,12 @@ extension PoolBoundedTests.Performance {
 
         // Warmup
         for _ in 0..<10 {
-            _ = try await pool { $0 }
+            let _: Int = try await pool.acquire { $0 }
         }
 
         // Measured
         for _ in 0..<100 {
-            _ = try await pool { $0 }
+            let _: Int = try await pool.acquire { $0 }
         }
     }
 }

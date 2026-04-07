@@ -30,7 +30,18 @@ extension Pool {
     /// Supports two policies:
     /// - **Eager**: Resources created only via `fill()`. Acquire waits for available.
     /// - **Lazy**: Resources created on-demand up to capacity.
-    public final class Bounded<Resource: ~Copyable & Sendable>: @unchecked Sendable {
+    ///
+    /// ## Sendable Contract
+    ///
+    /// `Resource` is `~Copyable` only — no `Sendable` constraint. The pool is
+    /// `@unchecked Sendable` because all access to mutable state is serialized
+    /// by the internal `Async.Mutex`. Resources never escape the body's borrow
+    /// without being put back into a slot protected by the same Mutex.
+    /// Per the closure-only anti-pattern fix
+    /// (`ownership-transfer-conventions.md` §3): the type parameter does not
+    /// need `Sendable` because the resource never crosses an isolation boundary
+    /// directly — it transits via the slot, under lock.
+    public final class Bounded<Resource: ~Copyable>: @unchecked Sendable {
         /// Protected internal state wrapped in Async.Mutex.
         @usableFromInline
         let _state: Async.Mutex<State>
@@ -48,6 +59,10 @@ extension Pool {
         let policy: Policy
 
         /// Optional resource validation closure.
+        ///
+        /// Closure is stored across acquire-release cycles. Captures must be
+        /// safely sharable, hence `@Sendable`. The Resource borrow is local
+        /// to the call site.
         @usableFromInline
         let _check: (@Sendable (inout Resource) -> Bool)?
 
@@ -73,17 +88,19 @@ extension Pool {
         ///
         /// - Parameters:
         ///   - capacity: Maximum number of resources.
-        ///   - destroy: Destructor closure to dispose resources.
+        ///   - destroy: Destructor closure to dispose resources. Captures
+        ///     are stored on the pool and must be `Sendable`; the Resource
+        ///     itself is not required to be Sendable.
         ///   - check: Optional validation closure.
         public init(
             capacity: Pool.Capacity,
-            destroy: @Sendable @escaping (consuming Resource) -> Void,
+            destroy: @escaping @Sendable (consuming Resource) -> Void,
             check: (@Sendable (inout Resource) -> Bool)? = nil
         ) {
             self._state = Async.Mutex(State(capacity: capacity.value))
             self.shutdownGate = Async.Gate()
             self.scope = Pool.Scope()
-            self.policy = .eager(Destructor(destroy))
+            self.policy = .eager(destroy)
             self._check = check
             self.entries = Array<Entry>.Fixed.Indexed(
                 try! Array<Entry>.Fixed(
@@ -103,19 +120,24 @@ extension Pool {
         ///
         /// - Parameters:
         ///   - capacity: Maximum number of resources.
-        ///   - create: Factory closure to create new resources.
+        ///   - create: Factory closure that produces a new resource.
+        ///     Throws `Pool.Lifecycle.Error` directly — the user wraps any
+        ///     domain errors at the boundary (typically as `.creationFailed`).
+        ///     The factory's captures must be `Sendable` because the closure
+        ///     is stored on the pool; the Resource it produces is `sending`
+        ///     (transferred into the pool, not shared).
         ///   - destroy: Destructor closure to dispose resources.
         ///   - check: Optional validation closure.
         public init(
             capacity: Pool.Capacity,
-            create: @Sendable @escaping () async throws -> Resource,
-            destroy: @Sendable @escaping (consuming Resource) -> Void,
+            create: @escaping @Sendable () async throws(Pool.Lifecycle.Error) -> sending Resource,
+            destroy: @escaping @Sendable (consuming Resource) -> Void,
             check: (@Sendable (inout Resource) -> Bool)? = nil
         ) {
             self._state = Async.Mutex(State(capacity: capacity.value))
             self.shutdownGate = Async.Gate()
             self.scope = Pool.Scope()
-            self.policy = .lazy(Creator(Creation(create: create, destroy: destroy)))
+            self.policy = .lazy(Creation(create: create, destroy: destroy))
             self._check = check
             self.entries = Array<Entry>.Fixed.Indexed(
                 try! Array<Entry>.Fixed(
@@ -130,7 +152,7 @@ extension Pool {
 
 // MARK: - Metrics Snapshot
 
-extension Pool.Bounded where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable {
     /// Returns a point-in-time snapshot of pool metrics.
     ///
     /// This is the only safe way to read metrics externally.
@@ -142,7 +164,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
 
 // MARK: - Effect Execution
 
-extension Pool.Bounded where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable {
     /// Execute effect outside lock. Single resumption funnel.
     ///
     /// **CRITICAL:** This is the ONLY location where `shutdownGate.open()`
@@ -165,7 +187,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
 
 // MARK: - Manual Waiter Pumping
 
-extension Pool.Bounded where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable {
     /// Pumps waiters manually.
     ///
     /// Required on embedded platforms for callback-based acquire when using

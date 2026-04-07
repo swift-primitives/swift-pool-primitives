@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-extension Pool.Bounded.Fill where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Fill where Resource: ~Copyable {
     /// Actions computed under lock for fill operations.
     @usableFromInline
     enum Action: Sendable {

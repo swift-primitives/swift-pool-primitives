@@ -8,22 +8,19 @@ import Pool_Primitives_Test_Support
 import Pool_Primitives
 import Array_Primitives
 
-// Tests for the async-body callAsFunction overloads added in
-// `ownership-transfer-conventions`. These exercise the double-nonsending
-// pattern: the function is `nonisolated(nonsending)`, the body parameter is
-// `nonisolated(nonsending) (inout Resource) async -> sending T`, and the
-// return is `sending T`.
+// Tests for the unified `pool.acquire { body }` API.
 //
-// Inline closures are used so Swift can infer the closure type from the
-// matching async-body overload (otherwise an explicit type annotation
-// without `sending` would force a type-conversion error).
+// One method, one shape: typed throws over the body's `E`, returning
+// `Either<Pool.Lifecycle.Error, E>`. Sync closures promote to async.
+// Non-throwing bodies infer `E = Never`. No `.try`, no `.timeout(_:)`,
+// no deadline parameter — non-blocking and timeout semantics compose
+// externally via Task cancellation.
 
 @Suite(.serialized)
 struct PoolBoundedAsyncBodyTests {
     @Suite struct Direct {}
-    @Suite struct Timeout {}
-    @Suite struct Try {}
-    @Suite struct Acquire {}
+    @Suite struct Cancellation {}
+    @Suite struct Borrowing {}
 }
 
 private typealias TestPool = Pool.Bounded<Int>
@@ -42,14 +39,14 @@ private func makePrefilled(_ value: Int) -> TestPool {
     return pool
 }
 
-// MARK: - Direct Acquire (pool { ... })
+// MARK: - Direct Acquire
 
 extension PoolBoundedAsyncBodyTests.Direct {
     @Test
     func `async body completes and returns`() async throws {
         let pool = makePrefilled(42)
 
-        let result: Int = try await pool { (resource: inout Int) async -> Int in
+        let result: Int = try await pool.acquire { resource in
             await Task.yield()
             return resource * 2
         }
@@ -58,13 +55,12 @@ extension PoolBoundedAsyncBodyTests.Direct {
     }
 
     @Test
-    func `async body holds slot across Task sleep`() async throws {
+    func `sync body promotes to async overload`() async throws {
         let pool = makePrefilled(7)
 
-        let result: Int = try await pool { (resource: inout Int) async -> Int in
-            try? await Task.sleep(for: .milliseconds(10))
-            resource += 1
-            return resource
+        // Sync closure passed to the single async overload — Swift promotes.
+        let result: Int = try await pool.acquire { resource in
+            return resource + 1
         }
 
         #expect(result == 8)
@@ -74,55 +70,112 @@ extension PoolBoundedAsyncBodyTests.Direct {
     func `async body persists mutation`() async throws {
         let pool = makePrefilled(0)
 
-        let _: Void = try await pool { (resource: inout Int) async -> Void in
+        try await pool.acquire { (resource: inout sending Int) async -> Void in
             await Task.yield()
             resource = 99
         }
 
-        let snapshot: Int = try await pool { (resource: inout Int) -> Int in resource }
+        let snapshot: Int = try await pool.acquire { resource in resource }
         #expect(snapshot == 99)
     }
 
     @Test
-    func `throwing async body returns Result failure`() async throws {
+    func `throwing body surfaces as Either right`() async throws {
         let pool = makePrefilled(1)
 
-        let result: Result<Int, TestError> = try await pool { (resource: inout Int) async throws(TestError) -> Int in
-            throw TestError()
-        }
-
-        switch result {
-        case .success:
-            Issue.record("Expected failure")
-        case .failure(let error):
-            #expect(error == TestError())
+        // Per [IMPL-075]: do throws(E) { … } catch { … }, no cast.
+        do throws(Either<Pool.Lifecycle.Error, TestError>) {
+            try await pool.acquire { (_: inout sending Int) async throws(TestError) -> Int in
+                throw TestError()
+            }
+            Issue.record("Expected throw")
+        } catch {
+            // `error` is Either<Pool.Lifecycle.Error, TestError> implicitly
+            switch error {
+            case .left(let lifecycleError):
+                Issue.record("Expected body failure, got \(lifecycleError)")
+            case .right(let bodyError):
+                #expect(bodyError == TestError())
+            }
         }
     }
 
     @Test
-    func `throwing async body returns Result success`() async throws {
+    func `throwing body that succeeds returns value`() async throws {
         let pool = makePrefilled(5)
 
-        let result: Result<Int, TestError> = try await pool { (resource: inout Int) async throws(TestError) -> Int in
-            try? await Task.sleep(for: .milliseconds(5))
-            return resource + 100
+        do throws(Either<Pool.Lifecycle.Error, TestError>) {
+            let result: Int = try await pool.acquire { (resource: inout sending Int) async throws(TestError) -> Int in
+                try? await Task.sleep(for: .milliseconds(5))
+                return resource + 100
+            }
+            #expect(result == 105)
+        } catch {
+            Issue.record("Expected success, got \(error)")
+        }
+    }
+}
+
+// MARK: - Cancellation
+
+extension PoolBoundedAsyncBodyTests.Cancellation {
+    @Test
+    func `cancellation while waiting throws cancelled`() async throws {
+        let pool = TestPool(capacity: 1, destroy: { _ in })
+        // Pool is empty — acquire will block waiting
+
+        let waiterEnqueued = Async.Gate()
+        pool.onEnqueue = { waiterEnqueued.open() }
+
+        // The Task returns the lifecycle error directly. Because the
+        // do/catch is INSIDE the Task closure (not crossing the Task
+        // boundary), the implicit `error` binding inside catch is typed
+        // as Either<...> per [IMPL-075] — no cast, no Mutex capture.
+        let task = Task {
+            do throws(Either<Pool.Lifecycle.Error, Never>) {
+                let _: Int = try await pool.acquire { (resource: inout sending Int) async -> Int in
+                    resource
+                }
+                return Pool.Lifecycle.Error?.none
+            } catch {
+                switch error {
+                case .left(let lifecycleError):
+                    return lifecycleError
+                }
+            }
         }
 
-        switch result {
-        case .success(let value):
-            #expect(value == 105)
-        case .failure:
-            Issue.record("Expected success")
-        }
+        await waiterEnqueued.wait()
+        task.cancel()
+
+        #expect(await task.value == .cancelled)
     }
 
     @Test
-    func `async body resource is borrowed across await`() async throws {
+    func `task cancellation observed inside body via .cancelled`() async throws {
+        // The body is responsible for honouring Task.checkCancellation; the
+        // pool surfaces external cancellation as `.cancelled` only at the
+        // wait stage. Once the body holds the slot, body-level cancellation
+        // is the body's responsibility.
+        let pool = makePrefilled(1)
+
+        let result: Int = try await pool.acquire { (resource: inout sending Int) async -> Int in
+            return resource
+        }
+        #expect(result == 1)
+    }
+}
+
+// MARK: - Borrowing
+
+extension PoolBoundedAsyncBodyTests.Borrowing {
+    @Test
+    func `inout resource borrowed across await`() async throws {
         // Verify inout Resource composes with await — the slot is held for
         // the entire body, including across the suspension point.
         let pool = makePrefilled(10)
 
-        let result: Int = try await pool { (resource: inout Int) async -> Int in
+        let result: Int = try await pool.acquire { (resource: inout sending Int) async -> Int in
             let before = resource
             try? await Task.sleep(for: .milliseconds(5))
             resource = before * 3
@@ -131,152 +184,22 @@ extension PoolBoundedAsyncBodyTests.Direct {
 
         #expect(result == 30)
     }
-}
-
-// MARK: - Acquire pass-through (pool.acquire { ... })
-
-extension PoolBoundedAsyncBodyTests.Acquire {
-    @Test
-    func `acquire async body completes`() async throws {
-        let pool = makePrefilled(11)
-
-        let result: Int = try await pool.acquire { (resource: inout Int) async -> Int in
-            await Task.yield()
-            return resource + 1
-        }
-
-        #expect(result == 12)
-    }
 
     @Test
-    func `acquire async body throwing returns Result`() async throws {
-        let pool = makePrefilled(0)
-
-        let result: Result<Int, TestError> = try await pool.acquire { (_: inout Int) async throws(TestError) -> Int in
-            throw TestError()
-        }
-
-        if case .success = result {
-            Issue.record("Expected failure")
-        }
-    }
-}
-
-// MARK: - Acquire.Timeout
-
-extension PoolBoundedAsyncBodyTests.Timeout {
-    @Test
-    func `timeout async body succeeds when resource available`() async throws {
-        let pool = makePrefilled(50)
-
-        let timeoutOp = pool.acquire.timeout(.seconds(1))
-        let result: Int = try await timeoutOp { (resource: inout Int) async -> Int in
-            try? await Task.sleep(for: .milliseconds(5))
-            return resource * 2
-        }
-
-        #expect(result == 100)
-    }
-
-    @Test
-    func `timeout async body times out when no resource`() async throws {
-        let pool = TestPool(capacity: 1, destroy: { _ in })
-
-        let timeoutOp = pool.acquire.timeout(.nanoseconds(1))
-        await #expect(throws: Pool.Lifecycle.Error.timeout) {
-            let _: Int = try await timeoutOp { (_: inout Int) async -> Int in
-                999
-            }
-        }
-    }
-
-    @Test
-    func `timeout async optional returns nil on timeout`() async throws {
-        let pool = TestPool(capacity: 1, destroy: { _ in })
-
-        let timeoutOp = pool.acquire.timeout(.nanoseconds(1))
-        let result: Int? = try await timeoutOp.optional { (_: inout Int) async -> Int in
-            42
-        }
-
-        #expect(result == nil)
-    }
-
-    @Test
-    func `timeout async optional returns value when available`() async throws {
-        let pool = makePrefilled(7)
-
-        let timeoutOp = pool.acquire.timeout(.seconds(1))
-        let result: Int? = try await timeoutOp.optional { (resource: inout Int) async -> Int in
-            try? await Task.sleep(for: .milliseconds(5))
-            return resource + 1
-        }
-
-        #expect(result == 8)
-    }
-
-    @Test
-    func `timeout async body throwing returns Result`() async throws {
+    func `slot returned after body throws`() async throws {
         let pool = makePrefilled(1)
 
-        let timeoutOp = pool.acquire.timeout(.seconds(1))
-        let result: Result<Int, TestError> = try await timeoutOp { (_: inout Int) async throws(TestError) -> Int in
-            throw TestError()
-        }
-
-        if case .success = result {
-            Issue.record("Expected failure")
-        }
-    }
-}
-
-// MARK: - Acquire.Try
-
-extension PoolBoundedAsyncBodyTests.Try {
-    @Test
-    func `try async body acquires when available`() async throws {
-        let pool = makePrefilled(10)
-
-        let result: Int = try await pool.acquire.try { (resource: inout Int) async -> Int in
-            try? await Task.sleep(for: .milliseconds(2))
-            return resource + 5
-        }
-
-        #expect(result == 15)
-    }
-
-    @Test
-    func `try async body throws exhausted when empty`() async throws {
-        let pool = TestPool(capacity: 1, destroy: { _ in })
-
-        await #expect(throws: Pool.Lifecycle.Error.exhausted) {
-            let _: Int = try await pool.acquire.try { (_: inout Int) async -> Int in
-                999
+        // First call — body throws
+        do throws(Either<Pool.Lifecycle.Error, TestError>) {
+            try await pool.acquire { (_: inout sending Int) async throws(TestError) -> Int in
+                throw TestError()
             }
-        }
-    }
-
-    @Test
-    func `try async optional returns nil when exhausted`() async throws {
-        let pool = TestPool(capacity: 1, destroy: { _ in })
-
-        let result: Int? = try await pool.acquire.try.optional { (_: inout Int) async -> Int in
-            42
+        } catch {
+            // Expected; .right
         }
 
-        #expect(result == nil)
-    }
-
-    @Test
-    func `try async body throwing returns Result`() async throws {
-        let pool = makePrefilled(1)
-
-        let result: Result<Int, TestError> = try await pool.acquire.try { (_: inout Int) async throws(TestError) -> Int in
-            throw TestError()
-        }
-
-        if case .success = result {
-            Issue.record("Expected failure")
-        }
+        // Second call — slot must be available
+        let result: Int = try await pool.acquire { resource in resource }
+        #expect(result == 1)
     }
 }

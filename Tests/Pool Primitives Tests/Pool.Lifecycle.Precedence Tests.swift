@@ -20,7 +20,6 @@ extension Pool.Lifecycle.Precedence.Test.Unit {
         let result = Pool.Lifecycle.Precedence.apply(
             lifecycle: .open,
             cancelled: false,
-            timedOut: false,
             outcome: Result<Int, Pool.Lifecycle.Error>.success(42)
         )
 
@@ -32,7 +31,6 @@ extension Pool.Lifecycle.Precedence.Test.Unit {
         let result = Pool.Lifecycle.Precedence.apply(
             lifecycle: .closing,
             cancelled: false,
-            timedOut: false,
             outcome: Result<Int, Pool.Lifecycle.Error>.success(42)
         )
 
@@ -44,19 +42,6 @@ extension Pool.Lifecycle.Precedence.Test.Unit {
         let result = Pool.Lifecycle.Precedence.apply(
             lifecycle: .closing,
             cancelled: true,
-            timedOut: false,
-            outcome: Result<Int, Pool.Lifecycle.Error>.success(42)
-        )
-
-        #expect(result == .failure(.shutdown))
-    }
-
-    @Test
-    func `shutdown dominates timeout`() {
-        let result = Pool.Lifecycle.Precedence.apply(
-            lifecycle: .closing,
-            cancelled: false,
-            timedOut: true,
             outcome: Result<Int, Pool.Lifecycle.Error>.success(42)
         )
 
@@ -68,35 +53,10 @@ extension Pool.Lifecycle.Precedence.Test.Unit {
         let result = Pool.Lifecycle.Precedence.apply(
             lifecycle: .open,
             cancelled: true,
-            timedOut: false,
             outcome: Result<Int, Pool.Lifecycle.Error>.success(42)
         )
 
         #expect(result == .failure(.cancelled))
-    }
-
-    @Test
-    func `cancellation dominates timeout`() {
-        let result = Pool.Lifecycle.Precedence.apply(
-            lifecycle: .open,
-            cancelled: true,
-            timedOut: true,
-            outcome: Result<Int, Pool.Lifecycle.Error>.success(42)
-        )
-
-        #expect(result == .failure(.cancelled))
-    }
-
-    @Test
-    func `timeout dominates success`() {
-        let result = Pool.Lifecycle.Precedence.apply(
-            lifecycle: .open,
-            cancelled: false,
-            timedOut: true,
-            outcome: Result<Int, Pool.Lifecycle.Error>.success(42)
-        )
-
-        #expect(result == .failure(.timeout))
     }
 
     @Test
@@ -104,11 +64,10 @@ extension Pool.Lifecycle.Precedence.Test.Unit {
         let result = Pool.Lifecycle.Precedence.apply(
             lifecycle: .open,
             cancelled: false,
-            timedOut: false,
-            outcome: Result<Int, Pool.Lifecycle.Error>.failure(.timeout)
+            outcome: Result<Int, Pool.Lifecycle.Error>.failure(.creationFailed)
         )
 
-        #expect(result == .failure(.timeout))
+        #expect(result == .failure(.creationFailed))
     }
 }
 
@@ -120,7 +79,6 @@ extension Pool.Lifecycle.Precedence.Test.EdgeCase {
         let result = Pool.Lifecycle.Precedence.apply(
             lifecycle: .closing,
             cancelled: true,
-            timedOut: true,
             outcome: Result<Int, Pool.Lifecycle.Error>.success(42)
         )
 

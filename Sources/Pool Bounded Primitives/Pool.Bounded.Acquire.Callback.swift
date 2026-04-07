@@ -21,7 +21,7 @@ internal import Array_Fixed_Primitives
 
 // MARK: - Callback
 
-extension Pool.Bounded.Acquire where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Acquire where Resource: ~Copyable {
     /// Callback-based acquire operations.
     ///
     /// Acquires a resource and calls back when available. If no resource
@@ -44,7 +44,7 @@ extension Pool.Bounded.Acquire where Resource: ~Copyable & Sendable {
 
 // MARK: - Callback Accessor
 
-extension Pool.Bounded.Acquire where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Acquire where Resource: ~Copyable {
     /// Access callback-based acquire operations.
     ///
     /// ```swift
@@ -66,7 +66,7 @@ extension Pool.Bounded.Acquire where Resource: ~Copyable & Sendable {
 
 // MARK: - Callback Operations
 
-extension Pool.Bounded.Acquire.Callback where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Acquire.Callback where Resource: ~Copyable {
     /// Acquires a resource and calls back with the result.
     ///
     /// If a resource is immediately available, the body is executed and

@@ -1,4 +1,4 @@
-extension Pool.Bounded.Slot where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Slot where Resource: ~Copyable {
     /// Slot state machine.
     ///
     /// ## States

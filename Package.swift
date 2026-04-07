@@ -40,6 +40,7 @@ let package = Package(
         .package(path: "../swift-ownership-primitives"),
         .package(path: "../swift-effect-primitives"),
         .package(path: "../swift-index-primitives"),
+        .package(path: "../swift-algebra-primitives"),
     ],
     targets: [
         // MARK: - Core
@@ -50,6 +51,7 @@ let package = Package(
                 .product(name: "Dimension Primitives", package: "swift-dimension-primitives"),
                 .product(name: "Effect Primitives", package: "swift-effect-primitives"),
                 .product(name: "Ownership Primitives", package: "swift-ownership-primitives"),
+                .product(name: "Algebra Primitives", package: "swift-algebra-primitives"),
             ]
         ),
 

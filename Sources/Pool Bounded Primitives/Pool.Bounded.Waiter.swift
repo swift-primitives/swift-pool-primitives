@@ -2,7 +2,7 @@ public import Async_Primitives_Core
 public import Async_Waiter_Primitives
 internal import Dimension_Primitives
 
-extension Pool.Bounded where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable {
     /// Outcome type for waiter continuation pattern.
     ///
     /// Returns (slot index, Pool.ID) on success, lifecycle error on failure.
@@ -15,7 +15,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     enum Waiter {}
 }
 
-extension Pool.Bounded.Waiter where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Waiter where Resource: ~Copyable {
     /// Waiter entry type for the FIFO queue.
     ///
     /// Uses `Async.Waiter.Entry` directly as the substrate.

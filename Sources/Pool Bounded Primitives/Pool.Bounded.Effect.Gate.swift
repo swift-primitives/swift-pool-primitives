@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-extension Pool.Bounded.Effect where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Effect where Resource: ~Copyable {
     /// Gate effects for shutdown notification.
     @usableFromInline
     enum Gate: Sendable {

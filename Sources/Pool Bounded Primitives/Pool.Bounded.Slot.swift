@@ -1,6 +1,6 @@
 public import Dimension_Primitives
 
-extension Pool.Bounded where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable {
     /// A slot in the pool that can hold a resource.
     @usableFromInline
     struct Slot: Sendable {

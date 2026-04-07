@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-extension Pool.Bounded.Fill where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Fill where Resource: ~Copyable {
     /// Errors that can occur during fill operations.
     public enum Error: Swift.Error, Sendable, Equatable {
         /// Pool is not using eager policy.
