@@ -20,7 +20,7 @@ extension Pool.Bounded.Effect where Resource: ~Copyable {
     /// operations (e.g., `reapFlagged`, `reapAll`). Never construct batch
     /// arrays ad-hoc in application code.
     @usableFromInline
-    enum Waiter: ~Copyable, Sendable {
+    enum Waiter: ~Copyable {
         /// Resume a single waiter.
         case resume(Async.Waiter.Resumption)
 

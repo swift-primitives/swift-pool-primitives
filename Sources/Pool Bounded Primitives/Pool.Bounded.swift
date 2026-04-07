@@ -14,16 +14,21 @@ internal import Ownership_Primitives
 extension Pool {
     // MARK: - Sendability Contract
     //
-    // Pool.Bounded is @unchecked Sendable. Safety is guaranteed by:
+    // Pool.Bounded conforms to plain `Sendable` (NOT `@unchecked`). Each
+    // stored property is itself Sendable; the type-system check passes
+    // without requiring an unchecked escape hatch. Safety mechanisms:
     //
-    // 1. All mutable bookkeeping (_state) is protected by Mutex
-    // 2. entries is immutable fixed-capacity storage (let)
+    // 1. _state: Async.Mutex<State> — Mutex is Sendable; all mutable
+    //    bookkeeping is protected
+    // 2. entries: Array<Entry>.Fixed.Indexed<Slot> — `let`-bound storage
+    //    of Ownership.Slot references (Slot atomically serializes its own
+    //    state machine via release/acquire CAS)
     // 3. Slot ownership (state .out(id)) implies exclusive Entry access
-    // 4. User closures never execute under lock
-    // 5. Waiters are resumed only after removal from queue and outside lock
+    // 4. User closures never execute under lock (strict stance)
+    // 5. Waiters resumed only after removal from queue and outside lock
     // 6. Cancellation handlers are lock-free (schedule via Task)
-    // 7. Entry access (move.in/move.out) is an external effect - outside lock
-    // 8. Gate.open() and resume() only called via perform(_:) - outside lock
+    // 7. Entry access (move.in/move.out) happens outside the lock
+    // 8. Gate.open() and resume() only called via perform(_:) outside lock
 
     /// Fixed-capacity resource pool with FIFO fairness.
     ///
@@ -33,15 +38,12 @@ extension Pool {
     ///
     /// ## Sendable Contract
     ///
-    /// `Resource` is `~Copyable` only — no `Sendable` constraint. The pool is
-    /// `@unchecked Sendable` because all access to mutable state is serialized
-    /// by the internal `Async.Mutex`. Resources never escape the body's borrow
-    /// without being put back into a slot protected by the same Mutex.
-    /// Per the closure-only anti-pattern fix
-    /// (`ownership-transfer-conventions.md` §3): the type parameter does not
-    /// need `Sendable` because the resource never crosses an isolation boundary
-    /// directly — it transits via the slot, under lock.
-    public final class Bounded<Resource: ~Copyable>: @unchecked Sendable {
+    /// `Resource` is `~Copyable` only — no `Sendable` constraint. Per the
+    /// closure-only anti-pattern fix (`ownership-transfer-conventions.md`
+    /// §3): the type parameter does not need `Sendable` because the resource
+    /// never crosses an isolation boundary directly — it transits via the
+    /// slot, under the pool's Mutex.
+    public final class Bounded<Resource: ~Copyable>: Sendable {
         /// Protected internal state wrapped in Async.Mutex.
         @usableFromInline
         let _state: Async.Mutex<State>
@@ -78,8 +80,13 @@ extension Pool {
 
         #if DEBUG
         /// Test hook called immediately after a waiter is enqueued.
+        ///
         /// Use for deterministic test synchronization instead of polling.
-        public var onEnqueue: (@Sendable () -> Void)?
+        /// Marked `nonisolated(unsafe)` because it's a `var` that exists
+        /// solely so test code can set the hook after construction. The
+        /// scope of unsafe-shared mutation is exactly this one property,
+        /// not the entire class.
+        nonisolated(unsafe) public var onEnqueue: (@Sendable () -> Void)?
         #endif
 
         /// Creates a fixed-capacity pool with eager policy.

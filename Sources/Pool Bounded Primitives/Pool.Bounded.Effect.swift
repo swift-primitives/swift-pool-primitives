@@ -31,7 +31,7 @@ extension Pool.Bounded where Resource: ~Copyable {
     /// perform(effect)  // OUTSIDE lock
     /// ```
     @usableFromInline
-    enum Effect: ~Copyable, Sendable {
+    enum Effect: ~Copyable {
         /// No effect needed.
         case none
 

@@ -18,7 +18,7 @@ extension Pool.Bounded.Fill where Resource: ~Copyable {
     /// Embeds skipped resumptions and shutdown effect into each case to avoid
     /// capturing mutable variables across the `withLock` sending boundary.
     @usableFromInline
-    enum Commit: ~Copyable, Sendable {
+    enum Commit: ~Copyable {
         /// Add slot to available pool.
         case addToPool(effect: Pool.Bounded<Resource>.Effect, skipped: Array<Async.Waiter.Resumption>)
 

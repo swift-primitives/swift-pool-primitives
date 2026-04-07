@@ -12,7 +12,7 @@
 extension Pool.Bounded.Acquire.Callback where Resource: ~Copyable {
     /// Actions computed under lock for callback-based acquisition.
     @usableFromInline
-    enum Action: Sendable {
+    enum Action {
         /// Slot immediately available.
         case immediate(Pool.Bounded<Resource>.Slot.Index, Pool.ID)
 

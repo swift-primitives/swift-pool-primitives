@@ -19,7 +19,7 @@ extension Pool.Bounded.Slot where Resource: ~Copyable {
     /// - `available(id) → disposing(id)`: shutdown drain
     /// - `disposing(id) → empty`: disposal complete
     @usableFromInline
-    enum State: Sendable {
+    enum State {
         /// Slot has no resource (lazy creation possible).
         case empty
 

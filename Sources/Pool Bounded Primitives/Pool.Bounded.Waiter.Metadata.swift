@@ -14,6 +14,11 @@ extension Pool.Bounded.Waiter where Resource: ~Copyable {
     ///
     /// Empty for now - can add fields without breaking changes.
     /// Potential future uses: creation instant, priority, trace IDs.
+    /// Metadata stored alongside each waiter entry.
+    ///
+    /// `Sendable` is required by the upstream `Async.Waiter.Entry<Outcome, Metadata>`
+    /// generic constraint — the metadata is stored in a queue that may be
+    /// inspected from any context. Empty for now.
     @usableFromInline
     struct Metadata: Sendable {}
 }
