@@ -10,11 +10,11 @@
 // ===----------------------------------------------------------------------===//
 
 #if !hasFeature(Embedded)
-import Synchronization
+internal import Synchronization
 #endif
 public import Async_Primitives_Core
-public import Async_Mutex_Primitives
-public import Async_Waiter_Primitives
+internal import Async_Mutex_Primitives
+internal import Async_Waiter_Primitives
 internal import Dimension_Primitives
 internal import Ownership_Primitives
 internal import Array_Fixed_Primitives
