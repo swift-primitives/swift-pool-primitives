@@ -153,3 +153,59 @@ re-exported from `Pool Primitives Core/exports.swift`).
 The async-primitives portion of `async-pool-primitives-audit.md` remains
 in place at the swift-institute scope until swift-async-primitives gets
 its own per-package `Research/audit.md`.
+
+---
+
+## Follow-ups — 2026-04-08
+
+Items recommended after the `ownership-transfer-conventions` second-round
+refactor (commit `1f360de`). These are NOT findings against the current
+audit skills (code-surface, modularization) — the formal findings tables
+above show zero open issues. They are verification tasks, dead-code
+checks, and follow-up scope items that future sessions should pick up.
+
+### Verification tasks (medium priority)
+
+| # | Item | Why | How to apply |
+|---|------|-----|--------------|
+| F-01 | Verify `Either<X, Never>` exhaustive switch elision actually works | The new canonical API and `Pool.Bounded.Acquire.swift` doc comment claim that for non-throwing bodies (where `E = Never`), Swift's pattern matcher allows omitting the `.right(Never)` case at catch sites. This is asserted but not proven by a test. | Add a test in `Pool.Bounded.AsyncBody Tests.swift`: write `do throws(Either<Pool.Lifecycle.Error, Never>) { try await pool.acquire { … } } catch { switch error { case .left(.shutdown): … } }` with NO `.right` case in the switch, and verify it compiles. If Swift requires the case, update the docstring honestly. |
+| F-02 | Run a release build with the cclsp flags | Per the `io-bench test command` memory entry, primitives should be built with `swift test -c release -Xswiftc -Xllvm -Xswiftc -sil-disable-pass=CopyPropagation`. Only debug builds have been verified during this refactor. | `swift test -c release -Xswiftc -Xllvm -Xswiftc -sil-disable-pass=CopyPropagation` from the package root. Resolve any release-mode-only issues (CopyPropagation interactions with `~Copyable`, etc). |
+| F-03 | Verify `Pool.Acquire` (the `Effect.Protocol` type in Pool Primitives Core) still composes correctly | `Pool.Acquire<Resource>` is the public effect type used by Effect.Protocol consumers. Its `Value` typealias is `Ownership.Shared<Resource>` (a workaround for protocol associated-types lacking `~Copyable` support, per its own doc comment). With `Resource: ~Copyable` only (no Sendable), this should still work — but `Ownership.Shared<Value: ~Copyable & Sendable>` requires `Value: Sendable`. The Pool.Acquire type may not even instantiate for non-Sendable Resources. | Read `Sources/Pool Primitives Core/Pool.Acquire.swift` and `Pool.Release.swift`. Try to instantiate `Pool.Acquire<NonSendableHandle>` in a test. If it doesn't compile, decide: (a) keep `Resource: ~Copyable & Sendable` on the Effect.Protocol types only (Pool.Bounded class stays at `~Copyable` only); (b) restructure the Effect.Protocol Value type to not require Sendable (may require waiting on Suppressed Associated Types With Defaults). |
+| F-04 | Trace `Pool.Bounded._check` usage | The optional `_check: (@Sendable (inout Resource) -> Bool)?` validation closure is stored on Pool.Bounded but its callers may have all been deleted in the Try/Timeout removal. If unused, drop it (and the corresponding init parameter). If used, document the call site and verify it works under the new sending/inout shape. | `grep -rn "_check" "Sources/Pool Bounded Primitives/"`. Trace every reference. If only the storage and init reference it, the closure is dead code. |
+| F-05 | Verify `Pool.Bounded.Acquire.Callback` still composes correctly | The Callback variant was deliberately left unchanged in this refactor (embedded-only contract). It uses `Result<T, Pool.Lifecycle.Error>` in the completion shape and retains `@Sendable` on body and completion closures. With the new `Pool.Lifecycle.Error` (3 cases) and the Sendable cleanup elsewhere, verify the Callback variant still builds and behaves correctly end-to-end. | Add a small test that exercises `pool.acquire.callback(body, completion: ...)` with a non-Sendable resource, both immediate and waiter-queued paths. |
+
+### Code-surface follow-ups (medium-low priority)
+
+| # | Item | Why | How to apply |
+|---|------|-----|--------------|
+| F-06 | Audit `Pool.Bounded.Acquire.Callback` for further `@Sendable` reduction | The Callback variant has `@Sendable` on the body, completion, and internal helpers. Some of these may be necessary (closures stored in waiter queue → fire from arbitrary executor context), but a careful audit may identify drops. The `@Sendable` annotations on the `enqueueWaiter` callback's internal capture are particularly worth re-examining. | Read `Pool.Bounded.Acquire.Callback.swift` line by line; for each `@Sendable`, identify the storage location and invocation context; drop where the closure stays in caller isolation. |
+| F-07 | Consider `nonisolated(unsafe)` audit | Pool.Bounded has exactly one `nonisolated(unsafe) var onEnqueue` (DEBUG-only). Verify no other `var` properties on Sendable types lurk that should also be `nonisolated(unsafe)` or restructured. | `grep -rn "var " "Sources/Pool Bounded Primitives/" \| grep -v "let "`. Each mutable stored property on a Sendable type is suspicious. |
+| F-08 | Check internal action enums for `~Copyable` opportunities | The action enums (`Acquire.Action`, `Fill.Action`, `Fill.Commit`, `Effect`, `Effect.Gate`, `Effect.Waiter`, `Release.Action`, `Shutdown.Drain`) computed under `withLock` and returned as `sending T`. Some are already `~Copyable`. Others (like `Acquire.Action`) are still implicitly Copyable. Audit which should be `~Copyable` for stricter ownership semantics. | Read each action enum file. If any case carries an owned resource (e.g., a `consuming` value), the enum should be `~Copyable`. Otherwise leave alone — Copyable is fine for pure value enums. |
+| F-09 | Drop `Ownership.Shared` survey | `Ownership.Shared` was removed from `Creator` and `Destructor` typealiases in commit `bddfb28`. Verify no other `Ownership.Shared` usage lurks in the package; the only legitimate Ownership-primitives use should be `Ownership.Slot<Resource>` for the Entry storage. | `grep -rn "Ownership\." "Sources/Pool Bounded Primitives/" "Sources/Pool Primitives Core/"`. Anything that isn't `Ownership.Slot` deserves scrutiny. |
+
+### Cross-package follow-ups (separate work)
+
+| # | Item | Why | Where |
+|---|------|-----|-------|
+| F-10 | Apply the same convention treatment to swift-pools' `Pool.Blocking` | Pool.Blocking is the L3 sync/blocking variant of the same primitive. It uses the same `Pool.Lifecycle.Error` (verified to still build) but has its own conventions to audit: drop unnecessary `Sendable`, drop unnecessary `@Sendable`, use `inout sending` body parameters where applicable, eliminate `Ownership.Shared` if any, verify the timeout/cancellation paths align with the composition-not-deadline philosophy. | swift-foundations/swift-pools — `Sources/Pool Blocking/`. Separate package, separate PR. |
+| F-11 | Build a `withTimeout(_:operation:)` primitive in swift-async-primitives | The composition-not-deadline design assumes such a primitive exists for the timeout use case. Currently callers needing timeouts write a Task-cancellation harness. A single `withTimeout` utility belongs in swift-async-primitives so all timeout-needing primitives compose with it the same way. | swift-async-primitives. Open a separate issue/PR. The Pool refactor proceeds without it; this is purely an ergonomics improvement for downstream consumers. |
+| F-12 | swift-io's `IO.Blocking.Driver` migration | The original handoff for this branch was an IO.Blocking.Driver refactor that needed Pool.Bounded as an admission counting semaphore. The new single-overload API is what that refactor needs. The handoff `## Completion` section is now updated for the new shape; the parent IO conversation should consume it. | swift-io. Tracked via the original handoff document. |
+
+### Workflow tasks
+
+| # | Item | Why |
+|---|------|-----|
+| F-13 | Push `ownership-transfer-conventions` branch and open a PR | The branch is in a stable state with all tests passing, audit clean, downstream verified. Ready for review. |
+| F-14 | Save key decisions to memory | Future sessions benefit from knowing: (a) `Either<X, Y>` from swift-algebra-primitives is the canonical error union (not Apple's `EitherError`); (b) Pool primitives compose timeouts/cancellation externally — never carry deadline parameters; (c) Drop `Ownership.Shared` for closure storage — closures are reference-typed already. |
+
+### Out of scope (do not pick up here)
+
+- **The Slot.Index `__unchecked` constructor** + raw counters in State.
+  These are implementation-skill scope (intent-over-mechanism), not
+  code-surface or modularization. Belong in a separate "intent over
+  mechanism" PR.
+- **Pool.Bounded as a `~Copyable` struct** mirroring Async.Mutex layout.
+  Eliminates the class but is a much bigger restructure with diminishing
+  returns. Defer indefinitely.
+- **Renaming Pool.Lifecycle.Error.cancelled** or any other API name. The
+  current shape is correct as is.
