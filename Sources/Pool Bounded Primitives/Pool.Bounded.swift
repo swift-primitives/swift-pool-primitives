@@ -1,12 +1,12 @@
 #if !hasFeature(Embedded)
-public import Synchronization
+internal import Synchronization
 #endif
 public import Async_Primitives_Core
-public import Async_Waiter_Primitives
+internal import Async_Waiter_Primitives
 public import Async_Mutex_Primitives
 public import Async_Promise_Primitives
 internal import Array_Primitives_Core
-public import Array_Fixed_Primitives
+internal import Array_Fixed_Primitives
 internal import Array_Dynamic_Primitives
 internal import Ownership_Primitives
 @_spi(Internal) internal import Pool_Primitives_Core
@@ -14,23 +14,36 @@ internal import Ownership_Primitives
 extension Pool {
     // MARK: - Sendability Contract
     //
-    // Pool.Bounded is @unchecked Sendable. Safety is guaranteed by:
+    // Pool.Bounded conforms to plain `Sendable` (NOT `@unchecked`). Each
+    // stored property is itself Sendable; the type-system check passes
+    // without requiring an unchecked escape hatch. Safety mechanisms:
     //
-    // 1. All mutable bookkeeping (_state) is protected by Mutex
-    // 2. entries is immutable fixed-capacity storage (let)
+    // 1. _state: Async.Mutex<State> — Mutex is Sendable; all mutable
+    //    bookkeeping is protected
+    // 2. entries: Array<Entry>.Fixed.Indexed<Slot> — `let`-bound storage
+    //    of Ownership.Slot references (Slot atomically serializes its own
+    //    state machine via release/acquire CAS)
     // 3. Slot ownership (state .out(id)) implies exclusive Entry access
-    // 4. User closures never execute under lock
-    // 5. Waiters are resumed only after removal from queue and outside lock
+    // 4. User closures never execute under lock (strict stance)
+    // 5. Waiters resumed only after removal from queue and outside lock
     // 6. Cancellation handlers are lock-free (schedule via Task)
-    // 7. Entry access (move.in/move.out) is an external effect - outside lock
-    // 8. Gate.open() and resume() only called via perform(_:) - outside lock
+    // 7. Entry access (move.in/move.out) happens outside the lock
+    // 8. Gate.open() and resume() only called via perform(_:) outside lock
 
     /// Fixed-capacity resource pool with FIFO fairness.
     ///
     /// Supports two policies:
     /// - **Eager**: Resources created only via `fill()`. Acquire waits for available.
     /// - **Lazy**: Resources created on-demand up to capacity.
-    public final class Bounded<Resource: ~Copyable & Sendable>: @unchecked Sendable {
+    ///
+    /// ## Sendable Contract
+    ///
+    /// `Resource` is `~Copyable` only — no `Sendable` constraint. Per the
+    /// closure-only anti-pattern fix (`ownership-transfer-conventions.md`
+    /// §3): the type parameter does not need `Sendable` because the resource
+    /// never crosses an isolation boundary directly — it transits via the
+    /// slot, under the pool's Mutex.
+    public final class Bounded<Resource: ~Copyable>: Sendable {
         /// Protected internal state wrapped in Async.Mutex.
         @usableFromInline
         let _state: Async.Mutex<State>
@@ -48,6 +61,10 @@ extension Pool {
         let policy: Policy
 
         /// Optional resource validation closure.
+        ///
+        /// Closure is stored across acquire-release cycles. Captures must be
+        /// safely sharable, hence `@Sendable`. The Resource borrow is local
+        /// to the call site.
         @usableFromInline
         let _check: (@Sendable (inout Resource) -> Bool)?
 
@@ -63,8 +80,13 @@ extension Pool {
 
         #if DEBUG
         /// Test hook called immediately after a waiter is enqueued.
+        ///
         /// Use for deterministic test synchronization instead of polling.
-        public var onEnqueue: (@Sendable () -> Void)?
+        /// Marked `nonisolated(unsafe)` because it's a `var` that exists
+        /// solely so test code can set the hook after construction. The
+        /// scope of unsafe-shared mutation is exactly this one property,
+        /// not the entire class.
+        nonisolated(unsafe) public var onEnqueue: (@Sendable () -> Void)?
         #endif
 
         /// Creates a fixed-capacity pool with eager policy.
@@ -73,17 +95,19 @@ extension Pool {
         ///
         /// - Parameters:
         ///   - capacity: Maximum number of resources.
-        ///   - destroy: Destructor closure to dispose resources.
+        ///   - destroy: Destructor closure to dispose resources. Captures
+        ///     are stored on the pool and must be `Sendable`; the Resource
+        ///     itself is not required to be Sendable.
         ///   - check: Optional validation closure.
         public init(
             capacity: Pool.Capacity,
-            destroy: @Sendable @escaping (consuming Resource) -> Void,
+            destroy: @escaping @Sendable (consuming Resource) -> Void,
             check: (@Sendable (inout Resource) -> Bool)? = nil
         ) {
             self._state = Async.Mutex(State(capacity: capacity.value))
             self.shutdownGate = Async.Gate()
             self.scope = Pool.Scope()
-            self.policy = .eager(Destructor(destroy))
+            self.policy = .eager(destroy)
             self._check = check
             self.entries = Array<Entry>.Fixed.Indexed(
                 try! Array<Entry>.Fixed(
@@ -103,19 +127,24 @@ extension Pool {
         ///
         /// - Parameters:
         ///   - capacity: Maximum number of resources.
-        ///   - create: Factory closure to create new resources.
+        ///   - create: Factory closure that produces a new resource.
+        ///     Throws `Pool.Lifecycle.Error` directly — the user wraps any
+        ///     domain errors at the boundary (typically as `.creationFailed`).
+        ///     The factory's captures must be `Sendable` because the closure
+        ///     is stored on the pool; the Resource it produces is `sending`
+        ///     (transferred into the pool, not shared).
         ///   - destroy: Destructor closure to dispose resources.
         ///   - check: Optional validation closure.
         public init(
             capacity: Pool.Capacity,
-            create: @Sendable @escaping () async throws -> Resource,
-            destroy: @Sendable @escaping (consuming Resource) -> Void,
+            create: @escaping @Sendable () async throws(Pool.Lifecycle.Error) -> sending Resource,
+            destroy: @escaping @Sendable (consuming Resource) -> Void,
             check: (@Sendable (inout Resource) -> Bool)? = nil
         ) {
             self._state = Async.Mutex(State(capacity: capacity.value))
             self.shutdownGate = Async.Gate()
             self.scope = Pool.Scope()
-            self.policy = .lazy(Creator(Creation(create: create, destroy: destroy)))
+            self.policy = .lazy(Creation(create: create, destroy: destroy))
             self._check = check
             self.entries = Array<Entry>.Fixed.Indexed(
                 try! Array<Entry>.Fixed(
@@ -130,7 +159,7 @@ extension Pool {
 
 // MARK: - Metrics Snapshot
 
-extension Pool.Bounded where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable {
     /// Returns a point-in-time snapshot of pool metrics.
     ///
     /// This is the only safe way to read metrics externally.
@@ -142,7 +171,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
 
 // MARK: - Effect Execution
 
-extension Pool.Bounded where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable {
     /// Execute effect outside lock. Single resumption funnel.
     ///
     /// **CRITICAL:** This is the ONLY location where `shutdownGate.open()`
@@ -165,7 +194,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
 
 // MARK: - Manual Waiter Pumping
 
-extension Pool.Bounded where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable {
     /// Pumps waiters manually.
     ///
     /// Required on embedded platforms for callback-based acquire when using

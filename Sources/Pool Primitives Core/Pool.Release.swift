@@ -35,7 +35,7 @@ extension Pool {
     ///     }
     /// }
     /// ```
-    public struct Release<Resource: ~Copyable & Sendable>: Effect.`Protocol` {
+    public struct Release<Resource: ~Copyable>: Effect.`Protocol` {
         public typealias Arguments = Pool.ID
         public typealias Value = Void
         public typealias Failure = Never

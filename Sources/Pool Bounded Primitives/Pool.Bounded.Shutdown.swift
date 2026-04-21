@@ -10,21 +10,21 @@
 // ===----------------------------------------------------------------------===//
 
 #if !hasFeature(Embedded)
-import Synchronization
+internal import Synchronization
 #endif
-public import Async_Primitives_Core
-public import Async_Promise_Primitives
-public import Async_Mutex_Primitives
-public import Async_Waiter_Primitives
+internal import Async_Primitives_Core
+internal import Async_Promise_Primitives
+internal import Async_Mutex_Primitives
+internal import Async_Waiter_Primitives
 internal import Dimension_Primitives
 internal import Ownership_Primitives
-public import Array_Primitives_Core
+internal import Array_Primitives_Core
 internal import Array_Dynamic_Primitives
 internal import Array_Fixed_Primitives
 
 // MARK: - Shutdown Accessor
 
-extension Pool.Bounded where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable {
     /// Accessor for shutdown operations.
     public var shutdown: Shutdown {
         Shutdown(pool: self)
@@ -33,7 +33,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
 
 // MARK: - Shutdown Type
 
-extension Pool.Bounded where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable {
     /// Namespace for pool shutdown operations.
     public struct Shutdown: Sendable {
         @usableFromInline
@@ -48,7 +48,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
 
 // MARK: - Shutdown Operations
 
-extension Pool.Bounded.Shutdown where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Shutdown where Resource: ~Copyable {
     /// Initiates graceful shutdown.
     ///
     /// After calling this:

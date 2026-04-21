@@ -12,13 +12,13 @@
 public import Async_Waiter_Primitives
 public import Array_Primitives_Core
 
-extension Pool.Bounded.Release where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Release where Resource: ~Copyable {
     /// Actions computed under lock for slot release.
     ///
     /// Embeds skipped resumptions into each case to avoid capturing
     /// mutable variables across the `withLock` sending boundary.
     @usableFromInline
-    enum Action: ~Copyable, Sendable {
+    enum Action: ~Copyable {
         /// Hand off to waiting waiter.
         case handOff(Async.Waiter.Resumption, skipped: Array<Async.Waiter.Resumption>)
 

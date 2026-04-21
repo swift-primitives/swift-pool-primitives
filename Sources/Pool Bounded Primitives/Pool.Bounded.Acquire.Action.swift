@@ -9,10 +9,10 @@
 //
 // ===----------------------------------------------------------------------===//
 
-extension Pool.Bounded.Acquire where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Acquire where Resource: ~Copyable {
     /// Actions computed under lock for slot acquisition.
     @usableFromInline
-    enum Action: Sendable {
+    enum Action {
         /// Slot immediately available - return to caller.
         case immediate(Pool.Bounded<Resource>.Slot.Index, Pool.ID)
 

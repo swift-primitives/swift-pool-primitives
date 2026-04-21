@@ -1,7 +1,7 @@
 public import Async_Primitives_Core
 public import Async_Waiter_Primitives
 
-extension Pool.Bounded where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable {
     /// External flags for cancellation and timeout.
     ///
     /// Re-exported from `Async.Waiter.Flag` with atomic operations.

@@ -1,5 +1,9 @@
-extension Pool.Bounded where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable {
     /// Resource creation policy.
+    ///
+    /// Stores closures directly — no `Ownership.Shared` wrap. The eager
+    /// case stores the destructor; the lazy case stores both factory and
+    /// destructor (via `Creation`).
     @usableFromInline
     enum Policy: Sendable {
         /// Resources created only via `fill()`. Acquire waits for available.
@@ -10,7 +14,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
         ///
         /// - Note: Only available on non-embedded platforms because
         ///   lazy creation requires async.
-        case lazy(Creator)
+        case lazy(Creation)
         #endif
     }
 }

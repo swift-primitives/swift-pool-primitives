@@ -12,6 +12,11 @@ let package = Package(
         .visionOS(.v26)
     ],
     products: [
+        // MARK: - Namespace
+        .library(
+            name: "Pool Namespace",
+            targets: ["Pool Namespace"]
+        ),
         // MARK: - Core
         .library(
             name: "Pool Primitives Core",
@@ -40,16 +45,25 @@ let package = Package(
         .package(path: "../swift-ownership-primitives"),
         .package(path: "../swift-effect-primitives"),
         .package(path: "../swift-index-primitives"),
+        .package(path: "../swift-algebra-primitives"),
     ],
     targets: [
+        // MARK: - Namespace
+        .target(
+            name: "Pool Namespace",
+            dependencies: []
+        ),
+
         // MARK: - Core
         .target(
             name: "Pool Primitives Core",
             dependencies: [
+                "Pool Namespace",
                 .product(name: "Async Primitives Core", package: "swift-async-primitives"),
                 .product(name: "Dimension Primitives", package: "swift-dimension-primitives"),
                 .product(name: "Effect Primitives", package: "swift-effect-primitives"),
                 .product(name: "Ownership Primitives", package: "swift-ownership-primitives"),
+                .product(name: "Algebra Primitives", package: "swift-algebra-primitives"),
             ]
         ),
 
@@ -72,6 +86,7 @@ let package = Package(
         .target(
             name: "Pool Primitives",
             dependencies: [
+                "Pool Namespace",
                 "Pool Primitives Core",
                 "Pool Bounded Primitives",
             ]

@@ -12,13 +12,13 @@
 public import Async_Waiter_Primitives
 public import Array_Primitives_Core
 
-extension Pool.Bounded.Fill where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Fill where Resource: ~Copyable {
     /// Actions for committing a filled slot.
     ///
     /// Embeds skipped resumptions and shutdown effect into each case to avoid
     /// capturing mutable variables across the `withLock` sending boundary.
     @usableFromInline
-    enum Commit: ~Copyable, Sendable {
+    enum Commit: ~Copyable {
         /// Add slot to available pool.
         case addToPool(effect: Pool.Bounded<Resource>.Effect, skipped: Array<Async.Waiter.Resumption>)
 

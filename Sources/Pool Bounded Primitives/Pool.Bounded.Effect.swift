@@ -9,12 +9,12 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Array_Primitives_Core
-public import Async_Primitives_Core
-public import Async_Mutex_Primitives
-public import Async_Waiter_Primitives
+internal import Array_Primitives_Core
+internal import Async_Primitives_Core
+internal import Async_Mutex_Primitives
+internal import Async_Waiter_Primitives
 
-extension Pool.Bounded where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable {
     /// External effects computed under lock, executed outside lock.
     ///
     /// ## Design Contract
@@ -31,7 +31,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     /// perform(effect)  // OUTSIDE lock
     /// ```
     @usableFromInline
-    enum Effect: ~Copyable, Sendable {
+    enum Effect: ~Copyable {
         /// No effect needed.
         case none
 

@@ -10,114 +10,26 @@
 // ===----------------------------------------------------------------------===//
 
 #if !hasFeature(Embedded)
-import Synchronization
+internal import Synchronization
 #endif
-public import Dimension_Primitives
 public import Async_Primitives_Core
-public import Async_Mutex_Primitives
-public import Async_Waiter_Primitives
+internal import Async_Mutex_Primitives
+internal import Async_Waiter_Primitives
 internal import Ownership_Primitives
-public import Array_Primitives_Core
+internal import Array_Primitives_Core
 internal import Array_Dynamic_Primitives
 internal import Array_Fixed_Primitives
 
-// MARK: - Direct Acquire (Non-Embedded Only)
+// MARK: - Slot Acquisition (Non-Embedded Only)
+//
+// The single waiting path. Pool no longer carries a deadline parameter or
+// internal timer machinery; non-blocking and timeout semantics compose
+// externally via Task cancellation.
 
 #if !hasFeature(Embedded)
-extension Pool.Bounded where Resource: ~Copyable & Sendable {
-    // MARK: - Core Acquire (Non-throwing Body)
-
-    /// Acquires a resource and executes a body with exclusive access.
-    ///
-    /// ## Invariants Upheld
-    /// - **No user code under lock**: Body executes outside lock
-    /// - **Single resumption site**: All waiter outcomes via `perform(_:)`
-    /// - **Resume after removal**: Waiter resumed only after queue removal
-    /// - **Entry access outside lock**: Strict stance - move.in/out outside lock
-    /// - **Return is total**: Resource always returned via defer
-    ///
-    /// ## Error Semantics
-    /// - Pool failure → `throws Pool.Lifecycle.Error`
-    /// - Body never throws in this overload
-    ///
-    /// - Note: Only available on non-embedded platforms. On embedded, use
-    ///   `acquire.try` or `acquire.callback` instead.
-    ///
-    /// - Parameter body: Closure receiving exclusive mutable access to resource.
-    /// - Returns: The result of the body closure.
-    /// - Throws: `Pool.Lifecycle.Error` on shutdown or cancellation.
-    public func callAsFunction<T: Sendable>(
-        _ body: (inout Resource) -> T
-    ) async throws(Pool.Lifecycle.Error) -> T {
-        // Phase 1: Acquire slot (may suspend)
-        let (slotIndex, id) = try await acquireSlot()
-
-        // Phase 2: Use resource OUTSIDE lock (strict stance)
-        // INVARIANT: Return is total - defer ensures resource always returned
-        defer { releaseSlot(slotIndex, id: id) }
-
-        // Extract resource to local (OUTSIDE lock)
-        var resource = entries[slotIndex].move.out
-
-        // Phase 3: Execute body (NO LOCK HELD)
-        // INVARIANT: No user code under lock
-        let result = body(&resource)
-
-        // Move resource back to entry (OUTSIDE lock)
-        entries[slotIndex].move.in(resource)
-
-        return result
-    }
-
-    // MARK: - Core Acquire (Throwing Body)
-
-    /// Acquires a resource and executes a throwing body with exclusive access.
-    ///
-    /// ## Error Semantics (Strict Separation)
-    /// - Pool failure → `throws Pool.Lifecycle.Error`
-    /// - Body failure → `returns .failure(E)`
-    /// - Body success → `returns .success(T)`
-    ///
-    /// **Never** represent pool failures as `Result.failure` - that breaks typed failure determinism.
-    ///
-    /// - Note: Only available on non-embedded platforms. On embedded, use
-    ///   `acquire.try` or `acquire.callback` instead.
-    ///
-    /// - Parameter body: Throwing closure receiving exclusive mutable access.
-    /// - Returns: `Result.success(T)` on body success, `Result.failure(E)` on body error.
-    /// - Throws: `Pool.Lifecycle.Error` on shutdown or cancellation.
-    public func callAsFunction<T: Sendable, E: Error>(
-        _ body: (inout Resource) throws(E) -> T
-    ) async throws(Pool.Lifecycle.Error) -> Result<T, E> {
-        // Phase 1: Acquire slot (may suspend)
-        let (slotIndex, id) = try await acquireSlot()
-
-        // Phase 2: Use resource OUTSIDE lock
-        defer { releaseSlot(slotIndex, id: id) }
-
-        var resource = entries[slotIndex].move.out
-
-        // Phase 3: Execute body, capture result
-        let result: Result<T, E>
-        do {
-            let value = try body(&resource)
-            result = .success(value)
-        } catch let error {
-            result = .failure(error)
-        }
-
-        entries[slotIndex].move.in(resource)
-
-        return result
-    }
-}
-#endif
-
-// MARK: - Async Slot Acquisition (Non-Embedded Only)
-
-#if !hasFeature(Embedded)
-extension Pool.Bounded where Resource: ~Copyable & Sendable {
-    /// Acquires a slot, waiting if necessary.
+extension Pool.Bounded where Resource: ~Copyable {
+    /// Acquires a slot, waiting indefinitely or until the calling Task is
+    /// cancelled.
     ///
     /// ## Flow (Action Pattern)
     /// 1. Compute action under lock (pure value)
@@ -186,14 +98,16 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     @usableFromInline
     func createLazyResource(slotIndex: Slot.Index, id: Pool.ID) async throws(Pool.Lifecycle.Error) -> (Slot.Index, Pool.ID) {
         // Get creator from policy
-        guard case .lazy(let creator) = policy else {
+        guard case .lazy(let creation) = policy else {
             preconditionFailure("createLazyResource called with non-lazy policy")
         }
 
-        // Phase 1: Create resource OUTSIDE lock (user code)
+        // Phase 1: Create resource OUTSIDE lock (user code).
+        // The factory closure throws Pool.Lifecycle.Error directly per the
+        // documented contract — the user wraps domain errors at the boundary.
         let resource: Resource
-        do {
-            resource = try await creator.value.create()
+        do throws(Pool.Lifecycle.Error) {
+            resource = try await creation.create()
         } catch {
             // Creation failed - release reservation, check shutdown
             let effect: Effect = _state.withLock { state in
@@ -201,7 +115,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
                 return state.checkShutdownComplete()
             }
             perform(effect)
-            throw .creationFailed
+            throw error
         }
 
         // Phase 2: Recheck lifecycle before commit
@@ -239,6 +153,11 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
     }
 
     /// Suspends waiting for a slot to become available.
+    ///
+    /// Cooperates with Task cancellation: when the calling Task is cancelled,
+    /// the waiter flag is set and `pumpWaiters` reaps the waiter, throwing
+    /// `.cancelled`. There is no internal timeout machinery — non-blocking
+    /// and timeout semantics compose externally.
     @usableFromInline
     func suspendForSlot() async throws(Pool.Lifecycle.Error) -> (Slot.Index, Pool.ID) {
         let flag = Flag()
@@ -260,134 +179,6 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
                 #endif
             }
         } onCancel: {
-            // Only set flag, enqueue pump - never resume directly
-            if flag.cancel() {
-                Task { self.pumpWaiters() }
-            }
-        }
-
-        // Handle outcome
-        switch outcome {
-        case .success(let pair):
-            return pair
-
-        case .failure(let error):
-            throw error
-        }
-    }
-
-    /// Acquires a slot with timeout, waiting if necessary.
-    ///
-    /// ## Flow (Action Pattern)
-    /// 1. Compute action under lock (pure value)
-    /// 2. Execute action outside lock
-    /// 3. For lazy create: two-phase commit via `createLazyResource`
-    /// 4. For suspend: use timeout-aware suspension
-    ///
-    /// - Parameter timeout: Maximum time to wait.
-    /// - Returns: Tuple of (slot index, Pool.ID for return validation).
-    /// - Throws: `Pool.Lifecycle.Error` on shutdown, cancellation, or timeout.
-    @usableFromInline
-    func acquireSlotWithTimeout(_ timeout: Duration) async throws(Pool.Lifecycle.Error) -> (Slot.Index, Pool.ID) {
-        // Phase 1: Compute action under lock
-        let action: Acquire.Action = _state.withLock { state in
-            // Check lifecycle
-            guard !state.lifecycle.shutdown.isActive else {
-                return .shutdown
-            }
-
-            // Try immediate acquisition (LIFO for cache locality)
-            if let slotIndex = state.popAvailable() {
-                guard case .available(let id) = state.slots[slotIndex].state else {
-                    preconditionFailure("Available ring contains non-available slot")
-                }
-
-                // Mark as out under lock
-                state.transition(slot: slotIndex, to: .out(id))
-                state.metrics.acquisitions += 1
-                return .immediate(slotIndex, id)
-            }
-
-            // For lazy policy: try to reserve an empty slot for creation
-            if case .lazy = policy {
-                if let slotIndex = state.findEmptySlot() {
-                    let id = state.nextID(scope: scope)
-                    state.transition(slot: slotIndex, to: .creating(id))
-                    return .create(slotIndex, id)
-                }
-            }
-
-            // Must wait
-            return .suspend
-        }
-
-        // Phase 2: Execute action OUTSIDE lock
-        switch action {
-        case .immediate(let slotIndex, let id):
-            return (slotIndex, id)
-
-        case .shutdown:
-            throw .shutdown
-
-        case .create(let slotIndex, let id):
-            // Lazy creation has no timeout - use shared implementation
-            return try await createLazyResource(slotIndex: slotIndex, id: id)
-
-        case .suspend:
-            return try await suspendForSlotWithTimeout(timeout)
-        }
-    }
-
-    /// Suspends waiting for a slot to become available, with timeout.
-    ///
-    /// Uses a racing task to enforce the timeout:
-    /// 1. Main task suspends via continuation waiting for a resource
-    /// 2. Timeout task sleeps, then wakes the waiter with timeout error
-    /// 3. Whichever completes first wins; the other is cancelled/ignored
-    @usableFromInline
-    func suspendForSlotWithTimeout(_ timeout: Duration) async throws(Pool.Lifecycle.Error) -> (Slot.Index, Pool.ID) {
-        let flag = Flag()
-
-        // Start timeout task that sets flag and triggers pump to reap
-        let timeoutTask = Task { [weak self] in
-            guard let self else { return }
-
-            do {
-                try await Task.sleep(for: timeout)
-            } catch {
-                // Cancelled because acquire completed or task cancelled
-                return
-            }
-
-            // Timeout fired - set flag and pump to resume flagged waiters
-            // Only pump if we were the first to set the flag
-            if flag.timeout() {
-                self.pumpWaiters()
-            }
-        }
-
-        // Ensure timeout task is cancelled on all exit paths
-        defer { timeoutTask.cancel() }
-
-        // Suspend via checked continuation with cancellation handler
-        let outcome: Outcome = await withTaskCancellationHandler {
-            await withCheckedContinuation { continuation in
-                _state.withLock { state in
-                    let waiter = Waiter.Entry(
-                        continuation: Async.Continuation(continuation),
-                        flag: flag,
-                        metadata: Waiter.Metadata()
-                    )
-                    state.addWaiter(waiter)
-                }
-
-                #if DEBUG
-                self.onEnqueue?()
-                #endif
-            }
-        } onCancel: {
-            // Cancel timeout task since we're being cancelled externally
-            timeoutTask.cancel()
             // Only set flag, enqueue pump - never resume directly
             if flag.cancel() {
                 Task { self.pumpWaiters() }

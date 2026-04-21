@@ -10,20 +10,20 @@
 // ===----------------------------------------------------------------------===//
 
 #if !hasFeature(Embedded)
-import Synchronization
+internal import Synchronization
 #endif
-public import Async_Primitives_Core
-public import Async_Mutex_Primitives
-public import Async_Waiter_Primitives
+internal import Async_Primitives_Core
+internal import Async_Mutex_Primitives
+internal import Async_Waiter_Primitives
 internal import Dimension_Primitives
 internal import Ownership_Primitives
-public import Array_Primitives_Core
+internal import Array_Primitives_Core
 internal import Array_Dynamic_Primitives
 internal import Array_Fixed_Primitives
 
 // MARK: - Fill Accessor
 
-extension Pool.Bounded where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable {
     /// Accessor for fill operations (eager policy only).
     public var fill: Fill {
         Fill(pool: self)
@@ -32,7 +32,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
 
 // MARK: - Fill Type
 
-extension Pool.Bounded where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable {
     /// Namespace for eager pool fill operations.
     public struct Fill: Sendable {
         @usableFromInline
@@ -47,7 +47,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
 
 // MARK: - Fill Operations
 
-extension Pool.Bounded.Fill where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Fill where Resource: ~Copyable {
     /// Fills the pool with a single resource.
     ///
     /// ## Two-Phase Commit (Strict Stance)
@@ -56,9 +56,10 @@ extension Pool.Bounded.Fill where Resource: ~Copyable & Sendable {
     /// 3. Commit (mark available, check waiters) under lock
     /// 4. Execute effects OUTSIDE lock
     ///
-    /// - Parameter resource: The resource to add to the pool.
+    /// - Parameter resource: The resource to add to the pool. Transferred
+    ///   into the pool's isolation domain (`consuming sending`).
     /// - Throws: `Fill.Error` if pool is not eager, shutdown, or full.
-    public func callAsFunction(_ resource: consuming Resource) throws(Error) {
+    public func callAsFunction(_ resource: consuming sending Resource) throws(Error) {
         // Phase 1: Check preconditions and reserve slot under lock
         let action: Action = pool._state.withLock { state in
             // Verify eager policy
@@ -142,7 +143,7 @@ extension Pool.Bounded.Fill where Resource: ~Copyable & Sendable {
 
 // MARK: - Batch Fill
 
-extension Pool.Bounded.Fill where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Fill where Resource: ~Copyable {
     /// Fills the pool with multiple resources.
     ///
     /// Adds resources up to the remaining capacity. Returns the count of

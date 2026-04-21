@@ -1,14 +1,14 @@
 public import Dimension_Primitives
 public import Stack_Primitives
 public import Async_Primitives_Core
-public import Async_Promise_Primitives
+internal import Async_Promise_Primitives
 public import Async_Waiter_Primitives
 public import Array_Primitives_Core
-public import Array_Fixed_Primitives
+internal import Array_Fixed_Primitives
 internal import Array_Dynamic_Primitives
 @_spi(Internal) internal import Pool_Primitives_Core
 
-extension Pool.Bounded where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable {
     /// Internal synchronized state for the pool.
     ///
     /// ~Copyable because it contains the waiter queue which is ~Copyable.
@@ -85,7 +85,7 @@ extension Pool.Bounded where Resource: ~Copyable & Sendable {
 
 // MARK: - Shutdown Completion Predicate
 
-extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.State where Resource: ~Copyable {
     /// Whether shutdown is complete.
     ///
     /// Shutdown is complete when:
@@ -117,7 +117,7 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
 
 // MARK: - Centralized Transition Helper
 
-extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.State where Resource: ~Copyable {
     /// Transitions a slot to a new state.
     ///
     /// **INVARIANT:** ALL slot state changes MUST go through this helper.
@@ -224,7 +224,7 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
 
 // MARK: - ID Generation
 
-extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.State where Resource: ~Copyable {
     /// Generates the next Pool.ID.
     @usableFromInline
     mutating func nextID(scope: Pool.Scope) -> Pool.ID {
@@ -236,7 +236,7 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
 
 // MARK: - Available Free-List Helpers
 
-extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.State where Resource: ~Copyable {
     /// Pushes a slot index to the available free-list (LIFO).
     ///
     /// **INVARIANT:** Each slot index appears in `available` at most once.
@@ -261,7 +261,7 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
 
 // MARK: - Slot Lookup
 
-extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.State where Resource: ~Copyable {
     /// Finds an empty slot for lazy creation.
     ///
     /// - Returns: The index of an empty slot, or nil if none available.
@@ -278,7 +278,7 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
 
 // MARK: - Waiter Management with Metrics
 
-extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.State where Resource: ~Copyable {
     /// Adds a waiter to the queue and updates metrics.
     @usableFromInline
     mutating func addWaiter(_ waiter: consuming Pool.Bounded<Resource>.Waiter.Entry) {
@@ -319,7 +319,9 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
         var flagged = Async.Waiter.Queue.Drain<Pool.Bounded<Resource>.Waiter.Flagged>()
         let entry = waiters.popEligible(flaggedInto: &flagged)
 
-        // Process flagged entries into resumptions
+        // Process flagged entries into resumptions.
+        // Pool no longer distinguishes timeout from cancellation — both are
+        // surfaced as `.cancelled` per the composition-not-deadline design.
         let currentLifecycle = lifecycle
         var removedCount = entry != nil ? 1 : 0
         flagged.drain { flaggedEntry in
@@ -328,12 +330,11 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
             // Deconstruct in one step - explicit ownership transition
             let split = flaggedEntry.split()
 
-            // Apply Pool's precedence: shutdown > cancel > timeout
+            // Apply Pool's precedence: shutdown > cancel
             let outcome: Pool.Bounded<Resource>.Outcome = Pool.Lifecycle.Precedence.apply(
                 lifecycle: currentLifecycle,
-                cancelled: split.reason == .cancelled,
-                timedOut: split.reason == .timedOut,
-                outcome: split.reason == .cancelled ? .failure(.cancelled) : .failure(.timeout)
+                cancelled: true,
+                outcome: .failure(.cancelled)
             )
 
             // Create resumption from consumed entry
@@ -364,13 +365,14 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
 
         // Copy lifecycle to local to avoid capturing self
         let currentLifecycle = lifecycle
-        var timeoutCount = 0
 
         // Collect flagged entries
         var flagged = Async.Waiter.Queue.Drain<Pool.Bounded<Resource>.Waiter.Flagged>()
         waiters.reapFlagged(into: &flagged)
 
-        // Process flagged entries into resumptions
+        // Process flagged entries into resumptions. Pool no longer
+        // distinguishes timeout from cancellation — both surface as
+        // `.cancelled` per the composition-not-deadline design.
         var reapedCount = 0
         flagged.drain { flaggedEntry in
             reapedCount += 1
@@ -378,17 +380,11 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
             // Deconstruct in one step - explicit ownership transition
             let split = flaggedEntry.split()
 
-            // Track waiters resolved as timed out
-            if split.reason == .timedOut {
-                timeoutCount += 1
-            }
-
-            // Apply Pool's precedence: shutdown > cancel > timeout
+            // Apply Pool's precedence: shutdown > cancel
             let outcome: Pool.Bounded<Resource>.Outcome = Pool.Lifecycle.Precedence.apply(
                 lifecycle: currentLifecycle,
-                cancelled: split.reason == .cancelled,
-                timedOut: split.reason == .timedOut,
-                outcome: split.reason == .cancelled ? .failure(.cancelled) : .failure(.timeout)
+                cancelled: true,
+                outcome: .failure(.cancelled)
             )
 
             // Create resumption from consumed entry
@@ -396,7 +392,6 @@ extension Pool.Bounded.State where Resource: ~Copyable & Sendable {
         }
 
         // Update metrics
-        metrics.timeouts += UInt64(timeoutCount)
         metrics.waiters -= reapedCount
 
         return pending

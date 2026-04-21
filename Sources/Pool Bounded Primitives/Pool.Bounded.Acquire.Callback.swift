@@ -10,18 +10,18 @@
 // ===----------------------------------------------------------------------===//
 
 #if !hasFeature(Embedded)
-import Synchronization
+internal import Synchronization
 #endif
 public import Async_Primitives_Core
-public import Async_Mutex_Primitives
-public import Async_Waiter_Primitives
+internal import Async_Mutex_Primitives
+internal import Async_Waiter_Primitives
 internal import Dimension_Primitives
 internal import Ownership_Primitives
 internal import Array_Fixed_Primitives
 
 // MARK: - Callback
 
-extension Pool.Bounded.Acquire where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Acquire where Resource: ~Copyable {
     /// Callback-based acquire operations.
     ///
     /// Acquires a resource and calls back when available. If no resource
@@ -44,7 +44,7 @@ extension Pool.Bounded.Acquire where Resource: ~Copyable & Sendable {
 
 // MARK: - Callback Accessor
 
-extension Pool.Bounded.Acquire where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Acquire where Resource: ~Copyable {
     /// Access callback-based acquire operations.
     ///
     /// ```swift
@@ -66,7 +66,7 @@ extension Pool.Bounded.Acquire where Resource: ~Copyable & Sendable {
 
 // MARK: - Callback Operations
 
-extension Pool.Bounded.Acquire.Callback where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Acquire.Callback where Resource: ~Copyable {
     /// Acquires a resource and calls back with the result.
     ///
     /// If a resource is immediately available, the body is executed and
@@ -78,7 +78,7 @@ extension Pool.Bounded.Acquire.Callback where Resource: ~Copyable & Sendable {
     /// - Parameters:
     ///   - body: Closure receiving exclusive mutable access to resource.
     ///   - completion: Called with the result when acquisition completes.
-    public func callAsFunction<T: Sendable>(
+    public func callAsFunction<T>(
         _ body: @escaping @Sendable (inout Resource) -> T,
         completion: @escaping @Sendable (Result<T, Pool.Lifecycle.Error>) -> Void
     ) {
@@ -131,7 +131,7 @@ extension Pool.Bounded.Acquire.Callback where Resource: ~Copyable & Sendable {
     /// - Parameters:
     ///   - body: Throwing closure receiving exclusive mutable access.
     ///   - completion: Called with the result when acquisition completes.
-    public func callAsFunction<T: Sendable, E: Error>(
+    public func callAsFunction<T, E: Error>(
         _ body: @escaping @Sendable (inout Resource) throws(E) -> T,
         completion: @escaping @Sendable (Result<Result<T, E>, Pool.Lifecycle.Error>) -> Void
     ) {
@@ -150,7 +150,7 @@ extension Pool.Bounded.Acquire.Callback where Resource: ~Copyable & Sendable {
     // MARK: - Private Helpers
 
     @usableFromInline
-    func executeAndRelease<T: Sendable>(
+    func executeAndRelease<T>(
         slotIndex: Pool.Bounded<Resource>.Slot.Index,
         id: Pool.ID,
         body: @escaping @Sendable (inout Resource) -> T,
@@ -169,7 +169,7 @@ extension Pool.Bounded.Acquire.Callback where Resource: ~Copyable & Sendable {
     }
 
     @usableFromInline
-    func enqueueWaiter<T: Sendable>(
+    func enqueueWaiter<T>(
         body: @escaping @Sendable (inout Resource) -> T,
         completion: @escaping @Sendable (Result<T, Pool.Lifecycle.Error>) -> Void
     ) {

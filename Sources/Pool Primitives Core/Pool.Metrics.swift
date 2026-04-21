@@ -16,8 +16,12 @@ extension Pool {
         /// Total releases.
         public var releases: UInt64
 
-        /// Total timeouts.
-        public var timeouts: UInt64
+        /// Total cancellations (waiters cancelled before acquiring a slot).
+        ///
+        /// Pool no longer distinguishes timeouts from cancellations — both
+        /// are surfaced as `.cancelled`. Callers wanting timeout semantics
+        /// compose externally via Task cancellation.
+        public var cancellations: UInt64
 
         /// Outstanding (currently checked-out) resource counts.
         public var outstanding: Outstanding
@@ -36,7 +40,7 @@ extension Pool {
             self.closed = 0
             self.acquisitions = 0
             self.releases = 0
-            self.timeouts = 0
+            self.cancellations = 0
             self.outstanding = Outstanding()
             self.available = 0
             self.waiters = 0

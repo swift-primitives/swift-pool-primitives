@@ -1,6 +1,6 @@
 public import Ownership_Primitives
 
-extension Pool.Bounded where Resource: ~Copyable & Sendable {
+extension Pool.Bounded where Resource: ~Copyable {
     /// Class wrapper for Resource storage.
     ///
     /// This is the ONLY place Resource is stored. Arrays of Entry

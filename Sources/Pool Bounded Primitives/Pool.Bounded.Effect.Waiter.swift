@@ -12,7 +12,7 @@
 public import Async_Waiter_Primitives
 public import Array_Primitives_Core
 
-extension Pool.Bounded.Effect where Resource: ~Copyable & Sendable {
+extension Pool.Bounded.Effect where Resource: ~Copyable {
     /// Waiter effects for continuation resumption.
     ///
     /// ## Construction Constraint
@@ -20,7 +20,7 @@ extension Pool.Bounded.Effect where Resource: ~Copyable & Sendable {
     /// operations (e.g., `reapFlagged`, `reapAll`). Never construct batch
     /// arrays ad-hoc in application code.
     @usableFromInline
-    enum Waiter: ~Copyable, Sendable {
+    enum Waiter: ~Copyable {
         /// Resume a single waiter.
         case resume(Async.Waiter.Resumption)
 
