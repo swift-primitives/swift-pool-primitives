@@ -1,4 +1,3 @@
-public import Ownership_Primitives
 
 extension Pool.Bounded where Resource: ~Copyable {
     /// Class wrapper for Resource storage.
