@@ -67,7 +67,7 @@ extension Pool.Bounded where Resource: ~Copyable {
         init(capacity: Int) {
             // Pre-allocate fixed-capacity LIFO stack for available indices (starts empty)
             let slotCapacity = Stack<Slot.Index>.Index.Count(
-                __unchecked: (), Cardinal(UInt(capacity))
+                _unchecked: Cardinal(UInt(capacity))
             )
             self.available = Stack<Slot.Index>.Bounded(capacity: slotCapacity)
             self.waiters = Async.Waiter.Queue.Unbounded()

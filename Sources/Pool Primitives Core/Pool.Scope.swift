@@ -26,9 +26,9 @@ extension Pool {
         @_spi(Internal)
         public init() {
             #if !hasFeature(Embedded)
-            self.value = RawValue(__unchecked: (), _scopeCounter.wrappingAdd(1, ordering: .relaxed).oldValue)
+            self.value = RawValue(_unchecked: _scopeCounter.wrappingAdd(1, ordering: .relaxed).oldValue)
             #else
-            self.value = RawValue(__unchecked: (), _scopeCounterMutex.withLock { counter in
+            self.value = RawValue(_unchecked: _scopeCounterMutex.withLock { counter in
                 let oldValue = counter
                 counter &+= 1
                 return oldValue

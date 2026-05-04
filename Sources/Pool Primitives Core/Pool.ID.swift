@@ -17,7 +17,7 @@ extension Pool {
         /// Creates a new ID within the given scope.
         @_spi(Internal)
         public init(raw: UInt64, scope: Pool.Scope) {
-            self.raw = RawValue(__unchecked: (), raw)
+            self.raw = RawValue(_unchecked: raw)
             self.scope = scope
         }
     }
