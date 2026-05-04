@@ -27,11 +27,6 @@ jobs:
   docs:
     uses: swift-institute/.github/.github/workflows/swift-docs.yml@main
     with:
-      umbrella-module: Pool_Primitives
-      umbrella-display-name: "Pool Primitives"
-      umbrella-bundle-id: "swift-pool-primitives.Pool-Primitives"
-      umbrella-docc-path: "Sources/Pool Primitives/Pool Primitives.docc"
-      exclude-modules: "Pool_Primitives_Test_Support"
       enable-private-repos: true
     secrets:
       PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
