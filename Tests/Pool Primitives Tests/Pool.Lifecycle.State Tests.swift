@@ -1,7 +1,6 @@
-import Testing
-import Pool_Primitives_Test_Support
-
 import Pool_Primitives
+import Pool_Primitives_Test_Support
+import Testing
 
 // Pool.Lifecycle.State is non-generic — type extension per [TEST-003]
 extension Pool.Lifecycle.State {

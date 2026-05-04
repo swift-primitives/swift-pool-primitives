@@ -17,8 +17,8 @@ extension Pool.Bounded.Acquire where Resource: ~Copyable {
         case immediate(Pool.Bounded<Resource>.Slot.Index, Pool.ID)
 
         #if !hasFeature(Embedded)
-        /// Need to create resource lazily.
-        case create(Pool.Bounded<Resource>.Slot.Index, Pool.ID)
+            /// Need to create resource lazily.
+            case create(Pool.Bounded<Resource>.Slot.Index, Pool.ID)
         #endif
 
         /// Need to suspend and wait for slot.

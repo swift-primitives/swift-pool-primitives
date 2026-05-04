@@ -1,15 +1,16 @@
-#if !hasFeature(Embedded)
-internal import Synchronization
-#endif
-public import Async_Primitives_Core
-internal import Async_Waiter_Primitives
-public import Async_Mutex_Primitives
-public import Async_Promise_Primitives
-internal import Array_Primitives_Core
-internal import Array_Fixed_Primitives
 internal import Array_Dynamic_Primitives
+internal import Array_Fixed_Primitives
+internal import Array_Primitives_Core
+public import Async_Mutex_Primitives
+public import Async_Primitives_Core
+public import Async_Promise_Primitives
+internal import Async_Waiter_Primitives
 internal import Ownership_Primitives
 @_spi(Internal) internal import Pool_Primitives_Core
+
+#if !hasFeature(Embedded)
+    internal import Synchronization
+#endif
 
 extension Pool {
     // MARK: - Sendability Contract
@@ -79,14 +80,14 @@ extension Pool {
         let entries: Array<Entry>.Fixed.Indexed<Slot>
 
         #if DEBUG
-        /// Test hook called immediately after a waiter is enqueued.
-        ///
-        /// Use for deterministic test synchronization instead of polling.
-        /// Marked `nonisolated(unsafe)` because it's a `var` that exists
-        /// solely so test code can set the hook after construction. The
-        /// scope of unsafe-shared mutation is exactly this one property,
-        /// not the entire class.
-        nonisolated(unsafe) public var onEnqueue: (@Sendable () -> Void)?
+            /// Test hook called immediately after a waiter is enqueued.
+            ///
+            /// Use for deterministic test synchronization instead of polling.
+            /// Marked `nonisolated(unsafe)` because it's a `var` that exists
+            /// solely so test code can set the hook after construction. The
+            /// scope of unsafe-shared mutation is exactly this one property,
+            /// not the entire class.
+            nonisolated(unsafe) public var onEnqueue: (@Sendable () -> Void)?
         #endif
 
         /// Creates a fixed-capacity pool with eager policy.
@@ -118,41 +119,41 @@ extension Pool {
         }
 
         #if !hasFeature(Embedded)
-        /// Creates a fixed-capacity pool with lazy policy.
-        ///
-        /// Resources are created on-demand up to capacity.
-        ///
-        /// - Note: Only available on non-embedded platforms because
-        ///   lazy creation requires async.
-        ///
-        /// - Parameters:
-        ///   - capacity: Maximum number of resources.
-        ///   - create: Factory closure that produces a new resource.
-        ///     Throws `Pool.Lifecycle.Error` directly — the user wraps any
-        ///     domain errors at the boundary (typically as `.creationFailed`).
-        ///     The factory's captures must be `Sendable` because the closure
-        ///     is stored on the pool; the Resource it produces is `sending`
-        ///     (transferred into the pool, not shared).
-        ///   - destroy: Destructor closure to dispose resources.
-        ///   - check: Optional validation closure.
-        public init(
-            capacity: Pool.Capacity,
-            create: @escaping @Sendable () async throws(Pool.Lifecycle.Error) -> sending Resource,
-            destroy: @escaping @Sendable (consuming Resource) -> Void,
-            check: (@Sendable (inout Resource) -> Bool)? = nil
-        ) {
-            self._state = Async.Mutex(State(capacity: capacity.value))
-            self.shutdownGate = Async.Gate()
-            self.scope = Pool.Scope()
-            self.policy = .lazy(Creation(create: create, destroy: destroy))
-            self._check = check
-            self.entries = Array<Entry>.Fixed.Indexed(
-                try! Array<Entry>.Fixed(
-                    count: Index<Entry>.Count(capacity.value),
-                    initializingWith: { _ in Entry() }
+            /// Creates a fixed-capacity pool with lazy policy.
+            ///
+            /// Resources are created on-demand up to capacity.
+            ///
+            /// - Note: Only available on non-embedded platforms because
+            ///   lazy creation requires async.
+            ///
+            /// - Parameters:
+            ///   - capacity: Maximum number of resources.
+            ///   - create: Factory closure that produces a new resource.
+            ///     Throws `Pool.Lifecycle.Error` directly — the user wraps any
+            ///     domain errors at the boundary (typically as `.creationFailed`).
+            ///     The factory's captures must be `Sendable` because the closure
+            ///     is stored on the pool; the Resource it produces is `sending`
+            ///     (transferred into the pool, not shared).
+            ///   - destroy: Destructor closure to dispose resources.
+            ///   - check: Optional validation closure.
+            public init(
+                capacity: Pool.Capacity,
+                create: @escaping @Sendable () async throws(Pool.Lifecycle.Error) -> sending Resource,
+                destroy: @escaping @Sendable (consuming Resource) -> Void,
+                check: (@Sendable (inout Resource) -> Bool)? = nil
+            ) {
+                self._state = Async.Mutex(State(capacity: capacity.value))
+                self.shutdownGate = Async.Gate()
+                self.scope = Pool.Scope()
+                self.policy = .lazy(Creation(create: create, destroy: destroy))
+                self._check = check
+                self.entries = Array<Entry>.Fixed.Indexed(
+                    try! Array<Entry>.Fixed(
+                        count: Index<Entry>.Count(capacity.value),
+                        initializingWith: { _ in Entry() }
+                    )
                 )
-            )
-        }
+            }
         #endif
     }
 }

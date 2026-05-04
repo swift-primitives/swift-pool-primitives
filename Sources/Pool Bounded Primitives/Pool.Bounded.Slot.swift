@@ -7,7 +7,7 @@ extension Pool.Bounded where Resource: ~Copyable {
         /// Typed index into the slots array.
         @usableFromInline
         typealias Index = Tagged<Self, Ordinal>
-        
+
         /// The slot index.
         @usableFromInline
         let index: Index

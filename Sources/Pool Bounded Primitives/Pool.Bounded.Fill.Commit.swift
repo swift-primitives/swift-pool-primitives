@@ -9,8 +9,8 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Async_Waiter_Primitives
 public import Array_Primitives_Core
+public import Async_Waiter_Primitives
 
 extension Pool.Bounded.Fill where Resource: ~Copyable {
     /// Actions for committing a filled slot.
@@ -20,9 +20,9 @@ extension Pool.Bounded.Fill where Resource: ~Copyable {
     @usableFromInline
     enum Commit: ~Copyable {
         /// Add slot to available pool.
-        case addToPool(effect: Pool.Bounded<Resource>.Effect, skipped: Array<Async.Waiter.Resumption>)
+        case addToPool(effect: Pool.Bounded<Resource>.Effect, skipped: [Async.Waiter.Resumption])
 
         /// Hand off directly to waiter.
-        case handOff(Async.Waiter.Resumption, skipped: Array<Async.Waiter.Resumption>)
+        case handOff(Async.Waiter.Resumption, skipped: [Async.Waiter.Resumption])
     }
 }

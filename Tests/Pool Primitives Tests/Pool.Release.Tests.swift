@@ -1,8 +1,8 @@
-import Testing
+import Pool_Primitives
 import Pool_Primitives_Test_Support
+import Testing
 
 @_spi(Internal) @testable import Pool_Primitives_Core
-import Pool_Primitives
 
 // MARK: - Test Resource
 

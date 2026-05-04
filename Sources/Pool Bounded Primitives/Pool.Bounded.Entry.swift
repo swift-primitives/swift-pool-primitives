@@ -1,4 +1,3 @@
-
 extension Pool.Bounded where Resource: ~Copyable {
     /// Class wrapper for Resource storage.
     ///

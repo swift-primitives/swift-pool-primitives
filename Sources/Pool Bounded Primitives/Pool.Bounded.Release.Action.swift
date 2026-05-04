@@ -9,8 +9,8 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Async_Waiter_Primitives
 public import Array_Primitives_Core
+public import Async_Waiter_Primitives
 
 extension Pool.Bounded.Release where Resource: ~Copyable {
     /// Actions computed under lock for slot release.
@@ -20,12 +20,12 @@ extension Pool.Bounded.Release where Resource: ~Copyable {
     @usableFromInline
     enum Action: ~Copyable {
         /// Hand off to waiting waiter.
-        case handOff(Async.Waiter.Resumption, skipped: Array<Async.Waiter.Resumption>)
+        case handOff(Async.Waiter.Resumption, skipped: [Async.Waiter.Resumption])
 
         /// Return to available pool.
-        case returnToPool(skipped: Array<Async.Waiter.Resumption>)
+        case returnToPool(skipped: [Async.Waiter.Resumption])
 
         /// Dispose during shutdown.
-        case dispose(skipped: Array<Async.Waiter.Resumption>)
+        case dispose(skipped: [Async.Waiter.Resumption])
     }
 }

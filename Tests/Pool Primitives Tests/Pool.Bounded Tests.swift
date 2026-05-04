@@ -1,12 +1,12 @@
-import Testing
-import Synchronization
-import Async_Primitives
-import Pool_Primitives_Test_Support
-
-@_spi(Internal) @testable import Pool_Primitives_Core
-@testable import Pool_Bounded_Primitives
-import Pool_Primitives
 import Array_Primitives
+import Async_Primitives
+import Pool_Primitives
+import Pool_Primitives_Test_Support
+import Synchronization
+import Testing
+
+@testable import Pool_Bounded_Primitives
+@_spi(Internal) @testable import Pool_Primitives_Core
 
 // Pool.Bounded is generic — parallel namespace per [TEST-004]
 @Suite(.serialized)

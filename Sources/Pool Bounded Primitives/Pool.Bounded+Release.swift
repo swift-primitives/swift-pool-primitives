@@ -9,16 +9,17 @@
 //
 // ===----------------------------------------------------------------------===//
 
-#if !hasFeature(Embedded)
-internal import Synchronization
-#endif
-public import Async_Primitives_Core
-internal import Async_Mutex_Primitives
-internal import Async_Waiter_Primitives
-internal import Ownership_Primitives
-internal import Array_Primitives_Core
 internal import Array_Dynamic_Primitives
 internal import Array_Fixed_Primitives
+internal import Array_Primitives_Core
+internal import Async_Mutex_Primitives
+public import Async_Primitives_Core
+internal import Async_Waiter_Primitives
+internal import Ownership_Primitives
+
+#if !hasFeature(Embedded)
+    internal import Synchronization
+#endif
 
 // MARK: - Slot Release
 
@@ -41,14 +42,15 @@ extension Pool.Bounded where Resource: ~Copyable {
         let action: Release.Action = _state.withLock { state in
             // Validate slot state
             guard case .out(let currentId) = state.slots[slotIndex].state,
-                  currentId == id else {
+                currentId == id
+            else {
                 preconditionFailure("Release called with mismatched slot state or ID")
             }
 
             state.metrics.releases += 1
 
             // Local array for skipped resumptions (no external capture)
-            var skipped = Array<Async.Waiter.Resumption>()
+            var skipped = [Async.Waiter.Resumption]()
 
             // Try to hand off to waiter
             if let waiter = state.dequeueEligibleWaiter(skipped: &skipped) {
@@ -115,7 +117,7 @@ extension Pool.Bounded where Resource: ~Copyable {
     @usableFromInline
     func pumpWaiters() {
         // Return resumptions from withLock (no external capture)
-        var pending: Array<Async.Waiter.Resumption> = _state.withLock { state in
+        var pending: [Async.Waiter.Resumption] = _state.withLock { state in
             state.reapFlaggedWaiters()
         }
 

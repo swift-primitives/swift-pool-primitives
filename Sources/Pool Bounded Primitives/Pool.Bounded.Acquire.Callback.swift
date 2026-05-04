@@ -9,15 +9,16 @@
 //
 // ===----------------------------------------------------------------------===//
 
-#if !hasFeature(Embedded)
-internal import Synchronization
-#endif
-public import Async_Primitives_Core
+internal import Array_Fixed_Primitives
 internal import Async_Mutex_Primitives
+public import Async_Primitives_Core
 internal import Async_Waiter_Primitives
 internal import Dimension_Primitives
 internal import Ownership_Primitives
-internal import Array_Fixed_Primitives
+
+#if !hasFeature(Embedded)
+    internal import Synchronization
+#endif
 
 // MARK: - Callback
 
@@ -206,7 +207,7 @@ extension Pool.Bounded.Acquire.Callback where Resource: ~Copyable {
         }
 
         #if DEBUG
-        pool.onEnqueue?()
+            pool.onEnqueue?()
         #endif
     }
 }

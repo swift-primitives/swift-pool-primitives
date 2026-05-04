@@ -20,7 +20,7 @@ extension Pool.Bounded where Resource: ~Copyable {
         switch policy {
         case .eager(let d): return d
         #if !hasFeature(Embedded)
-        case .lazy(let c): return c.destroy
+            case .lazy(let c): return c.destroy
         #endif
         }
     }

@@ -1,14 +1,14 @@
-public import Dimension_Primitives
 internal import Async_Primitives_Core
+public import Dimension_Primitives
 
 #if !hasFeature(Embedded)
-import Synchronization
-/// Global counter for scope generation (non-embedded).
-private let _scopeCounter = Atomic<UInt64>(0)
+    import Synchronization
+    /// Global counter for scope generation (non-embedded).
+    private let _scopeCounter = Atomic<UInt64>(0)
 #else
-/// Global counter for scope generation (embedded).
-/// Uses mutex-protected counter since Atomic isn't available.
-private let _scopeCounterMutex = Async.Mutex<UInt64>(0)
+    /// Global counter for scope generation (embedded).
+    /// Uses mutex-protected counter since Atomic isn't available.
+    private let _scopeCounterMutex = Async.Mutex<UInt64>(0)
 #endif
 
 extension Pool {
@@ -26,13 +26,15 @@ extension Pool {
         @_spi(Internal)
         public init() {
             #if !hasFeature(Embedded)
-            self.value = RawValue(_unchecked: _scopeCounter.wrappingAdd(1, ordering: .relaxed).oldValue)
+                self.value = RawValue(_unchecked: _scopeCounter.wrappingAdd(1, ordering: .relaxed).oldValue)
             #else
-            self.value = RawValue(_unchecked: _scopeCounterMutex.withLock { counter in
-                let oldValue = counter
-                counter &+= 1
-                return oldValue
-            })
+                self.value = RawValue(
+                    _unchecked: _scopeCounterMutex.withLock { counter in
+                        let oldValue = counter
+                        counter &+= 1
+                        return oldValue
+                    }
+                )
             #endif
         }
     }

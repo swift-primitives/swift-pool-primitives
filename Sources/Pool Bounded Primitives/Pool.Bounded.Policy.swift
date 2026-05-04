@@ -10,11 +10,11 @@ extension Pool.Bounded where Resource: ~Copyable {
         case eager(Destructor)
 
         #if !hasFeature(Embedded)
-        /// Resources created on-demand up to capacity.
-        ///
-        /// - Note: Only available on non-embedded platforms because
-        ///   lazy creation requires async.
-        case lazy(Creation)
+            /// Resources created on-demand up to capacity.
+            ///
+            /// - Note: Only available on non-embedded platforms because
+            ///   lazy creation requires async.
+            case lazy(Creation)
         #endif
     }
 }

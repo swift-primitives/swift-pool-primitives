@@ -9,17 +9,18 @@
 //
 // ===----------------------------------------------------------------------===//
 
-#if !hasFeature(Embedded)
-internal import Synchronization
-#endif
-internal import Async_Primitives_Core
+internal import Array_Dynamic_Primitives
+internal import Array_Fixed_Primitives
+internal import Array_Primitives_Core
 internal import Async_Mutex_Primitives
+internal import Async_Primitives_Core
 internal import Async_Waiter_Primitives
 internal import Dimension_Primitives
 internal import Ownership_Primitives
-internal import Array_Primitives_Core
-internal import Array_Dynamic_Primitives
-internal import Array_Fixed_Primitives
+
+#if !hasFeature(Embedded)
+    internal import Synchronization
+#endif
 
 // MARK: - Fill Accessor
 
@@ -110,7 +111,7 @@ extension Pool.Bounded.Fill where Resource: ~Copyable {
                 state.metrics.fills += 1
 
                 // Local array for skipped resumptions (no external capture)
-                var skipped = Array<Async.Waiter.Resumption>()
+                var skipped = [Async.Waiter.Resumption]()
 
                 // Check if we should hand off to a waiter directly
                 if let waiter = state.dequeueEligibleWaiter(skipped: &skipped) {

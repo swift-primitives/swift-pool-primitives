@@ -1,12 +1,12 @@
-public import Dimension_Primitives
-public import Stack_Primitives
+internal import Array_Dynamic_Primitives
+internal import Array_Fixed_Primitives
+public import Array_Primitives_Core
 public import Async_Primitives_Core
 internal import Async_Promise_Primitives
 public import Async_Waiter_Primitives
-public import Array_Primitives_Core
-internal import Array_Fixed_Primitives
-internal import Array_Dynamic_Primitives
+public import Dimension_Primitives
 @_spi(Internal) internal import Pool_Primitives_Core
+public import Stack_Primitives
 
 extension Pool.Bounded where Resource: ~Copyable {
     /// Internal synchronized state for the pool.
@@ -129,7 +129,7 @@ extension Pool.Bounded.State where Resource: ~Copyable {
         let oldState = slots[index].state
 
         #if DEBUG
-        assertValidTransition(from: oldState, to: newState)
+            assertValidTransition(from: oldState, to: newState)
         #endif
 
         // Decrement old state counter
@@ -188,37 +188,37 @@ extension Pool.Bounded.State where Resource: ~Copyable {
     ///
     /// Asserts that the transition is legal per the state machine.
     #if DEBUG
-    @usableFromInline
-    func assertValidTransition(from oldState: Pool.Bounded<Resource>.Slot.State, to newState: Pool.Bounded<Resource>.Slot.State) {
-        let valid: Bool
-        switch (oldState, newState) {
-        // From empty
-        case (.empty, .creating): valid = true      // lazy reservation
-        case (.empty, .available): valid = true     // eager fill
+        @usableFromInline
+        func assertValidTransition(from oldState: Pool.Bounded<Resource>.Slot.State, to newState: Pool.Bounded<Resource>.Slot.State) {
+            let valid: Bool
+            switch (oldState, newState) {
+            // From empty
+            case (.empty, .creating): valid = true  // lazy reservation
+            case (.empty, .available): valid = true  // eager fill
 
-        // From creating
-        case (.creating(let old), .available(let new)) where old == new: valid = true  // creation succeeded
-        case (.creating(let old), .out(let new)) where old == new: valid = true        // lazy checkout
-        case (.creating, .empty): valid = true      // creation failed
+            // From creating
+            case (.creating(let old), .available(let new)) where old == new: valid = true  // creation succeeded
+            case (.creating(let old), .out(let new)) where old == new: valid = true  // lazy checkout
+            case (.creating, .empty): valid = true  // creation failed
 
-        // From available
-        case (.available(let old), .out(let new)) where old == new: valid = true       // checkout
-        case (.available(let old), .disposing(let new)) where old == new: valid = true // shutdown drain
+            // From available
+            case (.available(let old), .out(let new)) where old == new: valid = true  // checkout
+            case (.available(let old), .disposing(let new)) where old == new: valid = true  // shutdown drain
 
-        // From out
-        case (.out(let old), .available(let new)) where old == new: valid = true       // return (open)
-        case (.out(let old), .disposing(let new)) where old == new: valid = true       // return during shutdown
+            // From out
+            case (.out(let old), .available(let new)) where old == new: valid = true  // return (open)
+            case (.out(let old), .disposing(let new)) where old == new: valid = true  // return during shutdown
 
-        // From disposing
-        case (.disposing, .empty): valid = true     // disposal complete
+            // From disposing
+            case (.disposing, .empty): valid = true  // disposal complete
 
-        default: valid = false
+            default: valid = false
+            }
+
+            if !valid {
+                assertionFailure("Invalid slot transition: \(oldState) → \(newState)")
+            }
         }
-
-        if !valid {
-            assertionFailure("Invalid slot transition: \(oldState) → \(newState)")
-        }
-    }
     #endif
 }
 
@@ -313,7 +313,7 @@ extension Pool.Bounded.State where Resource: ~Copyable {
     /// - Returns: First eligible waiter, or nil.
     @usableFromInline
     mutating func dequeueEligibleWaiter(
-        skipped: inout Array<Async.Waiter.Resumption>
+        skipped: inout [Async.Waiter.Resumption]
     ) -> Pool.Bounded<Resource>.Waiter.Entry? {
         // Collect flagged entries
         var flagged = Async.Waiter.Queue.Drain<Pool.Bounded<Resource>.Waiter.Flagged>()
@@ -360,8 +360,8 @@ extension Pool.Bounded.State where Resource: ~Copyable {
     ///
     /// - Returns: Array of pending resumptions to execute outside the lock.
     @usableFromInline
-    mutating func reapFlaggedWaiters() -> Array<Async.Waiter.Resumption> {
-        var pending = Array<Async.Waiter.Resumption>()
+    mutating func reapFlaggedWaiters() -> [Async.Waiter.Resumption] {
+        var pending = [Async.Waiter.Resumption]()
 
         // Copy lifecycle to local to avoid capturing self
         let currentLifecycle = lifecycle

@@ -9,8 +9,8 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Async_Waiter_Primitives
 public import Array_Primitives_Core
+public import Async_Waiter_Primitives
 
 extension Pool.Bounded.Effect where Resource: ~Copyable {
     /// Waiter effects for continuation resumption.
@@ -25,6 +25,6 @@ extension Pool.Bounded.Effect where Resource: ~Copyable {
         case resume(Async.Waiter.Resumption)
 
         /// Resume multiple waiters (from queue operations only).
-        case batch(Array<Async.Waiter.Resumption>)
+        case batch([Async.Waiter.Resumption])
     }
 }
