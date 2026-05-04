@@ -50,7 +50,7 @@ extension Pool.Bounded where Resource: ~Copyable {
             state.metrics.releases += 1
 
             // Local array for skipped resumptions (no external capture)
-            var skipped = [Async.Waiter.Resumption]()
+            var skipped = Array<Async.Waiter.Resumption>()
 
             // Try to hand off to waiter
             if let waiter = state.dequeueEligibleWaiter(skipped: &skipped) {
@@ -117,7 +117,7 @@ extension Pool.Bounded where Resource: ~Copyable {
     @usableFromInline
     func pumpWaiters() {
         // Return resumptions from withLock (no external capture)
-        var pending: [Async.Waiter.Resumption] = _state.withLock { state in
+        var pending: Array<Async.Waiter.Resumption> = _state.withLock { state in
             state.reapFlaggedWaiters()
         }
 

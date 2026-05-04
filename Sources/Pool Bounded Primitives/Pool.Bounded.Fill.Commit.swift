@@ -20,9 +20,9 @@ extension Pool.Bounded.Fill where Resource: ~Copyable {
     @usableFromInline
     enum Commit: ~Copyable {
         /// Add slot to available pool.
-        case addToPool(effect: Pool.Bounded<Resource>.Effect, skipped: [Async.Waiter.Resumption])
+        case addToPool(effect: Pool.Bounded<Resource>.Effect, skipped: Array<Async.Waiter.Resumption>)
 
         /// Hand off directly to waiter.
-        case handOff(Async.Waiter.Resumption, skipped: [Async.Waiter.Resumption])
+        case handOff(Async.Waiter.Resumption, skipped: Array<Async.Waiter.Resumption>)
     }
 }

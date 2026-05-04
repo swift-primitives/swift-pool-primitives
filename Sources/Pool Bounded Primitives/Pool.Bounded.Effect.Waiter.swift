@@ -25,6 +25,6 @@ extension Pool.Bounded.Effect where Resource: ~Copyable {
         case resume(Async.Waiter.Resumption)
 
         /// Resume multiple waiters (from queue operations only).
-        case batch([Async.Waiter.Resumption])
+        case batch(Array<Async.Waiter.Resumption>)
     }
 }

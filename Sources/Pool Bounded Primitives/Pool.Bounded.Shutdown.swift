@@ -81,7 +81,7 @@ extension Pool.Bounded.Shutdown where Resource: ~Copyable {
             }
 
             // Drain all waiters with shutdown error (local array, no external capture)
-            var resumptions = [Async.Waiter.Resumption]()
+            var resumptions = Array<Async.Waiter.Resumption>()
             state.waiters.drain { entry in
                 resumptions.append(entry.resumption(with: .failure(.shutdown)))
             }

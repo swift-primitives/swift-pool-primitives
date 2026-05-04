@@ -19,7 +19,7 @@ extension Pool.Bounded.Shutdown where Resource: ~Copyable {
     /// mutable variables across the `withLock` sending boundary.
     @usableFromInline
     enum Drain: ~Copyable {
-        case drain([(Pool.Bounded<Resource>.Slot.Index, Pool.ID)], resumptions: [Async.Waiter.Resumption])
+        case drain([(Pool.Bounded<Resource>.Slot.Index, Pool.ID)], resumptions: Array<Async.Waiter.Resumption>)
         case alreadyShuttingDown
     }
 }

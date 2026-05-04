@@ -111,7 +111,7 @@ extension Pool.Bounded.Fill where Resource: ~Copyable {
                 state.metrics.fills += 1
 
                 // Local array for skipped resumptions (no external capture)
-                var skipped = [Async.Waiter.Resumption]()
+                var skipped = Array<Async.Waiter.Resumption>()
 
                 // Check if we should hand off to a waiter directly
                 if let waiter = state.dequeueEligibleWaiter(skipped: &skipped) {

@@ -20,12 +20,12 @@ extension Pool.Bounded.Release where Resource: ~Copyable {
     @usableFromInline
     enum Action: ~Copyable {
         /// Hand off to waiting waiter.
-        case handOff(Async.Waiter.Resumption, skipped: [Async.Waiter.Resumption])
+        case handOff(Async.Waiter.Resumption, skipped: Array<Async.Waiter.Resumption>)
 
         /// Return to available pool.
-        case returnToPool(skipped: [Async.Waiter.Resumption])
+        case returnToPool(skipped: Array<Async.Waiter.Resumption>)
 
         /// Dispose during shutdown.
-        case dispose(skipped: [Async.Waiter.Resumption])
+        case dispose(skipped: Array<Async.Waiter.Resumption>)
     }
 }

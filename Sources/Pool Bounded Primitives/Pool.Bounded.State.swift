@@ -313,7 +313,7 @@ extension Pool.Bounded.State where Resource: ~Copyable {
     /// - Returns: First eligible waiter, or nil.
     @usableFromInline
     mutating func dequeueEligibleWaiter(
-        skipped: inout [Async.Waiter.Resumption]
+        skipped: inout Array<Async.Waiter.Resumption>
     ) -> Pool.Bounded<Resource>.Waiter.Entry? {
         // Collect flagged entries
         var flagged = Async.Waiter.Queue.Drain<Pool.Bounded<Resource>.Waiter.Flagged>()
@@ -360,8 +360,8 @@ extension Pool.Bounded.State where Resource: ~Copyable {
     ///
     /// - Returns: Array of pending resumptions to execute outside the lock.
     @usableFromInline
-    mutating func reapFlaggedWaiters() -> [Async.Waiter.Resumption] {
-        var pending = [Async.Waiter.Resumption]()
+    mutating func reapFlaggedWaiters() -> Array<Async.Waiter.Resumption> {
+        var pending = Array<Async.Waiter.Resumption>()
 
         // Copy lifecycle to local to avoid capturing self
         let currentLifecycle = lifecycle
