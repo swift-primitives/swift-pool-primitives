@@ -10,6 +10,7 @@
 // ===----------------------------------------------------------------------===//
 
 internal import Array_Fixed_Primitives
+public import Either_Primitives
 internal import Ownership_Primitives
 
 extension Pool.Bounded where Resource: ~Copyable {

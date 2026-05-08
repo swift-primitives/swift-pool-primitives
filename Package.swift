@@ -46,6 +46,7 @@ let package = Package(
         .package(path: "../swift-effect-primitives"),
         .package(path: "../swift-index-primitives"),
         .package(path: "../swift-algebra-primitives"),
+        .package(path: "../swift-either-primitives"),
     ],
     targets: [
         // MARK: - Namespace
@@ -79,6 +80,7 @@ let package = Package(
                 .product(name: "Async Waiter Primitives", package: "swift-async-primitives"),
                 .product(name: "Async Mutex Primitives", package: "swift-async-primitives"),
                 .product(name: "Async Promise Primitives", package: "swift-async-primitives"),
+                .product(name: "Either Primitives", package: "swift-either-primitives"),
             ]
         ),
 

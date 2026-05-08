@@ -1,5 +1,6 @@
 import Array_Primitives
 import Async_Primitives
+import Either_Primitives
 import Pool_Primitives
 import Pool_Primitives_Test_Support
 import Synchronization
