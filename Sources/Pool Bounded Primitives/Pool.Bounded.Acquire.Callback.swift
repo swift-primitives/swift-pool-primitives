@@ -132,7 +132,7 @@ extension Pool.Bounded.Acquire.Callback where Resource: ~Copyable {
     /// - Parameters:
     ///   - body: Throwing closure receiving exclusive mutable access.
     ///   - completion: Called with the result when acquisition completes.
-    public func callAsFunction<T, E: Error>(
+    public func callAsFunction<T, E: Swift.Error>(
         _ body: @escaping @Sendable (inout Resource) throws(E) -> T,
         completion: @escaping @Sendable (Result<Result<T, E>, Pool.Lifecycle.Error>) -> Void
     ) {

@@ -41,7 +41,7 @@ extension PoolAcquireTests.Unit {
     }
 
     @Test
-    func `failure type is Pool Error`() {
+    func `failure type is Pool Swift.Error`() {
         let _: Pool.Acquire<TestResource>.Failure.Type = Pool.Error.self
     }
 
