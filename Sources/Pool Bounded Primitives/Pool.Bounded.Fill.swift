@@ -60,7 +60,7 @@ extension Pool.Bounded.Fill where Resource: ~Copyable {
     /// - Parameter resource: The resource to add to the pool. Transferred
     ///   into the pool's isolation domain (`consuming sending`).
     /// - Throws: `Fill.Error` if pool is not eager, shutdown, or full.
-    public func callAsFunction(_ resource: consuming sending Resource) throws(Pool.Bounded.Fill.Error) {
+    public func callAsFunction(_ resource: consuming sending Resource) throws(Pool.Bounded<Resource>.Fill.Error) {
         // Phase 1: Check preconditions and reserve slot under lock
         let action: Action = pool._state.withLock { state in
             // Verify eager policy
@@ -156,7 +156,7 @@ extension Pool.Bounded.Fill where Resource: ~Copyable {
     /// - Throws: `Fill.Error.notEager` or `Fill.Error.shutdown`.
     public func batch(
         _ produce: () -> Resource?
-    ) throws(Pool.Bounded.Fill.Error) -> Int {
+    ) throws(Pool.Bounded<Resource>.Fill.Error) -> Int {
         var count = 0
 
         while let resource = produce() {
