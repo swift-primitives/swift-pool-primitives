@@ -335,7 +335,7 @@ extension PoolBoundedTests.Unit {
         let pool = Pool.Bounded<Int>(
             capacity: 2,
             create: {
-                await barrier.arrive()
+                try! await barrier.arrive()
                 return createCount.withLock { c in
                     c += 1
                     return c
