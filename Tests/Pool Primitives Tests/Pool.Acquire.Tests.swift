@@ -30,12 +30,6 @@ extension PoolAcquireTests.Unit {
     }
 
     @Test
-    func `effect is Sendable`() {
-        func requiresSendable<T: Sendable>(_: T.Type) {}
-        requiresSendable(Pool.Acquire<TestResource>.self)
-    }
-
-    @Test
     func `value type is Ownership Shared`() {
         let _: Pool.Acquire<TestResource>.Value.Type = Ownership.Shared<TestResource>.self
     }

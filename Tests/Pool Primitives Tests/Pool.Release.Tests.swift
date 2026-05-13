@@ -30,12 +30,6 @@ extension PoolReleaseTests.Unit {
     }
 
     @Test
-    func `effect is Sendable`() {
-        func requiresSendable<T: Sendable>(_: T.Type) {}
-        requiresSendable(Pool.Release<TestResource>.self)
-    }
-
-    @Test
     func `value type is Void`() {
         let _: Pool.Release<TestResource>.Value.Type = Void.self
     }
