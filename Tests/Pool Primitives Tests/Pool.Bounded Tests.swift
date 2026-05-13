@@ -332,15 +332,22 @@ extension PoolBoundedTests.Unit {
         let createCount = Mutex(0)
         let barrier = Async.Barrier(parties: 2)
 
+        @Sendable
+        func makeOne() async throws(Pool.Lifecycle.Error) -> Int {
+            do {
+                try await barrier.arrive()
+            } catch {
+                throw Pool.Lifecycle.Error.creationFailed
+            }
+            return createCount.withLock { c in
+                c += 1
+                return c
+            }
+        }
+
         let pool = Pool.Bounded<Int>(
             capacity: 2,
-            create: {
-                try! await barrier.arrive()
-                return createCount.withLock { c in
-                    c += 1
-                    return c
-                }
-            },
+            create: makeOne,
             destroy: { _ in }
         )
 
