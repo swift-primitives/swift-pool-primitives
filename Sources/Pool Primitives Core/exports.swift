@@ -6,4 +6,4 @@
 @_exported public import Dimension_Primitives
 @_exported public import Effect_Primitives
 @_exported public import Ownership_Primitives
-@_exported public import Pool_Namespace
+@_exported public import Pool_Primitive

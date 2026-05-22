@@ -14,8 +14,8 @@ let package = Package(
     products: [
         // MARK: - Namespace
         .library(
-            name: "Pool Namespace",
-            targets: ["Pool Namespace"]
+            name: "Pool Primitive",
+            targets: ["Pool Primitive"]
         ),
         // MARK: - Core
         .library(
@@ -51,7 +51,7 @@ let package = Package(
     targets: [
         // MARK: - Namespace
         .target(
-            name: "Pool Namespace",
+            name: "Pool Primitive",
             dependencies: []
         ),
 
@@ -59,7 +59,7 @@ let package = Package(
         .target(
             name: "Pool Primitives Core",
             dependencies: [
-                "Pool Namespace",
+                "Pool Primitive",
                 .product(name: "Async Primitives Core", package: "swift-async-primitives"),
                 .product(name: "Dimension Primitives", package: "swift-dimension-primitives"),
                 .product(name: "Effect Primitives", package: "swift-effect-primitives"),
@@ -88,7 +88,7 @@ let package = Package(
         .target(
             name: "Pool Primitives",
             dependencies: [
-                "Pool Namespace",
+                "Pool Primitive",
                 "Pool Primitives Core",
                 "Pool Bounded Primitives",
             ]
