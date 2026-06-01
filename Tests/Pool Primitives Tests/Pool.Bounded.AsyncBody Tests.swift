@@ -1,4 +1,5 @@
 import Array_Primitives
+import Tagged_Collection_Primitives
 import Async_Primitives
 import Either_Primitives
 import Pool_Primitives

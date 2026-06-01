@@ -41,6 +41,7 @@ let package = Package(
         .package(url: "https://github.com/swift-primitives/swift-async-primitives.git", branch: "main"),
         .package(url: "https://github.com/swift-primitives/swift-stack-primitives.git", branch: "main"),
         .package(url: "https://github.com/swift-primitives/swift-array-primitives.git", branch: "main"),
+        .package(url: "https://github.com/swift-primitives/swift-tagged-collection-primitives.git", branch: "main"),
         .package(url: "https://github.com/swift-primitives/swift-dimension-primitives.git", branch: "main"),
         .package(url: "https://github.com/swift-primitives/swift-ownership-primitives.git", branch: "main"),
         .package(url: "https://github.com/swift-primitives/swift-effect-primitives.git", branch: "main"),
@@ -77,6 +78,7 @@ let package = Package(
                 .product(name: "Array Primitive", package: "swift-array-primitives"),
                 .product(name: "Array Primitives", package: "swift-array-primitives"),
                 .product(name: "Array Fixed Primitives", package: "swift-array-primitives"),
+                .product(name: "Tagged Collection Primitives", package: "swift-tagged-collection-primitives"),
                 .product(name: "Async Waiter Primitives", package: "swift-async-primitives"),
                 .product(name: "Async Mutex Primitives", package: "swift-async-primitives"),
                 .product(name: "Async Promise Primitives", package: "swift-async-primitives"),
@@ -111,6 +113,7 @@ let package = Package(
                 "Pool Primitives Test Support",
                 .product(name: "Async Primitives", package: "swift-async-primitives"),
                 .product(name: "Array Primitives", package: "swift-array-primitives"),
+                .product(name: "Tagged Collection Primitives", package: "swift-tagged-collection-primitives"),
             ],
             path: "Tests/Pool Primitives Tests"
         ),

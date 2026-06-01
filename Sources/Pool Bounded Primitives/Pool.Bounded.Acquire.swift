@@ -10,6 +10,7 @@
 // ===----------------------------------------------------------------------===//
 
 internal import Array_Fixed_Primitives
+internal import Tagged_Collection_Primitives
 public import Either_Primitives
 internal import Ownership_Primitives
 
