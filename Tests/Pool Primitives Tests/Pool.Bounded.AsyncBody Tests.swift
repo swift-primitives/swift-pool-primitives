@@ -121,6 +121,7 @@ extension PoolBoundedAsyncBodyTests.Direct {
 // MARK: - Cancellation
 
 extension PoolBoundedAsyncBodyTests.Cancellation {
+    #if DEBUG
     @Test
     func `cancellation while waiting throws cancelled`() async throws {
         let pool = TestPool(capacity: 1, destroy: { _ in })
@@ -152,6 +153,7 @@ extension PoolBoundedAsyncBodyTests.Cancellation {
 
         #expect(await task.value == .cancelled)
     }
+    #endif
 
     @Test
     func `task cancellation observed inside body via .cancelled`() async throws {

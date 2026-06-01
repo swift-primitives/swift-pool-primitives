@@ -112,6 +112,7 @@ extension PoolBoundedTests.Unit {
         #expect(value == 42)
     }
 
+    #if DEBUG
     @Test
     func `fill hands off to waiting acquirer`() async throws {
         let pool = TestPool(
@@ -135,6 +136,7 @@ extension PoolBoundedTests.Unit {
         let result = try await task.value
         #expect(result == 99)
     }
+    #endif
 
     @Test
     func `fill increments metrics`() throws {
@@ -252,6 +254,7 @@ extension PoolBoundedTests.EdgeCase {
         #expect(lifecycle == .closed)
     }
 
+    #if DEBUG
     @Test
     func `shutdown wakes waiting acquirers`() async throws {
         let pool = TestPool(
@@ -282,6 +285,7 @@ extension PoolBoundedTests.EdgeCase {
         let gotShutdownError = await task.value
         #expect(gotShutdownError)
     }
+    #endif
 }
 
 // MARK: - Lazy Policy Tests
@@ -381,6 +385,7 @@ extension PoolBoundedTests.Unit {
 // MARK: - Cancellation (replaces Timeout tests; deadlines compose externally)
 
 extension PoolBoundedTests.EdgeCase {
+    #if DEBUG
     @Test
     func `cancellation while waiting throws cancelled`() async throws {
         let pool = TestPool(
@@ -414,7 +419,9 @@ extension PoolBoundedTests.EdgeCase {
 
         #expect(await task.value == .cancelled)
     }
+    #endif
 
+    #if DEBUG
     @Test
     func `shutdown wins over cancellation`() async throws {
         let pool = TestPool(
@@ -445,6 +452,7 @@ extension PoolBoundedTests.EdgeCase {
         let error = await task.value
         #expect(error == .shutdown)
     }
+    #endif
 }
 
 // MARK: - Constraint Relaxation Proof
