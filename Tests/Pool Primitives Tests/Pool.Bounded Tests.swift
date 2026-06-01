@@ -333,7 +333,7 @@ extension PoolBoundedTests.Unit {
         let barrier = Async.Barrier(parties: 2)
 
         @Sendable
-        func makeOne() async throws(Pool.Lifecycle.Error) -> Int {
+        func makeOne() async throws(Pool.Lifecycle.Error) -> sending Int {
             do {
                 try await barrier.arrive()
             } catch {

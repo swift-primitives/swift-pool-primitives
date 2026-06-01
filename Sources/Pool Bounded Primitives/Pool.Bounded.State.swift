@@ -1,4 +1,4 @@
-internal import Array_Primitives
+public import Array_Primitives
 internal import Array_Fixed_Primitives
 public import Array_Primitive
 public import Async_Primitives_Core
@@ -267,12 +267,10 @@ extension Pool.Bounded.State where Resource: ~Copyable {
     /// - Returns: The index of an empty slot, or nil if none available.
     @usableFromInline
     func findEmptySlot() -> Pool.Bounded<Resource>.Slot.Index? {
-        for slot in slots {
-            if case .empty = slot.state {
-                return slot.index
-            }
-        }
-        return nil
+        slots.first { slot in
+            if case .empty = slot.state { return true }
+            return false
+        }?.index
     }
 }
 
