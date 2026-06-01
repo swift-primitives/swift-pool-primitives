@@ -1,4 +1,4 @@
-internal import Array_Dynamic_Primitives
+internal import Array_Primitives
 internal import Array_Fixed_Primitives
 internal import Array_Primitives_Core
 public import Async_Mutex_Primitives

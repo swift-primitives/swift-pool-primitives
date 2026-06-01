@@ -75,7 +75,7 @@ let package = Package(
                 "Pool Primitives Core",
                 .product(name: "Stack Primitives", package: "swift-stack-primitives"),
                 .product(name: "Array Primitives Core", package: "swift-array-primitives"),
-                .product(name: "Array Dynamic Primitives", package: "swift-array-primitives"),
+                .product(name: "Array Primitives", package: "swift-array-primitives"),
                 .product(name: "Array Fixed Primitives", package: "swift-array-primitives"),
                 .product(name: "Async Waiter Primitives", package: "swift-async-primitives"),
                 .product(name: "Async Mutex Primitives", package: "swift-async-primitives"),
