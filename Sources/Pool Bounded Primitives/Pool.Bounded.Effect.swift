@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-internal import Array_Primitives_Core
+internal import Array_Primitive
 internal import Async_Mutex_Primitives
 internal import Async_Primitives_Core
 internal import Async_Waiter_Primitives

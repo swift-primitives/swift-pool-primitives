@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Array_Primitives_Core
+public import Array_Primitive
 public import Async_Waiter_Primitives
 
 extension Pool.Bounded.Release where Resource: ~Copyable {
