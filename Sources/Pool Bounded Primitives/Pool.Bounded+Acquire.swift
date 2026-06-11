@@ -10,8 +10,8 @@
 // ===----------------------------------------------------------------------===//
 
 internal import Array_Primitives
-internal import Array_Fixed_Primitives
 internal import Array_Primitive
+internal import Fixed_Primitives
 internal import Tagged_Collection_Primitives
 internal import Async_Mutex_Primitives
 public import Async_Primitives_Core
@@ -142,7 +142,7 @@ internal import Ownership_Primitives
             }
 
             // Phase 3: Install resource OUTSIDE lock (strict stance)
-            entries[slotIndex].move.in(resource)
+            entries.underlying[slotIndex.retag(Entry.self)].move.in(resource)
 
             // Phase 4: Commit state transition under lock
             _state.withLock { state in
@@ -177,7 +177,7 @@ internal import Ownership_Primitives
                     }
 
                     #if DEBUG
-                        self.onEnqueue?()
+                        unsafe self.onEnqueue?()
                     #endif
                 }
             } onCancel: {

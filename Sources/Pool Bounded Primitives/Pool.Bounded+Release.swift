@@ -10,7 +10,6 @@
 // ===----------------------------------------------------------------------===//
 
 internal import Array_Primitives
-internal import Array_Fixed_Primitives
 internal import Array_Primitive
 internal import Tagged_Collection_Primitives
 internal import Async_Mutex_Primitives
@@ -20,6 +19,15 @@ internal import Ownership_Primitives
 
 #if !hasFeature(Embedded)
     internal import Synchronization
+    internal import Column_Primitives
+    internal import Fixed_Primitives
+    internal import Buffer_Linear_Bounded_Primitive
+    internal import Buffer_Linear_Primitive
+    internal import Shared_Primitive
+    internal import Storage_Contiguous_Primitives
+    internal import Memory_Heap_Primitives
+    internal import Memory_Allocator_Primitive
+    internal import Buffer_Primitive
 #endif
 
 // MARK: - Slot Release
@@ -51,7 +59,7 @@ extension Pool.Bounded where Resource: ~Copyable {
             state.metrics.releases += 1
 
             // Local array for skipped resumptions (no external capture)
-            var skipped = Array<Async.Waiter.Resumption>()
+            var skipped = Array<Column.Heap<Async.Waiter.Resumption>>(initialCapacity: 0)
 
             // Try to hand off to waiter
             if let waiter = state.dequeueEligibleWaiter(skipped: &skipped) {
@@ -87,7 +95,7 @@ extension Pool.Bounded where Resource: ~Copyable {
         case .dispose(var skipped):
             skipped.drain { $0.resume() }
             // Move resource out OUTSIDE lock
-            let resource = entries[slotIndex].move.out
+            let resource = entries.underlying[slotIndex.retag(Entry.self)].move.out
 
             // Destroy OUTSIDE lock
             destructor(resource)
@@ -118,7 +126,7 @@ extension Pool.Bounded where Resource: ~Copyable {
     @usableFromInline
     func pumpWaiters() {
         // Return resumptions from withLock (no external capture)
-        var pending: Array<Async.Waiter.Resumption> = _state.withLock { state in
+        var pending: Array<Column.Heap<Async.Waiter.Resumption>> = _state.withLock { state in
             state.reapFlaggedWaiters()
         }
 

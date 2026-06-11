@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-internal import Array_Fixed_Primitives
+internal import Fixed_Primitives
 internal import Tagged_Collection_Primitives
 internal import Async_Mutex_Primitives
 public import Async_Primitives_Core
@@ -159,9 +159,9 @@ extension Pool.Bounded.Acquire.Callback where Resource: ~Copyable {
         completion: @escaping @Sendable (Result<T, Pool.Lifecycle.Error>) -> Void
     ) {
         // Execute body OUTSIDE lock
-        var resource = pool.entries[slotIndex].move.out
+        var resource = pool.entries.underlying[slotIndex.retag(Pool.Bounded<Resource>.Entry.self)].move.out
         let result = body(&resource)
-        pool.entries[slotIndex].move.in(resource)
+        pool.entries.underlying[slotIndex.retag(Pool.Bounded<Resource>.Entry.self)].move.in(resource)
 
         // Release slot
         pool.releaseSlot(slotIndex, id: id)
@@ -182,9 +182,9 @@ extension Pool.Bounded.Acquire.Callback where Resource: ~Copyable {
             switch outcome {
             case .success((let slotIndex, let id)):
                 // Execute body OUTSIDE lock
-                var resource = pool.entries[slotIndex].move.out
+                var resource = pool.entries.underlying[slotIndex.retag(Pool.Bounded<Resource>.Entry.self)].move.out
                 let result = body(&resource)
-                pool.entries[slotIndex].move.in(resource)
+                pool.entries.underlying[slotIndex.retag(Pool.Bounded<Resource>.Entry.self)].move.in(resource)
 
                 // Release slot
                 pool.releaseSlot(slotIndex, id: id)
@@ -208,7 +208,7 @@ extension Pool.Bounded.Acquire.Callback where Resource: ~Copyable {
         }
 
         #if DEBUG
-            pool.onEnqueue?()
+            unsafe pool.onEnqueue?()
         #endif
     }
 }

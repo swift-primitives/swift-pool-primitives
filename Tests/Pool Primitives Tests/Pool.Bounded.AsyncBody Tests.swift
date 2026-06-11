@@ -1,4 +1,5 @@
 import Array_Primitives
+import Fixed_Primitives
 import Tagged_Collection_Primitives
 import Async_Primitives
 import Either_Primitives
@@ -34,7 +35,7 @@ private func makePrefilled(_ value: Int) -> TestPool {
     let pool = TestPool(capacity: 1, destroy: { _ in })
     pool._state.withLock { state in
         let id = state.nextID(scope: pool.scope)
-        pool.entries[0].move.in(value)
+        pool.entries.underlying[0].move.in(value)
         state.transition(slot: 0, to: .available(id))
         state.pushAvailable(0)
     }
@@ -87,7 +88,7 @@ extension PoolBoundedAsyncBodyTests.Direct {
 
         // Per [IMPL-075]: do throws(E) { … } catch { … }, no cast.
         do throws(Either<Pool.Lifecycle.Error, TestError>) {
-            try await pool.acquire { (_: inout sending Int) async throws(TestError) -> Int in
+            _ = try await pool.acquire { (_: inout sending Int) async throws(TestError) -> Int in
                 throw TestError()
             }
             Issue.record("Expected throw")
@@ -128,7 +129,7 @@ extension PoolBoundedAsyncBodyTests.Cancellation {
         // Pool is empty — acquire will block waiting
 
         let waiterEnqueued = Async.Gate()
-        pool.onEnqueue = { waiterEnqueued.open() }
+        unsafe pool.onEnqueue = { waiterEnqueued.open() }
 
         // The Task returns the lifecycle error directly. Because the
         // do/catch is INSIDE the Task closure (not crossing the Task
@@ -195,7 +196,7 @@ extension PoolBoundedAsyncBodyTests.Borrowing {
 
         // First call — body throws
         do throws(Either<Pool.Lifecycle.Error, TestError>) {
-            try await pool.acquire { (_: inout sending Int) async throws(TestError) -> Int in
+            _ = try await pool.acquire { (_: inout sending Int) async throws(TestError) -> Int in
                 throw TestError()
             }
         } catch {

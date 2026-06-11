@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-internal import Array_Fixed_Primitives
+internal import Fixed_Primitives
 internal import Tagged_Collection_Primitives
 public import Either_Primitives
 internal import Ownership_Primitives
@@ -106,7 +106,7 @@ extension Pool.Bounded where Resource: ~Copyable {
             defer { pool.releaseSlot(slotIndex, id: id) }
 
             // Move resource out of the slot into a local
-            var resource = pool.entries[slotIndex].move.out
+            var resource = pool.entries.underlying[slotIndex.retag(Pool.Bounded<Resource>.Entry.self)].move.out
 
             // Phase 3: Execute body OUTSIDE lock
             let result: T
@@ -114,12 +114,12 @@ extension Pool.Bounded where Resource: ~Copyable {
                 result = try await body(&resource)
             } catch {
                 // Body failed — still need to put the resource back
-                pool.entries[slotIndex].move.in(resource)
+                pool.entries.underlying[slotIndex.retag(Pool.Bounded<Resource>.Entry.self)].move.in(resource)
                 throw .right(error)
             }
 
             // Move resource back to entry
-            pool.entries[slotIndex].move.in(resource)
+            pool.entries.underlying[slotIndex.retag(Pool.Bounded<Resource>.Entry.self)].move.in(resource)
 
             return result
         }

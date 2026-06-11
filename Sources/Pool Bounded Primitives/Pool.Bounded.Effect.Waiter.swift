@@ -11,6 +11,15 @@
 
 public import Array_Primitive
 public import Async_Waiter_Primitives
+public import Column_Primitives
+internal import Fixed_Primitives
+internal import Buffer_Linear_Bounded_Primitive
+public import Buffer_Linear_Primitive
+internal import Shared_Primitive
+public import Storage_Contiguous_Primitives
+internal import Memory_Heap_Primitives
+internal import Memory_Allocator_Primitive
+internal import Buffer_Primitive
 
 extension Pool.Bounded.Effect where Resource: ~Copyable {
     /// Waiter effects for continuation resumption.
@@ -25,6 +34,6 @@ extension Pool.Bounded.Effect where Resource: ~Copyable {
         case resume(Async.Waiter.Resumption)
 
         /// Resume multiple waiters (from queue operations only).
-        case batch(Array<Async.Waiter.Resumption>)
+        case batch(Array<Column.Heap<Async.Waiter.Resumption>>)
     }
 }

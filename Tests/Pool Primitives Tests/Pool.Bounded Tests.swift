@@ -1,4 +1,5 @@
 import Array_Primitives
+import Fixed_Primitives
 import Tagged_Collection_Primitives
 import Async_Primitives
 import Either_Primitives
@@ -34,7 +35,7 @@ extension PoolBoundedTests.Unit {
 
         pool._state.withLock { state in
             let id = state.nextID(scope: pool.scope)
-            pool.entries[0].move.in(42)
+            pool.entries.underlying[0].move.in(42)
             state.transition(slot: 0, to: .available(id))
             state.pushAvailable(0)
         }
@@ -55,7 +56,7 @@ extension PoolBoundedTests.Unit {
 
         pool._state.withLock { state in
             let id = state.nextID(scope: pool.scope)
-            pool.entries[0].move.in(100)
+            pool.entries.underlying[0].move.in(100)
             state.transition(slot: 0, to: .available(id))
             state.pushAvailable(0)
         }
@@ -79,7 +80,7 @@ extension PoolBoundedTests.Unit {
 
         pool._state.withLock { state in
             let id = state.nextID(scope: pool.scope)
-            pool.entries[0].move.in(0)
+            pool.entries.underlying[0].move.in(0)
             state.transition(slot: 0, to: .available(id))
             state.pushAvailable(0)
         }
@@ -121,7 +122,7 @@ extension PoolBoundedTests.Unit {
         )
 
         let waiterEnqueued = Async.Gate()
-        pool.onEnqueue = { waiterEnqueued.open() }
+        unsafe pool.onEnqueue = { waiterEnqueued.open() }
 
         let task = Task {
             try await pool.acquire { (resource: inout sending Int) async -> Int in
@@ -263,7 +264,7 @@ extension PoolBoundedTests.EdgeCase {
         )
 
         let waiterEnqueued = Async.Gate()
-        pool.onEnqueue = { waiterEnqueued.open() }
+        unsafe pool.onEnqueue = { waiterEnqueued.open() }
 
         let task: Task<Bool, Never> = Task {
             do throws(Either<Pool.Lifecycle.Error, Never>) {
@@ -394,7 +395,7 @@ extension PoolBoundedTests.EdgeCase {
         )
 
         let waiterEnqueued = Async.Gate()
-        pool.onEnqueue = { waiterEnqueued.open() }
+        unsafe pool.onEnqueue = { waiterEnqueued.open() }
 
         // The Task returns the lifecycle error directly. Because the
         // do/catch is INSIDE the Task closure, the implicit `error` binding
@@ -430,7 +431,7 @@ extension PoolBoundedTests.EdgeCase {
         )
 
         let waiterEnqueued = Async.Gate()
-        pool.onEnqueue = { waiterEnqueued.open() }
+        unsafe pool.onEnqueue = { waiterEnqueued.open() }
 
         let task: Task<Pool.Lifecycle.Error?, Never> = Task {
             do throws(Either<Pool.Lifecycle.Error, Never>) {
@@ -500,7 +501,7 @@ extension PoolBoundedTests.Performance {
 
         pool._state.withLock { state in
             let id = state.nextID(scope: pool.scope)
-            pool.entries[0].move.in(0)
+            pool.entries.underlying[0].move.in(0)
             state.transition(slot: 0, to: .available(id))
             state.pushAvailable(0)
         }

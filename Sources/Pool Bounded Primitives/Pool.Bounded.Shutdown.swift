@@ -10,7 +10,6 @@
 // ===----------------------------------------------------------------------===//
 
 internal import Array_Primitives
-internal import Array_Fixed_Primitives
 internal import Array_Primitive
 internal import Tagged_Collection_Primitives
 internal import Async_Mutex_Primitives
@@ -22,6 +21,15 @@ internal import Ownership_Primitives
 
 #if !hasFeature(Embedded)
     internal import Synchronization
+    internal import Column_Primitives
+    internal import Fixed_Primitives
+    internal import Buffer_Linear_Bounded_Primitive
+    internal import Buffer_Linear_Primitive
+    internal import Shared_Primitive
+    internal import Storage_Contiguous_Primitives
+    internal import Memory_Heap_Primitives
+    internal import Memory_Allocator_Primitive
+    internal import Buffer_Primitive
 #endif
 
 // MARK: - Shutdown Accessor
@@ -82,7 +90,7 @@ extension Pool.Bounded.Shutdown where Resource: ~Copyable {
             }
 
             // Drain all waiters with shutdown error (local array, no external capture)
-            var resumptions = Array<Async.Waiter.Resumption>()
+            var resumptions = Array<Column.Heap<Async.Waiter.Resumption>>(initialCapacity: 0)
             state.waiters.drain { entry in
                 resumptions.append(entry.resumption(with: .failure(.shutdown)))
             }
@@ -103,7 +111,7 @@ extension Pool.Bounded.Shutdown where Resource: ~Copyable {
             // Dispose each resource OUTSIDE lock (strict stance)
             for (slotIndex, _) in slotsToDrain {
                 // Move resource out OUTSIDE lock
-                let resource = pool.entries[slotIndex].move.out
+                let resource = pool.entries.underlying[slotIndex.retag(Pool.Bounded<Resource>.Entry.self)].move.out
 
                 // Destroy resource OUTSIDE lock
                 pool.destructor(resource)
