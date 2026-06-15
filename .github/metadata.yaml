@@ -1,6 +1,6 @@
 # .github/metadata.yaml
 # Triaged by AI-assisted bulk pass (2026-04-29).
-description: "Pool types for Swift."
+description: "Pool.Bounded<Resource> — a bounded async resource pool: scoped acquire/release of ~Copyable resources, with backpressure when exhausted and a destroy hook at shutdown."
 topics:
   - primitives
   - pool
