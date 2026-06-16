@@ -6,7 +6,8 @@ public import Async_Primitives_Core
 public import Async_Promise_Primitives
 internal import Async_Waiter_Primitives
 internal import Ownership_Primitives
-@_spi(Internal) internal import Pool_Primitives_Core
+@_spi(Internal) internal import Pool_Scope_Primitives
+@_spi(Internal) internal import Pool_Error_Primitives
 
 #if !hasFeature(Embedded)
     internal import Synchronization

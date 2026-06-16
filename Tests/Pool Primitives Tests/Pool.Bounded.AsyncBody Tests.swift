@@ -9,7 +9,7 @@ import Synchronization
 import Testing
 
 @testable import Pool_Bounded_Primitives
-@_spi(Internal) @testable import Pool_Primitives_Core
+@_spi(Internal) @testable import Pool_Error_Primitives
 
 // Tests for the unified `pool.acquire { body }` API.
 //

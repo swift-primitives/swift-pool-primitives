@@ -2,7 +2,7 @@ import Pool_Primitives
 import Pool_Primitives_Test_Support
 import Testing
 
-@_spi(Internal) @testable import Pool_Primitives_Core
+@_spi(Internal) @testable import Pool_Scope_Primitives
 
 // MARK: - Test Resource
 

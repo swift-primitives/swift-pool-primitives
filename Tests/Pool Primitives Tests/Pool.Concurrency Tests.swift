@@ -4,7 +4,7 @@ import Synchronization
 import Testing
 
 @testable import Pool_Bounded_Primitives
-@_spi(Internal) @testable import Pool_Primitives_Core
+@_spi(Internal) @testable import Pool_Error_Primitives
 
 // W3 rider — POOL's own composition under concurrency (arc-1,
 // GOAL-tower-arc-shared-soundness §W3): the W5-3 leg (`e4d8e6c`) carries waiter

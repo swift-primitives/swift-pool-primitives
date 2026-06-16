@@ -12,21 +12,48 @@ let package = Package(
         .visionOS(.v26)
     ],
     products: [
-        // MARK: - Namespace
+        // MARK: - Namespace + foundational
         .library(
             name: "Pool Primitive",
             targets: ["Pool Primitive"]
         ),
-        // MARK: - Core
+
+        // MARK: - Identity & configuration vocabulary
         .library(
-            name: "Pool Primitives Core",
-            targets: ["Pool Primitives Core"]
+            name: "Pool Scope Primitives",
+            targets: ["Pool Scope Primitives"]
         ),
+        .library(
+            name: "Pool Error Primitives",
+            targets: ["Pool Error Primitives"]
+        ),
+
+        // MARK: - Lifecycle & metrics
+        .library(
+            name: "Pool Lifecycle Primitives",
+            targets: ["Pool Lifecycle Primitives"]
+        ),
+        .library(
+            name: "Pool Metrics Primitives",
+            targets: ["Pool Metrics Primitives"]
+        ),
+
+        // MARK: - Effects
+        .library(
+            name: "Pool Acquire Primitives",
+            targets: ["Pool Acquire Primitives"]
+        ),
+        .library(
+            name: "Pool Release Primitives",
+            targets: ["Pool Release Primitives"]
+        ),
+
         // MARK: - Variants
         .library(
             name: "Pool Bounded Primitives",
             targets: ["Pool Bounded Primitives"]
         ),
+
         // MARK: - Umbrella
         .library(
             name: "Pool Primitives",
@@ -54,26 +81,65 @@ let package = Package(
         .package(url: "https://github.com/swift-primitives/swift-ownership-primitives.git", branch: "main"),
         .package(url: "https://github.com/swift-primitives/swift-effect-primitives.git", branch: "main"),
         .package(url: "https://github.com/swift-primitives/swift-index-primitives.git", branch: "main"),
-        .package(url: "https://github.com/swift-primitives/swift-algebra-primitives.git", branch: "main"),
         .package(url: "https://github.com/swift-primitives/swift-either-primitives.git", branch: "main"),
     ],
     targets: [
-        // MARK: - Namespace
+        // MARK: - Namespace + foundational
         .target(
             name: "Pool Primitive",
             dependencies: []
         ),
 
-        // MARK: - Core
+        // MARK: - Identity & configuration vocabulary
         .target(
-            name: "Pool Primitives Core",
+            name: "Pool Scope Primitives",
+            dependencies: [
+                "Pool Primitive",
+                .product(name: "Dimension Primitives", package: "swift-dimension-primitives"),
+                .product(name: "Async Primitives Core", package: "swift-async-primitives"),
+            ]
+        ),
+        .target(
+            name: "Pool Error Primitives",
+            dependencies: [
+                "Pool Primitive",
+                "Pool Scope Primitives",
+            ]
+        ),
+
+        // MARK: - Lifecycle & metrics
+        .target(
+            name: "Pool Lifecycle Primitives",
             dependencies: [
                 "Pool Primitive",
                 .product(name: "Async Primitives Core", package: "swift-async-primitives"),
-                .product(name: "Dimension Primitives", package: "swift-dimension-primitives"),
+            ]
+        ),
+        .target(
+            name: "Pool Metrics Primitives",
+            dependencies: [
+                "Pool Primitive",
+            ]
+        ),
+
+        // MARK: - Effects
+        .target(
+            name: "Pool Acquire Primitives",
+            dependencies: [
+                "Pool Primitive",
+                "Pool Scope Primitives",
+                "Pool Error Primitives",
                 .product(name: "Effect Primitives", package: "swift-effect-primitives"),
                 .product(name: "Ownership Primitives", package: "swift-ownership-primitives"),
-                .product(name: "Algebra Primitives", package: "swift-algebra-primitives"),
+            ]
+        ),
+        .target(
+            name: "Pool Release Primitives",
+            dependencies: [
+                "Pool Primitive",
+                "Pool Scope Primitives",
+                .product(name: "Effect Primitives", package: "swift-effect-primitives"),
+                .product(name: "Ownership Primitives", package: "swift-ownership-primitives"),
             ]
         ),
 
@@ -81,6 +147,11 @@ let package = Package(
         .target(
             name: "Pool Bounded Primitives",
             dependencies: [
+                "Pool Primitive",
+                "Pool Scope Primitives",
+                "Pool Error Primitives",
+                "Pool Lifecycle Primitives",
+                "Pool Metrics Primitives",
                 .product(name: "Column Primitives", package: "swift-column-primitives"),
                 .product(name: "Buffer Linear Bounded Primitive", package: "swift-buffer-linear-primitives"),
                 .product(name: "Buffer Linear Primitive", package: "swift-buffer-linear-primitives"),
@@ -89,15 +160,17 @@ let package = Package(
                 .product(name: "Memory Heap Primitives", package: "swift-memory-heap-primitives"),
                 .product(name: "Memory Allocator Primitive", package: "swift-memory-allocation-primitives"),
                 .product(name: "Buffer Primitive", package: "swift-buffer-primitives"),
-                "Pool Primitives Core",
                 .product(name: "Stack Primitives", package: "swift-stack-primitives"),
                 .product(name: "Array Primitive", package: "swift-array-primitives"),
                 .product(name: "Array Primitives", package: "swift-array-primitives"),
                 .product(name: "Fixed Primitives", package: "swift-fixed-primitives"),
                 .product(name: "Tagged Collection Primitives", package: "swift-tagged-collection-primitives"),
+                .product(name: "Async Primitives Core", package: "swift-async-primitives"),
                 .product(name: "Async Waiter Primitives", package: "swift-async-primitives"),
                 .product(name: "Async Mutex Primitives", package: "swift-async-primitives"),
                 .product(name: "Async Promise Primitives", package: "swift-async-primitives"),
+                .product(name: "Dimension Primitives", package: "swift-dimension-primitives"),
+                .product(name: "Ownership Primitives", package: "swift-ownership-primitives"),
                 .product(name: "Either Primitives", package: "swift-either-primitives"),
             ]
         ),
@@ -107,7 +180,12 @@ let package = Package(
             name: "Pool Primitives",
             dependencies: [
                 "Pool Primitive",
-                "Pool Primitives Core",
+                "Pool Scope Primitives",
+                "Pool Error Primitives",
+                "Pool Lifecycle Primitives",
+                "Pool Metrics Primitives",
+                "Pool Acquire Primitives",
+                "Pool Release Primitives",
                 "Pool Bounded Primitives",
             ]
         ),
