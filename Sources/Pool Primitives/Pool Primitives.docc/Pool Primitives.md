@@ -10,3 +10,7 @@ resource for the duration of a closure and returns it afterward, suspending call
 backpressure when the pool is exhausted; a `destroy` hook reclaims resources at shutdown.
 
 ## Topics
+
+### Scope
+
+- <doc:Pool-Primitives-Scope>
