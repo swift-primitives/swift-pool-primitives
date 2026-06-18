@@ -3,6 +3,7 @@ import Pool_Primitives_Test_Support
 import Testing
 
 @_spi(Internal) @testable import Pool_Scope_Primitives
+@_spi(Internal) @testable import Pool_ID_Primitives
 
 // MARK: - Test Resource
 

@@ -4,6 +4,7 @@ import Testing
 
 @testable import Pool_Bounded_Primitives
 @_spi(Internal) @testable import Pool_Scope_Primitives
+@_spi(Internal) @testable import Pool_ID_Primitives
 
 // Pool.Bounded.Slot.State is generic — parallel namespace per [TEST-004]
 @Suite

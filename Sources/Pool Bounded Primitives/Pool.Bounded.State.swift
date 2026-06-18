@@ -5,6 +5,7 @@ internal import Async_Promise_Primitives
 public import Async_Waiter_Primitives
 internal import Dimension_Primitives
 @_spi(Internal) internal import Pool_Scope_Primitives
+@_spi(Internal) internal import Pool_ID_Primitives
 @_spi(Internal) internal import Pool_Metrics_Primitives
 public import Stack_Primitives
 public import Column_Primitives

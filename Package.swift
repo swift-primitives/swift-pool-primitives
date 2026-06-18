@@ -24,6 +24,10 @@ let package = Package(
             targets: ["Pool Scope Primitives"]
         ),
         .library(
+            name: "Pool ID Primitives",
+            targets: ["Pool ID Primitives"]
+        ),
+        .library(
             name: "Pool Error Primitives",
             targets: ["Pool Error Primitives"]
         ),
@@ -100,10 +104,19 @@ let package = Package(
             ]
         ),
         .target(
+            name: "Pool ID Primitives",
+            dependencies: [
+                "Pool Primitive",
+                "Pool Scope Primitives",
+                .product(name: "Dimension Primitives", package: "swift-dimension-primitives"),
+            ]
+        ),
+        .target(
             name: "Pool Error Primitives",
             dependencies: [
                 "Pool Primitive",
                 "Pool Scope Primitives",
+                "Pool ID Primitives",
             ]
         ),
 
@@ -138,6 +151,7 @@ let package = Package(
             dependencies: [
                 "Pool Primitive",
                 "Pool Scope Primitives",
+                "Pool ID Primitives",
                 .product(name: "Effect Primitives", package: "swift-effect-primitives"),
                 .product(name: "Ownership Primitives", package: "swift-ownership-primitives"),
             ]
@@ -149,6 +163,7 @@ let package = Package(
             dependencies: [
                 "Pool Primitive",
                 "Pool Scope Primitives",
+                "Pool ID Primitives",
                 "Pool Error Primitives",
                 "Pool Lifecycle Primitives",
                 "Pool Metrics Primitives",
@@ -181,6 +196,7 @@ let package = Package(
             dependencies: [
                 "Pool Primitive",
                 "Pool Scope Primitives",
+                "Pool ID Primitives",
                 "Pool Error Primitives",
                 "Pool Lifecycle Primitives",
                 "Pool Metrics Primitives",
