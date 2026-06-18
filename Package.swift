@@ -31,6 +31,10 @@ let package = Package(
             name: "Pool Error Primitives",
             targets: ["Pool Error Primitives"]
         ),
+        .library(
+            name: "Pool Capacity Primitives",
+            targets: ["Pool Capacity Primitives"]
+        ),
 
         // MARK: - Lifecycle & metrics
         .library(
@@ -95,6 +99,9 @@ let package = Package(
         ),
 
         // MARK: - Identity & configuration vocabulary
+        // Genuine depth-4 chain Capacity→Error→ID→Scope (each embeds/throws the
+        // next); [MOD-007] depth≤3 is ADVISORY (2026-06-17 / GR4) — maximize-split
+        // favors width over fused depth here, not number-chasing.
         .target(
             name: "Pool Scope Primitives",
             dependencies: [
@@ -117,6 +124,13 @@ let package = Package(
                 "Pool Primitive",
                 "Pool Scope Primitives",
                 "Pool ID Primitives",
+            ]
+        ),
+        .target(
+            name: "Pool Capacity Primitives",
+            dependencies: [
+                "Pool Primitive",
+                "Pool Error Primitives",
             ]
         ),
 
@@ -165,6 +179,7 @@ let package = Package(
                 "Pool Scope Primitives",
                 "Pool ID Primitives",
                 "Pool Error Primitives",
+                "Pool Capacity Primitives",
                 "Pool Lifecycle Primitives",
                 "Pool Metrics Primitives",
                 .product(name: "Column Primitives", package: "swift-column-primitives"),
@@ -198,6 +213,7 @@ let package = Package(
                 "Pool Scope Primitives",
                 "Pool ID Primitives",
                 "Pool Error Primitives",
+                "Pool Capacity Primitives",
                 "Pool Lifecycle Primitives",
                 "Pool Metrics Primitives",
                 "Pool Acquire Primitives",
