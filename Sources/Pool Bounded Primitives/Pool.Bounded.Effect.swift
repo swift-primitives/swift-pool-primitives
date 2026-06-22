@@ -11,7 +11,7 @@
 
 internal import Array_Primitive
 internal import Async_Mutex_Primitives
-internal import Async_Primitives_Core
+internal import Async_Primitives
 internal import Async_Waiter_Primitives
 
 extension Pool.Bounded where Resource: ~Copyable {

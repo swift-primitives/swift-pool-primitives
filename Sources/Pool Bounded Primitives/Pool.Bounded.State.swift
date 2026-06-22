@@ -1,6 +1,6 @@
 public import Array_Primitives
 public import Array_Primitive
-public import Async_Primitives_Core
+public import Async_Primitives
 internal import Async_Promise_Primitives
 public import Async_Waiter_Primitives
 internal import Dimension_Primitives

@@ -13,7 +13,7 @@ internal import Array_Primitives
 internal import Array_Primitive
 internal import Tagged_Collection_Primitives
 internal import Async_Mutex_Primitives
-public import Async_Primitives_Core
+public import Async_Primitives
 internal import Async_Waiter_Primitives
 internal import Ownership_Primitives
 

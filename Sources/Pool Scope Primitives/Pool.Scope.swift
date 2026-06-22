@@ -1,4 +1,4 @@
-internal import Async_Primitives_Core
+internal import Async_Primitives
 public import Dimension_Primitives
 
 #if !hasFeature(Embedded)

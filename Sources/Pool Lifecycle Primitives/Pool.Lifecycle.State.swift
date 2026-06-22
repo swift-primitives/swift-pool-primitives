@@ -1,4 +1,4 @@
-public import Async_Primitives_Core
+public import Async_Primitives
 
 extension Pool.Lifecycle {
     /// Pool lifecycle state machine.

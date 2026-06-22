@@ -107,7 +107,7 @@ let package = Package(
             dependencies: [
                 "Pool Primitive",
                 .product(name: "Dimension Primitives", package: "swift-dimension-primitives"),
-                .product(name: "Async Primitives Core", package: "swift-async-primitives"),
+                .product(name: "Async Primitives", package: "swift-async-primitives"),
             ]
         ),
         .target(
@@ -139,7 +139,7 @@ let package = Package(
             name: "Pool Lifecycle Primitives",
             dependencies: [
                 "Pool Primitive",
-                .product(name: "Async Primitives Core", package: "swift-async-primitives"),
+                .product(name: "Async Primitives", package: "swift-async-primitives"),
             ]
         ),
         .target(
@@ -195,7 +195,7 @@ let package = Package(
                 .product(name: "Array Primitives", package: "swift-array-primitives"),
                 .product(name: "Fixed Primitives", package: "swift-fixed-primitives"),
                 .product(name: "Tagged Collection Primitives", package: "swift-tagged-collection-primitives"),
-                .product(name: "Async Primitives Core", package: "swift-async-primitives"),
+                .product(name: "Async Primitives", package: "swift-async-primitives"),
                 .product(name: "Async Waiter Primitives", package: "swift-async-primitives"),
                 .product(name: "Async Mutex Primitives", package: "swift-async-primitives"),
                 .product(name: "Async Promise Primitives", package: "swift-async-primitives"),

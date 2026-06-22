@@ -11,6 +11,6 @@
 
 // External foundations used module-wide by Bounded's implementation files
 // (restores the module-wide visibility the former Core target re-exported).
-@_exported public import Async_Primitives_Core
+@_exported public import Async_Primitives
 @_exported public import Dimension_Primitives
 @_exported public import Ownership_Primitives
