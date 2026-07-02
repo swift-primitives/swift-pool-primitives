@@ -74,6 +74,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/swift-primitives/swift-async-primitives.git", branch: "main"),
+        .package(url: "https://github.com/swift-primitives/swift-queue-primitives.git", branch: "main"),
         .package(url: "https://github.com/swift-primitives/swift-stack-primitives.git", branch: "main"),
         .package(url: "https://github.com/swift-primitives/swift-array-primitives.git", branch: "main"),
         .package(url: "https://github.com/swift-primitives/swift-fixed-primitives.git", branch: "main"),
@@ -198,6 +199,8 @@ let package = Package(
                 .product(name: "Async Primitives", package: "swift-async-primitives"),
                 .product(name: "Async Waiter Primitives", package: "swift-async-primitives"),
                 .product(name: "Async Mutex Primitives", package: "swift-async-primitives"),
+                .product(name: "Queue Primitive", package: "swift-queue-primitives"),
+                .product(name: "Queue Primitives", package: "swift-queue-primitives"),
                 .product(name: "Async Promise Primitives", package: "swift-async-primitives"),
                 .product(name: "Dimension Primitives", package: "swift-dimension-primitives"),
                 .product(name: "Ownership Primitives", package: "swift-ownership-primitives"),

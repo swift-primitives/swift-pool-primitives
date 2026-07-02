@@ -3,6 +3,8 @@ public import Array_Primitive
 public import Async_Primitives
 internal import Async_Promise_Primitives
 public import Async_Waiter_Primitives
+public import Queue_Primitive
+internal import Queue_Primitives
 internal import Dimension_Primitives
 @_spi(Internal) internal import Pool_Scope_Primitives
 @_spi(Internal) internal import Pool_ID_Primitives
