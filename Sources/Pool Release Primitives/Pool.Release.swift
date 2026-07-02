@@ -36,8 +36,13 @@ extension Pool {
     /// }
     /// ```
     public struct Release<Resource: ~Copyable>: Effect.`Protocol` {
+        /// The arguments type for this effect — the released resource's identifier.
         public typealias Arguments = Pool.ID
+
+        /// The result type for this effect — release has no meaningful return value.
         public typealias Value = Void
+
+        /// The failure type for this effect — release cannot fail.
         public typealias Failure = Never
 
         /// The resource identifier being released.

@@ -9,10 +9,10 @@
 //
 // ===----------------------------------------------------------------------===//
 
-internal import Fixed_Primitives
-internal import Tagged_Collection_Primitives
 public import Either_Primitives
+internal import Fixed_Primitives
 internal import Ownership_Primitives
+internal import Tagged_Collection_Primitives
 
 extension Pool.Bounded where Resource: ~Copyable {
     /// Accessor for acquire operations.

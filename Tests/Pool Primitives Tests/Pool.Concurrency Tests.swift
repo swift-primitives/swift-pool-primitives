@@ -57,7 +57,7 @@ struct PoolConcurrencyTests {
                 group.addTask {
                     try? await pool.acquire { resource in
                         bodies.bump()
-                        await Task.yield()               // hold the slot across a suspension
+                        await Task.yield()  // hold the slot across a suspension
                         return resource &* 2
                     }
                 }
@@ -67,13 +67,13 @@ struct PoolConcurrencyTests {
             return out
         }
         #expect(results.count == width)
-        #expect(results.allSatisfy { $0 == 14 })         // everyone saw THE resource
-        #expect(bodies.value == width)                   // no lost, no double hand-off
+        #expect(results.allSatisfy { $0 == 14 })  // everyone saw THE resource
+        #expect(bodies.value == width)  // no lost, no double hand-off
         let metrics = pool.metrics
         #expect(metrics.acquisitions == UInt64(width))
         #expect(metrics.releases == UInt64(width))
         #expect(metrics.outstanding.current == 0)
-        let after = try await pool.acquire { $0 &+ 1 }   // still serviceable
+        let after = try await pool.acquire { $0 &+ 1 }  // still serviceable
         #expect(after == 8)
     }
 
@@ -95,27 +95,29 @@ struct PoolConcurrencyTests {
         let cancellations = Counter()
         var waiters: [Task<Void, Never>] = []
         for _ in 0..<12 {
-            waiters.append(Task {
-                do {
-                    _ = try await pool.acquire { resource in resource }
-                    completions.bump()
-                } catch {
-                    cancellations.bump()
+            waiters.append(
+                Task {
+                    do {
+                        _ = try await pool.acquire { resource in resource }
+                        completions.bump()
+                    } catch {
+                        cancellations.bump()
+                    }
                 }
-            })
+            )
         }
-        for _ in 0..<50 { await Task.yield() }           // let waiters queue
+        for _ in 0..<50 { await Task.yield() }  // let waiters queue
         for (index, waiter) in waiters.enumerated() where index % 2 == 0 {
-            waiter.cancel()                              // cancel half, racing the queue
+            waiter.cancel()  // cancel half, racing the queue
         }
-        release.raise()                                  // hand-off chain starts
+        release.raise()  // hand-off chain starts
         for waiter in waiters { await waiter.value }
         _ = try await occupant.value
 
         // Precedence makes per-waiter outcomes racy (cancelled-after-resumed may
         // complete); the EVERY-interleaving invariants:
         #expect(completions.value + cancellations.value == 12)
-        #expect(completions.value >= 6)                  // uncancelled waiters always complete
+        #expect(completions.value >= 6)  // uncancelled waiters always complete
         let metrics = pool.metrics
         #expect(metrics.releases == metrics.acquisitions)
         #expect(metrics.outstanding.current == 0)
@@ -141,26 +143,28 @@ struct PoolConcurrencyTests {
         let unexpected = Counter()
         var waiters: [Task<Void, Never>] = []
         for _ in 0..<10 {
-            waiters.append(Task {
-                do {
-                    _ = try await pool.acquire { resource in resource }
-                    unexpected.bump()                    // no slot can ever reach them
-                } catch {
-                    drained.bump()
+            waiters.append(
+                Task {
+                    do {
+                        _ = try await pool.acquire { resource in resource }
+                        unexpected.bump()  // no slot can ever reach them
+                    } catch {
+                        drained.bump()
+                    }
                 }
-            })
+            )
         }
-        for _ in 0..<50 { await Task.yield() }           // let waiters queue
+        for _ in 0..<50 { await Task.yield() }  // let waiters queue
 
-        pool.shutdown()                                  // drain the resumption arrays
-        for waiter in waiters { await waiter.value }     // liveness: nobody is stranded
+        pool.shutdown()  // drain the resumption arrays
+        for waiter in waiters { await waiter.value }  // liveness: nobody is stranded
         #expect(drained.value == 10)
         #expect(unexpected.value == 0)
 
-        release.raise()                                  // holder releases into shutdown
+        release.raise()  // holder releases into shutdown
         let held = try await occupant.value
         #expect(held == 5)
-        await pool.shutdown.wait()                       // full drain completes
+        await pool.shutdown.wait()  // full drain completes
 
         do {
             _ = try await pool.acquire { resource in resource }

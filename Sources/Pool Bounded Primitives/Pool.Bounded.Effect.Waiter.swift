@@ -11,15 +11,15 @@
 
 public import Array_Primitive
 public import Async_Waiter_Primitives
-public import Column_Primitives
-internal import Fixed_Primitives
 internal import Buffer_Linear_Bounded_Primitive
 public import Buffer_Linear_Primitive
+internal import Buffer_Primitive
+public import Column_Primitives
+internal import Fixed_Primitives
+internal import Memory_Allocator_Primitive
+internal import Memory_Heap_Primitives
 internal import Shared_Primitive
 public import Storage_Contiguous_Primitives
-internal import Memory_Heap_Primitives
-internal import Memory_Allocator_Primitive
-internal import Buffer_Primitive
 
 extension Pool.Bounded.Effect where Resource: ~Copyable {
     /// Waiter effects for continuation resumption.

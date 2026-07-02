@@ -9,14 +9,14 @@
 //
 // ===----------------------------------------------------------------------===//
 
-internal import Array_Primitives
 internal import Array_Primitive
-internal import Tagged_Collection_Primitives
+internal import Array_Primitives
 internal import Async_Mutex_Primitives
 internal import Async_Primitives
 internal import Async_Waiter_Primitives
 internal import Dimension_Primitives
 internal import Ownership_Primitives
+internal import Tagged_Collection_Primitives
 
 #if !hasFeature(Embedded)
     internal import Synchronization
@@ -123,18 +123,17 @@ extension Pool.Bounded.Fill where Resource: ~Copyable {
                 var skipped = Array<Column.Heap<Async.Waiter.Resumption>>(initialCapacity: 0)
 
                 // Check if we should hand off to a waiter directly
-                if let waiter = state.dequeueEligibleWaiter(skipped: &skipped) {
-                    // Hand off directly to waiter (available → out)
-                    state.transition(slot: slotIndex, to: .out(id))
-                    state.metrics.acquisitions += 1
-                    let resumption = waiter.resumption(with: .success((slotIndex, id)))
-                    return .handOff(resumption, skipped: skipped)
-                } else {
+                guard let waiter = state.dequeueEligibleWaiter(skipped: &skipped) else {
                     // Make available in pool
                     state.pushAvailable(slotIndex)
                     let effect = state.checkShutdownComplete()
                     return .addToPool(effect: effect, skipped: skipped)
                 }
+                // Hand off directly to waiter (available → out)
+                state.transition(slot: slotIndex, to: .out(id))
+                state.metrics.acquisitions += 1
+                let resumption = waiter.resumption(with: .success((slotIndex, id)))
+                return .handOff(resumption, skipped: skipped)
             }
 
             // Phase 4: Execute effects OUTSIDE lock

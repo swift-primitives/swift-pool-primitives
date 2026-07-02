@@ -1,24 +1,24 @@
-public import Array_Primitives
 public import Array_Primitive
+public import Array_Primitives
 public import Async_Primitives
 internal import Async_Promise_Primitives
 public import Async_Waiter_Primitives
-public import Queue_Primitive
-internal import Queue_Primitives
-internal import Dimension_Primitives
-@_spi(Internal) internal import Pool_Scope_Primitives
-@_spi(Internal) internal import Pool_ID_Primitives
-@_spi(Internal) internal import Pool_Metrics_Primitives
-public import Stack_Primitives
-public import Column_Primitives
-public import Fixed_Primitives
 public import Buffer_Linear_Bounded_Primitive
 public import Buffer_Linear_Primitive
-internal import Shared_Primitive
-public import Storage_Contiguous_Primitives
-internal import Memory_Heap_Primitives
-internal import Memory_Allocator_Primitive
 internal import Buffer_Primitive
+public import Column_Primitives
+internal import Dimension_Primitives
+public import Fixed_Primitives
+internal import Memory_Allocator_Primitive
+internal import Memory_Heap_Primitives
+@_spi(Internal) internal import Pool_ID_Primitives
+@_spi(Internal) internal import Pool_Metrics_Primitives
+@_spi(Internal) internal import Pool_Scope_Primitives
+public import Queue_Primitive
+internal import Queue_Primitives
+internal import Shared_Primitive
+public import Stack_Primitives
+public import Storage_Contiguous_Primitives
 
 extension Pool.Bounded where Resource: ~Copyable {
     /// Internal synchronized state for the pool.
@@ -28,6 +28,7 @@ extension Pool.Bounded where Resource: ~Copyable {
     @usableFromInline
     struct State: ~Copyable {
         /// Fixed-capacity LIFO stack for available slot indices.
+        ///
         /// Contains indices of slots in `.available(id)` state only.
         ///
         /// Uses `Stack.Bounded` for Copyable COW semantics with no stdlib arrays.

@@ -1,11 +1,11 @@
 import Array_Primitives
-import Fixed_Primitives
-import Tagged_Collection_Primitives
 import Async_Primitives
 import Either_Primitives
+import Fixed_Primitives
 import Pool_Primitives
 import Pool_Primitives_Test_Support
 import Synchronization
+import Tagged_Collection_Primitives
 import Testing
 
 @testable import Pool_Bounded_Primitives
@@ -114,29 +114,29 @@ extension PoolBoundedTests.Unit {
     }
 
     #if DEBUG
-    @Test
-    func `fill hands off to waiting acquirer`() async throws {
-        let pool = TestPool(
-            capacity: 1,
-            destroy: { _ in }
-        )
+        @Test
+        func `fill hands off to waiting acquirer`() async throws {
+            let pool = TestPool(
+                capacity: 1,
+                destroy: { _ in }
+            )
 
-        let waiterEnqueued = Async.Gate()
-        unsafe pool.onEnqueue = { waiterEnqueued.open() }
+            let waiterEnqueued = Async.Gate()
+            unsafe pool.onEnqueue = { waiterEnqueued.open() }
 
-        let task = Task {
-            try await pool.acquire { (resource: inout sending Int) async -> Int in
-                resource
+            let task = Task {
+                try await pool.acquire { (resource: inout sending Int) async -> Int in
+                    resource
+                }
             }
+
+            await waiterEnqueued.wait()
+
+            try pool.fill(99)
+
+            let result = try await task.value
+            #expect(result == 99)
         }
-
-        await waiterEnqueued.wait()
-
-        try pool.fill(99)
-
-        let result = try await task.value
-        #expect(result == 99)
-    }
     #endif
 
     @Test
@@ -257,36 +257,36 @@ extension PoolBoundedTests.EdgeCase {
     }
 
     #if DEBUG
-    @Test
-    func `shutdown wakes waiting acquirers`() async throws {
-        let pool = TestPool(
-            capacity: 1,
-            destroy: { _ in }
-        )
+        @Test
+        func `shutdown wakes waiting acquirers`() async throws {
+            let pool = TestPool(
+                capacity: 1,
+                destroy: { _ in }
+            )
 
-        let waiterEnqueued = Async.Gate()
-        unsafe pool.onEnqueue = { waiterEnqueued.open() }
+            let waiterEnqueued = Async.Gate()
+            unsafe pool.onEnqueue = { waiterEnqueued.open() }
 
-        let task: Task<Bool, Never> = Task {
-            do throws(Either<Pool.Lifecycle.Error, Never>) {
-                let _: Int = try await pool.acquire { $0 }
-                return false
-            } catch {
-                switch error {
-                case .left:
-                    return true
+            let task: Task<Bool, Never> = Task {
+                do throws(Either<Pool.Lifecycle.Error, Never>) {
+                    let _: Int = try await pool.acquire { $0 }
+                    return false
+                } catch {
+                    switch error {
+                    case .left:
+                        return true
+                    }
                 }
             }
+
+            await waiterEnqueued.wait()
+
+            pool.shutdown()
+            await pool.shutdown.wait()
+
+            let gotShutdownError = await task.value
+            #expect(gotShutdownError)
         }
-
-        await waiterEnqueued.wait()
-
-        pool.shutdown()
-        await pool.shutdown.wait()
-
-        let gotShutdownError = await task.value
-        #expect(gotShutdownError)
-    }
     #endif
 }
 
@@ -388,72 +388,72 @@ extension PoolBoundedTests.Unit {
 
 extension PoolBoundedTests.EdgeCase {
     #if DEBUG
-    @Test
-    func `cancellation while waiting throws cancelled`() async throws {
-        let pool = TestPool(
-            capacity: 1,
-            destroy: { _ in }
-        )
+        @Test
+        func `cancellation while waiting throws cancelled`() async throws {
+            let pool = TestPool(
+                capacity: 1,
+                destroy: { _ in }
+            )
 
-        let waiterEnqueued = Async.Gate()
-        unsafe pool.onEnqueue = { waiterEnqueued.open() }
+            let waiterEnqueued = Async.Gate()
+            unsafe pool.onEnqueue = { waiterEnqueued.open() }
 
-        // The Task returns the lifecycle error directly. Because the
-        // do/catch is INSIDE the Task closure, the implicit `error` binding
-        // inside catch is typed as Either<...> per [IMPL-075] — no cast,
-        // no Mutex capture, no Task<Success, Failure> erasure dance.
-        let task = Task {
-            do throws(Either<Pool.Lifecycle.Error, Never>) {
-                let _: Int = try await pool.acquire { (resource: inout sending Int) async -> Int in
-                    resource
-                }
-                return Pool.Lifecycle.Error?.none
-            } catch {
-                switch error {
-                case .left(let lifecycleError):
-                    return lifecycleError
+            // The Task returns the lifecycle error directly. Because the
+            // do/catch is INSIDE the Task closure, the implicit `error` binding
+            // inside catch is typed as Either<...> per [IMPL-075] — no cast,
+            // no Mutex capture, no Task<Success, Failure> erasure dance.
+            let task = Task {
+                do throws(Either<Pool.Lifecycle.Error, Never>) {
+                    let _: Int = try await pool.acquire { (resource: inout sending Int) async -> Int in
+                        resource
+                    }
+                    return Pool.Lifecycle.Error?.none
+                } catch {
+                    switch error {
+                    case .left(let lifecycleError):
+                        return lifecycleError
+                    }
                 }
             }
+
+            await waiterEnqueued.wait()
+            task.cancel()
+
+            #expect(await task.value == .cancelled)
         }
-
-        await waiterEnqueued.wait()
-        task.cancel()
-
-        #expect(await task.value == .cancelled)
-    }
     #endif
 
     #if DEBUG
-    @Test
-    func `shutdown wins over cancellation`() async throws {
-        let pool = TestPool(
-            capacity: 1,
-            destroy: { _ in }
-        )
+        @Test
+        func `shutdown wins over cancellation`() async throws {
+            let pool = TestPool(
+                capacity: 1,
+                destroy: { _ in }
+            )
 
-        let waiterEnqueued = Async.Gate()
-        unsafe pool.onEnqueue = { waiterEnqueued.open() }
+            let waiterEnqueued = Async.Gate()
+            unsafe pool.onEnqueue = { waiterEnqueued.open() }
 
-        let task: Task<Pool.Lifecycle.Error?, Never> = Task {
-            do throws(Either<Pool.Lifecycle.Error, Never>) {
-                let _: Int = try await pool.acquire { $0 }
-                return Pool.Lifecycle.Error?.none
-            } catch {
-                switch error {
-                case .left(let err):
-                    return err
+            let task: Task<Pool.Lifecycle.Error?, Never> = Task {
+                do throws(Either<Pool.Lifecycle.Error, Never>) {
+                    let _: Int = try await pool.acquire { $0 }
+                    return Pool.Lifecycle.Error?.none
+                } catch {
+                    switch error {
+                    case .left(let err):
+                        return err
+                    }
                 }
             }
+
+            await waiterEnqueued.wait()
+
+            pool.shutdown()
+            await pool.shutdown.wait()
+
+            let error = await task.value
+            #expect(error == .shutdown)
         }
-
-        await waiterEnqueued.wait()
-
-        pool.shutdown()
-        await pool.shutdown.wait()
-
-        let error = await task.value
-        #expect(error == .shutdown)
-    }
     #endif
 }
 

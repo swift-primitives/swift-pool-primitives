@@ -1,11 +1,11 @@
 import Array_Primitives
-import Fixed_Primitives
-import Tagged_Collection_Primitives
 import Async_Primitives
 import Either_Primitives
+import Fixed_Primitives
 import Pool_Primitives
 import Pool_Primitives_Test_Support
 import Synchronization
+import Tagged_Collection_Primitives
 import Testing
 
 @testable import Pool_Bounded_Primitives
@@ -124,37 +124,37 @@ extension PoolBoundedAsyncBodyTests.Direct {
 
 extension PoolBoundedAsyncBodyTests.Cancellation {
     #if DEBUG
-    @Test
-    func `cancellation while waiting throws cancelled`() async throws {
-        let pool = TestPool(capacity: 1, destroy: { _ in })
-        // Pool is empty — acquire will block waiting
+        @Test
+        func `cancellation while waiting throws cancelled`() async throws {
+            let pool = TestPool(capacity: 1, destroy: { _ in })
+            // Pool is empty — acquire will block waiting
 
-        let waiterEnqueued = Async.Gate()
-        unsafe pool.onEnqueue = { waiterEnqueued.open() }
+            let waiterEnqueued = Async.Gate()
+            unsafe pool.onEnqueue = { waiterEnqueued.open() }
 
-        // The Task returns the lifecycle error directly. Because the
-        // do/catch is INSIDE the Task closure (not crossing the Task
-        // boundary), the implicit `error` binding inside catch is typed
-        // as Either<...> per [IMPL-075] — no cast, no Mutex capture.
-        let task = Task {
-            do throws(Either<Pool.Lifecycle.Error, Never>) {
-                let _: Int = try await pool.acquire { (resource: inout sending Int) async -> Int in
-                    resource
-                }
-                return Pool.Lifecycle.Error?.none
-            } catch {
-                switch error {
-                case .left(let lifecycleError):
-                    return lifecycleError
+            // The Task returns the lifecycle error directly. Because the
+            // do/catch is INSIDE the Task closure (not crossing the Task
+            // boundary), the implicit `error` binding inside catch is typed
+            // as Either<...> per [IMPL-075] — no cast, no Mutex capture.
+            let task = Task {
+                do throws(Either<Pool.Lifecycle.Error, Never>) {
+                    let _: Int = try await pool.acquire { (resource: inout sending Int) async -> Int in
+                        resource
+                    }
+                    return Pool.Lifecycle.Error?.none
+                } catch {
+                    switch error {
+                    case .left(let lifecycleError):
+                        return lifecycleError
+                    }
                 }
             }
+
+            await waiterEnqueued.wait()
+            task.cancel()
+
+            #expect(await task.value == .cancelled)
         }
-
-        await waiterEnqueued.wait()
-        task.cancel()
-
-        #expect(await task.value == .cancelled)
-    }
     #endif
 
     @Test

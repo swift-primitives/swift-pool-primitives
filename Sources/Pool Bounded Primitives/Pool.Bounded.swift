@@ -1,13 +1,13 @@
-internal import Array_Primitives
 internal import Array_Primitive
-internal import Tagged_Collection_Primitives
+internal import Array_Primitives
 public import Async_Mutex_Primitives
 public import Async_Primitives
 public import Async_Promise_Primitives
 internal import Async_Waiter_Primitives
 internal import Ownership_Primitives
-@_spi(Internal) internal import Pool_Scope_Primitives
 @_spi(Internal) internal import Pool_Capacity_Primitives
+@_spi(Internal) internal import Pool_Scope_Primitives
+internal import Tagged_Collection_Primitives
 
 #if !hasFeature(Embedded)
     internal import Synchronization
@@ -183,7 +183,9 @@ extension Pool.Bounded where Resource: ~Copyable {
 // MARK: - Effect Execution
 
 extension Pool.Bounded where Resource: ~Copyable {
-    /// Execute effect outside lock. Single resumption funnel.
+    /// Execute effect outside lock.
+    ///
+    /// Single resumption funnel.
     ///
     /// **CRITICAL:** This is the ONLY location where `shutdownGate.open()`
     /// and `resumption.resume()` may appear. Any other occurrence is a

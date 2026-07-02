@@ -9,17 +9,17 @@
 //
 // ===----------------------------------------------------------------------===//
 
-internal import Array_Primitives
 internal import Array_Primitive
-internal import Tagged_Collection_Primitives
+internal import Array_Primitives
 internal import Async_Mutex_Primitives
 internal import Async_Primitives
 internal import Async_Promise_Primitives
 internal import Async_Waiter_Primitives
-internal import Queue_Primitive
-internal import Queue_Primitives
 internal import Dimension_Primitives
 internal import Ownership_Primitives
+internal import Queue_Primitive
+internal import Queue_Primitives
+internal import Tagged_Collection_Primitives
 
 #if !hasFeature(Embedded)
     internal import Synchronization

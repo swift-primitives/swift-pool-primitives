@@ -7,6 +7,7 @@ public import Dimension_Primitives
     private let _scopeCounter = Atomic<UInt64>(0)
 #else
     /// Global counter for scope generation (embedded).
+    ///
     /// Uses mutex-protected counter since Atomic isn't available.
     private let _scopeCounterMutex = Async.Mutex<UInt64>(0)
 #endif

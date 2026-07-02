@@ -52,12 +52,15 @@ extension Pool {
     /// When Swift gains `associatedtype Value: ~Copyable` support, this type
     /// will change to return `Resource` directly instead of `Ownership.Shared<Resource>`.
     public struct Acquire<Resource: ~Copyable>: Effect.`Protocol` {
+        /// The arguments type for this effect — the pool scope to acquire from.
         public typealias Arguments = Pool.Scope
 
         // TODO: Change to `Resource` when Swift supports `associatedtype Value: ~Copyable`
         // See: https://forums.swift.org/t/pitch-suppressed-associated-types-with-defaults/83663
+        /// The result type for this effect — a shared handle to the acquired resource.
         public typealias Value = Ownership.Shared<Resource>
 
+        /// The failure type for this effect — surfaces `Pool.Error` (e.g. shutdown).
         public typealias Failure = Pool.Error
 
         /// The pool scope to acquire from.
