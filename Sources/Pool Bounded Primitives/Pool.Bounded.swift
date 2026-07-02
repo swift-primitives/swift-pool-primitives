@@ -193,10 +193,13 @@ extension Pool.Bounded where Resource: ~Copyable {
         switch effect {
         case .none:
             return
+
         case .gate(.open):
             _ = shutdownGate.open()
+
         case .waiter(.resume(let resumption)):
             resumption.resume()
+
         case .waiter(.batch(var resumptions)):
             resumptions.drain { $0.resume() }
         }

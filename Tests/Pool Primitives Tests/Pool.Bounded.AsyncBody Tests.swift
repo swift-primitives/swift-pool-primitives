@@ -73,7 +73,7 @@ extension PoolBoundedAsyncBodyTests.Direct {
     func `async body persists mutation`() async throws {
         let pool = makePrefilled(0)
 
-        try await pool.acquire { (resource: inout sending Int) async -> Void in
+        try await pool.acquire { (resource: inout sending Int) async in
             await Task.yield()
             resource = 99
         }
@@ -97,6 +97,7 @@ extension PoolBoundedAsyncBodyTests.Direct {
             switch error {
             case .left(let lifecycleError):
                 Issue.record("Expected body failure, got \(lifecycleError)")
+
             case .right(let bodyError):
                 #expect(bodyError == TestError())
             }

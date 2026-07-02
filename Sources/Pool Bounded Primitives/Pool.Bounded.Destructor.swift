@@ -19,6 +19,7 @@ extension Pool.Bounded where Resource: ~Copyable {
     var destructor: @Sendable (consuming Resource) -> Void {
         switch policy {
         case .eager(let d): return d
+
         #if !hasFeature(Embedded)
             case .lazy(let c): return c.destroy
         #endif

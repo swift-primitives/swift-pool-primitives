@@ -85,7 +85,7 @@ extension PoolBoundedTests.Unit {
             state.pushAvailable(0)
         }
 
-        try await pool.acquire { (resource: inout sending Int) async -> Void in
+        try await pool.acquire { (resource: inout sending Int) async in
             resource += 10
         }
 
@@ -191,12 +191,13 @@ extension PoolBoundedTests.EdgeCase {
 
         // Per [IMPL-075]: do throws(E) { } catch { } — no cast.
         do throws(Either<Pool.Lifecycle.Error, Never>) {
-            try await pool.acquire { (_: inout sending Int) async -> Void in }
+            try await pool.acquire { (_: inout sending Int) async in }
             Issue.record("Expected shutdown")
         } catch {
             switch error {
             case .left(.shutdown):
                 break  // Expected
+
             case .left(let other):
                 Issue.record("Expected .shutdown, got \(other)")
             }

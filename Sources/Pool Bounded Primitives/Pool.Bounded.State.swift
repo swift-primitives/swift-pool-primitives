@@ -179,8 +179,10 @@ extension Pool.Bounded.State where Resource: ~Copyable {
         case (.available, .out), (.creating, .out):
             metrics.outstanding.current += 1
             metrics.outstanding.peak = max(metrics.outstanding.peak, metrics.outstanding.current)
+
         case (.out, .available), (.out, .disposing):
             metrics.outstanding.current -= 1
+
         default: break
         }
 
@@ -188,8 +190,10 @@ extension Pool.Bounded.State where Resource: ~Copyable {
         switch (oldState, newState) {
         case (.empty, .available), (.creating, .available), (.out, .available):
             metrics.available += 1
+
         case (.available, .out), (.available, .disposing):
             metrics.available -= 1
+
         default: break
         }
 
