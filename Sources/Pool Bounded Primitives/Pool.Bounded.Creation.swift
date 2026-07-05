@@ -6,9 +6,9 @@
         ///
         /// Contains both the factory closure for creating resources on-demand
         /// and the destructor closure for disposing them. Stored directly on
-        /// the pool — no `Ownership.Shared` wrap. Closures are already
+        /// the pool — no `Ownership.Immutable` wrap. Closures are already
         /// reference-typed in Swift; the extra heap indirection that
-        /// `Ownership.Shared` would provide is gratuitous here.
+        /// `Ownership.Immutable` would provide is gratuitous here.
         ///
         /// ## Factory error contract
         ///

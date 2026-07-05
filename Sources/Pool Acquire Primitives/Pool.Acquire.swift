@@ -20,12 +20,12 @@ extension Pool {
     ///
     /// ## Value Type
     ///
-    /// The effect returns `Ownership.Shared<Resource>` rather than `Resource` directly.
+    /// The effect returns `Ownership.Immutable<Resource>` rather than `Resource` directly.
     /// This is required because `Effect.Protocol` cannot currently express
     /// `associatedtype Value: ~Copyable` (awaiting Swift Evolution: Suppressed
     /// Associated Types With Defaults).
     ///
-    /// `Ownership.Shared` wraps the `~Copyable` resource in a `Sendable` reference
+    /// `Ownership.Immutable` wraps the `~Copyable` resource in a `Sendable` reference
     /// type, preserving ownership semantics while satisfying protocol requirements.
     ///
     /// ## Usage
@@ -38,11 +38,11 @@ extension Pool {
     ///
     ///     func handle(
     ///         _ effect: Handled,
-    ///         continuation: consuming Effect.Continuation.One<Ownership.Shared<Connection>, Pool.Error>
+    ///         continuation: consuming Effect.Continuation.One<Ownership.Immutable<Connection>, Pool.Error>
     ///     ) async {
     ///         acquisitions.append(effect.scope)
     ///         let resource = Connection()
-    ///         await continuation.resume(returning: Ownership.Shared(resource))
+    ///         await continuation.resume(returning: Ownership.Immutable(resource))
     ///     }
     /// }
     /// ```
@@ -50,7 +50,7 @@ extension Pool {
     /// ## Migration Path
     ///
     /// When Swift gains `associatedtype Value: ~Copyable` support, this type
-    /// will change to return `Resource` directly instead of `Ownership.Shared<Resource>`.
+    /// will change to return `Resource` directly instead of `Ownership.Immutable<Resource>`.
     public struct Acquire<Resource: ~Copyable>: Effect.`Protocol` {
         /// The arguments type for this effect — the pool scope to acquire from.
         public typealias Arguments = Pool.Scope
@@ -58,7 +58,7 @@ extension Pool {
         // TODO: Change to `Resource` when Swift supports `associatedtype Value: ~Copyable`
         // See: https://forums.swift.org/t/pitch-suppressed-associated-types-with-defaults/83663
         /// The result type for this effect — a shared handle to the acquired resource.
-        public typealias Value = Ownership.Shared<Resource>
+        public typealias Value = Ownership.Immutable<Resource>
 
         /// The failure type for this effect — surfaces `Pool.Error` (e.g. shutdown).
         public typealias Failure = Pool.Error

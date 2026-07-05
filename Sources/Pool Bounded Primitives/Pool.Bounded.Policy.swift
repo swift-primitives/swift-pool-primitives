@@ -1,7 +1,7 @@
 extension Pool.Bounded where Resource: ~Copyable {
     /// Resource creation policy.
     ///
-    /// Stores closures directly — no `Ownership.Shared` wrap. The eager
+    /// Stores closures directly — no `Ownership.Immutable` wrap. The eager
     /// case stores the destructor; the lazy case stores both factory and
     /// destructor (via `Creation`).
     @usableFromInline

@@ -1,7 +1,7 @@
 extension Pool.Bounded where Resource: ~Copyable {
     /// Destructor closure type for eager policy.
     ///
-    /// Stored directly as a closure value — no `Ownership.Shared` wrap.
+    /// Stored directly as a closure value — no `Ownership.Immutable` wrap.
     /// Closures are already reference-typed in Swift; an extra heap
     /// indirection is gratuitous. The `@Sendable` annotation enforces that
     /// captures are safely shareable, which is necessary because the

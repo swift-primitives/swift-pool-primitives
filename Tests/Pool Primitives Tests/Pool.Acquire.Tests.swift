@@ -31,7 +31,7 @@ extension PoolAcquireTests.Unit {
 
     @Test
     func `value type is Ownership Shared`() {
-        let _: Pool.Acquire<TestResource>.Value.Type = Ownership.Shared<TestResource>.self
+        let _: Pool.Acquire<TestResource>.Value.Type = Ownership.Immutable<TestResource>.self
     }
 
     @Test
