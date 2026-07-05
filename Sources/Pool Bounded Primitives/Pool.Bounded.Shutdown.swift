@@ -27,7 +27,7 @@ internal import Tagged_Collection_Primitives
     internal import Fixed_Primitives
     internal import Buffer_Linear_Bounded_Primitive
     internal import Buffer_Linear_Primitive
-    internal import Shared_Primitive
+    internal import Ownership_Shared_Primitive
     internal import Storage_Contiguous_Primitives
     internal import Memory_Heap_Primitives
     internal import Memory_Allocator_Primitive
@@ -92,7 +92,7 @@ extension Pool.Bounded.Shutdown where Resource: ~Copyable {
             }
 
             // Drain all waiters with shutdown error (local array, no external capture)
-            var resumptions = Array<Column.Heap<Async.Waiter.Resumption>>(initialCapacity: 0)
+            var resumptions = Array<Async.Waiter.Resumption>(initialCapacity: 0)
             state.waiters.drain { entry in
                 resumptions.append(entry.resumption(with: .failure(.shutdown)))
             }

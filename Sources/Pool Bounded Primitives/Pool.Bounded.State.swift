@@ -3,10 +3,10 @@ public import Array_Primitives
 public import Async_Primitives
 internal import Async_Promise_Primitives
 public import Async_Waiter_Primitives
-public import Buffer_Linear_Bounded_Primitive
-public import Buffer_Linear_Primitive
+internal import Buffer_Linear_Bounded_Primitive
+internal import Buffer_Linear_Primitive
 internal import Buffer_Primitive
-public import Column_Primitives
+internal import Column_Primitives
 internal import Dimension_Primitives
 public import Fixed_Primitives
 internal import Memory_Allocator_Primitive
@@ -16,9 +16,9 @@ internal import Memory_Heap_Primitives
 @_spi(Internal) internal import Pool_Scope_Primitives
 public import Queue_Primitive
 internal import Queue_Primitives
-internal import Shared_Primitive
+internal import Ownership_Shared_Primitive
 public import Stack_Primitives
-public import Storage_Contiguous_Primitives
+internal import Storage_Contiguous_Primitives
 
 extension Pool.Bounded where Resource: ~Copyable {
     /// Internal synchronized state for the pool.
@@ -47,7 +47,7 @@ extension Pool.Bounded where Resource: ~Copyable {
 
         /// Slot states by index.
         @usableFromInline
-        var slots: Fixed<Column.Bounded<Slot>>
+        var slots: Fixed<Slot>
 
         /// Next ID counter.
         @usableFromInline
@@ -85,7 +85,7 @@ extension Pool.Bounded where Resource: ~Copyable {
             self.available = Stack<Slot.Index>.Bounded(capacity: slotCapacity)
             self.waiters = Async.Waiter.Queue.Unbounded()
             let slotCount = try! Slot.Index.Count(capacity)
-            self.slots = try! Fixed<Column.Bounded<Slot>>(count: slotCount, initializingWith: { Slot(index: $0) })
+            self.slots = try! Fixed<Slot>(count: slotCount, initializingWith: { Slot(index: $0) })
             self.next = 0
             self.lifecycle = .open
             self.metrics = Pool.Metrics()
@@ -328,7 +328,7 @@ extension Pool.Bounded.State where Resource: ~Copyable {
     /// - Returns: First eligible waiter, or nil.
     @usableFromInline
     mutating func dequeueEligibleWaiter(
-        skipped: inout Array<Column.Heap<Async.Waiter.Resumption>>
+        skipped: inout Array<Async.Waiter.Resumption>
     ) -> Pool.Bounded<Resource>.Waiter.Entry? {
         // Collect flagged entries
         var flagged = Async.Waiter.Queue.Drain<Pool.Bounded<Resource>.Waiter.Flagged>()
@@ -375,8 +375,8 @@ extension Pool.Bounded.State where Resource: ~Copyable {
     ///
     /// - Returns: Array of pending resumptions to execute outside the lock.
     @usableFromInline
-    mutating func reapFlaggedWaiters() -> Array<Column.Heap<Async.Waiter.Resumption>> {
-        var pending = Array<Column.Heap<Async.Waiter.Resumption>>(initialCapacity: 0)
+    mutating func reapFlaggedWaiters() -> Array<Async.Waiter.Resumption> {
+        var pending = Array<Async.Waiter.Resumption>(initialCapacity: 0)
 
         // Copy lifecycle to local to avoid capturing self
         let currentLifecycle = lifecycle

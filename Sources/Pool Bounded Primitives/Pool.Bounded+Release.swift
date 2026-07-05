@@ -12,7 +12,7 @@
 internal import Array_Primitive
 internal import Array_Primitives
 internal import Async_Mutex_Primitives
-public import Async_Primitives
+internal import Async_Primitives
 internal import Async_Waiter_Primitives
 internal import Ownership_Primitives
 internal import Tagged_Collection_Primitives
@@ -23,7 +23,7 @@ internal import Tagged_Collection_Primitives
     internal import Fixed_Primitives
     internal import Buffer_Linear_Bounded_Primitive
     internal import Buffer_Linear_Primitive
-    internal import Shared_Primitive
+    internal import Ownership_Shared_Primitive
     internal import Storage_Contiguous_Primitives
     internal import Memory_Heap_Primitives
     internal import Memory_Allocator_Primitive
@@ -59,7 +59,7 @@ extension Pool.Bounded where Resource: ~Copyable {
             state.metrics.releases += 1
 
             // Local array for skipped resumptions (no external capture)
-            var skipped = Array<Column.Heap<Async.Waiter.Resumption>>(initialCapacity: 0)
+            var skipped = Array<Async.Waiter.Resumption>(initialCapacity: 0)
 
             // Try to hand off to waiter
             if let waiter = state.dequeueEligibleWaiter(skipped: &skipped) {
@@ -126,7 +126,7 @@ extension Pool.Bounded where Resource: ~Copyable {
     @usableFromInline
     func pumpWaiters() {
         // Return resumptions from withLock (no external capture)
-        var pending: Array<Column.Heap<Async.Waiter.Resumption>> = _state.withLock { state in
+        var pending: Array<Async.Waiter.Resumption> = _state.withLock { state in
             state.reapFlaggedWaiters()
         }
 

@@ -10,7 +10,7 @@
 // ===----------------------------------------------------------------------===//
 
 internal import Async_Mutex_Primitives
-public import Async_Primitives
+internal import Async_Primitives
 internal import Async_Waiter_Primitives
 internal import Dimension_Primitives
 internal import Fixed_Primitives

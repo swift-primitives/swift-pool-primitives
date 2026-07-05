@@ -1,7 +1,7 @@
 internal import Array_Primitive
 internal import Array_Primitives
 public import Async_Mutex_Primitives
-public import Async_Primitives
+internal import Async_Primitives
 public import Async_Promise_Primitives
 internal import Async_Waiter_Primitives
 internal import Ownership_Primitives
@@ -15,7 +15,7 @@ internal import Tagged_Collection_Primitives
     internal import Fixed_Primitives
     internal import Buffer_Linear_Bounded_Primitive
     internal import Buffer_Linear_Primitive
-    internal import Shared_Primitive
+    internal import Ownership_Shared_Primitive
     internal import Storage_Contiguous_Primitives
     internal import Memory_Heap_Primitives
     internal import Memory_Allocator_Primitive
@@ -31,7 +31,7 @@ extension Pool {
     //
     // 1. _state: Async.Mutex<State> — Mutex is Sendable; all mutable
     //    bookkeeping is protected
-    // 2. entries: Tagged<Slot, Fixed<Column.Bounded<Entry>>> — `let`-bound storage
+    // 2. entries: Tagged<Slot, Fixed<Entry>> — `let`-bound storage
     //    of Ownership.Slot references (Slot atomically serializes its own
     //    state machine via release/acquire CAS)
     // 3. Slot ownership (state .out(id)) implies exclusive Entry access
@@ -87,7 +87,7 @@ extension Pool {
         ///
         /// **Strict Stance:** Entry access (move.in/move.out) is an external
         /// effect and must happen OUTSIDE the pool lock.
-        let entries: Tagged<Slot, Fixed<Column.Bounded<Entry>>>
+        let entries: Tagged<Slot, Fixed<Entry>>
 
         #if DEBUG
             /// Test hook called immediately after a waiter is enqueued.
@@ -120,8 +120,8 @@ extension Pool {
             self.scope = Pool.Scope()
             self.policy = .eager(destroy)
             self._check = check
-            self.entries = Tagged<Slot, Fixed<Column.Bounded<Entry>>>(
-                try! Fixed<Column.Bounded<Entry>>(
+            self.entries = Tagged<Slot, Fixed<Entry>>(
+                try! Fixed<Entry>(
                     count: Index<Entry>.Count(capacity.value),
                     initializingWith: { _ in Entry() }
                 )
@@ -157,8 +157,8 @@ extension Pool {
                 self.scope = Pool.Scope()
                 self.policy = .lazy(Creation(create: create, destroy: destroy))
                 self._check = check
-                self.entries = Tagged<Slot, Fixed<Column.Bounded<Entry>>>(
-                    try! Fixed<Column.Bounded<Entry>>(
+                self.entries = Tagged<Slot, Fixed<Entry>>(
+                    try! Fixed<Entry>(
                         count: Index<Entry>.Count(capacity.value),
                         initializingWith: { _ in Entry() }
                     )

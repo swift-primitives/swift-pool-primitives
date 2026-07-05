@@ -12,14 +12,14 @@
 public import Array_Primitive
 public import Async_Waiter_Primitives
 internal import Buffer_Linear_Bounded_Primitive
-public import Buffer_Linear_Primitive
+internal import Buffer_Linear_Primitive
 internal import Buffer_Primitive
-public import Column_Primitives
+internal import Column_Primitives
 internal import Fixed_Primitives
 internal import Memory_Allocator_Primitive
 internal import Memory_Heap_Primitives
-internal import Shared_Primitive
-public import Storage_Contiguous_Primitives
+internal import Ownership_Shared_Primitive
+internal import Storage_Contiguous_Primitives
 
 extension Pool.Bounded.Release where Resource: ~Copyable {
     /// Actions computed under lock for slot release.
@@ -29,12 +29,12 @@ extension Pool.Bounded.Release where Resource: ~Copyable {
     @usableFromInline
     enum Action: ~Copyable {
         /// Hand off to waiting waiter.
-        case handOff(Async.Waiter.Resumption, skipped: Array<Column.Heap<Async.Waiter.Resumption>>)
+        case handOff(Async.Waiter.Resumption, skipped: Array<Async.Waiter.Resumption>)
 
         /// Return to available pool.
-        case returnToPool(skipped: Array<Column.Heap<Async.Waiter.Resumption>>)
+        case returnToPool(skipped: Array<Async.Waiter.Resumption>)
 
         /// Dispose during shutdown.
-        case dispose(skipped: Array<Column.Heap<Async.Waiter.Resumption>>)
+        case dispose(skipped: Array<Async.Waiter.Resumption>)
     }
 }

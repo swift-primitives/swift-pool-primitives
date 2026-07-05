@@ -14,12 +14,12 @@ public import Async_Waiter_Primitives
 internal import Buffer_Linear_Bounded_Primitive
 public import Buffer_Linear_Primitive
 internal import Buffer_Primitive
-public import Column_Primitives
+internal import Column_Primitives
 internal import Fixed_Primitives
 internal import Memory_Allocator_Primitive
 internal import Memory_Heap_Primitives
-internal import Shared_Primitive
-public import Storage_Contiguous_Primitives
+internal import Ownership_Shared_Primitive
+internal import Storage_Contiguous_Primitives
 
 extension Pool.Bounded.Shutdown where Resource: ~Copyable {
     /// Actions computed under lock for shutdown drain.
@@ -28,7 +28,7 @@ extension Pool.Bounded.Shutdown where Resource: ~Copyable {
     /// mutable variables across the `withLock` sending boundary.
     @usableFromInline
     enum Drain: ~Copyable {
-        case drain([(Pool.Bounded<Resource>.Slot.Index, Pool.ID)], resumptions: Array<Column.Heap<Async.Waiter.Resumption>>)
+        case drain([(Pool.Bounded<Resource>.Slot.Index, Pool.ID)], resumptions: Array<Async.Waiter.Resumption>)
         case alreadyShuttingDown
     }
 }
