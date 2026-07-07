@@ -9,6 +9,8 @@ internal import Buffer_Primitive
 internal import Column_Primitives
 internal import Dimension_Primitives
 public import Fixed_Primitives
+internal import Index_Primitives
+internal import Iterable
 internal import Memory_Allocator_Primitive
 internal import Memory_Heap_Primitives
 internal import Ownership_Shared_Primitive
@@ -79,7 +81,7 @@ extension Pool.Bounded where Resource: ~Copyable {
         @usableFromInline
         init(capacity: Int) {
             // Pre-allocate fixed-capacity LIFO stack for available indices (starts empty)
-            let slotCapacity = Stack<Slot.Index>.Index.Count(
+            let slotCapacity = Index<Slot.Index>.Count(
                 _unchecked: Cardinal(UInt(capacity))
             )
             self.available = Stack<Slot.Index>.Bounded(capacity: slotCapacity)

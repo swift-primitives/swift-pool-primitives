@@ -90,6 +90,7 @@ let package = Package(
         .package(url: "https://github.com/swift-primitives/swift-ownership-primitives.git", branch: "main"),
         .package(url: "https://github.com/swift-primitives/swift-effect-primitives.git", branch: "main"),
         .package(url: "https://github.com/swift-primitives/swift-index-primitives.git", branch: "main"),
+        .package(url: "https://github.com/swift-primitives/swift-iterator-primitives.git", branch: "main"),
         .package(url: "https://github.com/swift-primitives/swift-either-primitives.git", branch: "main"),
     ],
     targets: [
@@ -195,6 +196,8 @@ let package = Package(
                 .product(name: "Array Primitive", package: "swift-array-primitives"),
                 .product(name: "Array Primitives", package: "swift-array-primitives"),
                 .product(name: "Fixed Primitives", package: "swift-fixed-primitives"),
+                .product(name: "Index Primitives", package: "swift-index-primitives"),
+                .product(name: "Iterable", package: "swift-iterator-primitives"),
                 .product(name: "Tagged Collection Primitives", package: "swift-tagged-collection-primitives"),
                 .product(name: "Async Primitives", package: "swift-async-primitives"),
                 .product(name: "Async Waiter Primitives", package: "swift-async-primitives"),
