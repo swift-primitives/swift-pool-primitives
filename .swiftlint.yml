@@ -6,3 +6,10 @@ parent_config: https://raw.githubusercontent.com/swift-primitives/.github/main/.
 # Package-specific overrides
 disabled_rules:
   - function_parameter_count
+  # force_try: every site in this package (Pool.Bounded.swift init x2,
+  # Pool.Bounded.State.swift init/pushAvailable x3) is a provably-safe
+  # construction guarded by a documented invariant (e.g. "capacity equals
+  # slot count" / a validated non-negative Int capacity) — not accidental
+  # error-swallowing. Disabled repo-wide rather than shielded per-site
+  # given 5 deliberate occurrences (2026-07-07).
+  - force_try
