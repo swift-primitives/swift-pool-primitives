@@ -26,7 +26,7 @@ extension Pool.Bounded.Effect where Resource: ~Copyable {
     ///
     /// ## Construction Constraint
     /// `batch([Resumption])` must ONLY originate from `Async.Waiter.Queue`
-    /// operations (e.g., `reapFlagged`, `reapAll`). Never construct batch
+    /// operations (for example, `reapFlagged`, `reapAll`). Never construct batch
     /// arrays ad-hoc in application code.
     @usableFromInline
     enum Waiter: ~Copyable {

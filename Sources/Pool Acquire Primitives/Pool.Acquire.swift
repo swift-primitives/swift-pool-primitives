@@ -60,7 +60,7 @@ extension Pool {
         /// The result type for this effect — a shared handle to the acquired resource.
         public typealias Value = Ownership.Immutable<Resource>
 
-        /// The failure type for this effect — surfaces `Pool.Error` (e.g. shutdown).
+        /// The failure type for this effect — surfaces `Pool.Error` (for example, shutdown).
         public typealias Failure = Pool.Error
 
         /// The pool scope to acquire from.

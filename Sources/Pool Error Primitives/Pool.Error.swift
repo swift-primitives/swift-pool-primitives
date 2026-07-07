@@ -9,7 +9,7 @@ extension Pool {
 
         /// All resources are in use and none available (non-waiting path).
         ///
-        /// This error is returned by non-waiting acquisition variants (e.g. `.try`)
+        /// This error is returned by non-waiting acquisition variants (for example, `.try`)
         /// when no resource is immediately available. The standard waiting path
         /// uses `Pool.Lifecycle.Error.timeout` or waits indefinitely.
         case exhausted
