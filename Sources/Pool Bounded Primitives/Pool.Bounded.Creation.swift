@@ -12,9 +12,10 @@
         ///
         /// ## Factory error contract
         ///
-        /// The factory closure throws `Pool.Lifecycle.Error` directly — no
-        /// existential `any Error`. Per [API-ERR-001], `throws(any Error)` is
-        /// forbidden. The user wraps their domain errors at the boundary:
+        /// The factory closure throws `Pool.Lifecycle.Error` directly — never
+        /// an existential error type. Per [API-ERR-001], typed throws is
+        /// mandatory and an existential throwing clause is forbidden. The
+        /// user wraps their domain errors at the boundary:
         ///
         /// ```swift
         /// create: {

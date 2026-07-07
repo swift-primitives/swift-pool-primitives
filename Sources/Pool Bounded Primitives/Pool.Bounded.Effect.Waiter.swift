@@ -33,6 +33,11 @@ extension Pool.Bounded.Effect where Resource: ~Copyable {
         /// Resume a single waiter.
         case resume(Async.Waiter.Resumption)
 
+        // reason: `[T]` sugar always means Swift.Array (requires Copyable);
+        // this module's `Array<E: ~Copyable>` (Array_Primitive front door) is
+        // what `Async.Waiter.Resumption` (~Copyable) actually needs — sugar
+        // breaks the build here ("does not conform to protocol 'Copyable'").
+        // swift-format-ignore: UseShorthandTypeNames
         /// Resume multiple waiters (from queue operations only).
         case batch(Array<Async.Waiter.Resumption>)
     }

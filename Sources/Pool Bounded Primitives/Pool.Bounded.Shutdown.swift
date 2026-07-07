@@ -92,6 +92,12 @@ extension Pool.Bounded.Shutdown where Resource: ~Copyable {
             }
 
             // Drain all waiters with shutdown error (local array, no external capture)
+            // reason: `[T]` sugar always means Swift.Array (requires Copyable);
+            // this module's `Array<E: ~Copyable>` (Array_Primitive front door) is
+            // what `Async.Waiter.Resumption` (~Copyable) actually needs — sugar
+            // breaks the build here ("does not conform to protocol 'Copyable'").
+            // swift-format-ignore: UseShorthandTypeNames
+            // swiftlint:disable:next syntactic_sugar
             var resumptions = Array<Async.Waiter.Resumption>(initialCapacity: 0)
             state.waiters.drain { entry in
                 resumptions.append(entry.resumption(with: .failure(.shutdown)))

@@ -27,10 +27,17 @@ extension Pool.Bounded.Fill where Resource: ~Copyable {
     /// Embeds skipped resumptions and shutdown effect into each case to avoid
     /// capturing mutable variables across the `withLock` sending boundary.
     @usableFromInline
+    // reason: `[T]` sugar always means Swift.Array (requires Copyable); this
+    // module's `Array<E: ~Copyable>` (Array_Primitive front door) is what
+    // `Async.Waiter.Resumption` (~Copyable) actually needs — sugar breaks the
+    // build here ("does not conform to protocol 'Copyable'"). Applies to
+    // every `skipped: Array<Async.Waiter.Resumption>` below.
     enum Commit: ~Copyable {
+        // swift-format-ignore: UseShorthandTypeNames
         /// Add slot to available pool.
         case addToPool(effect: Pool.Bounded<Resource>.Effect, skipped: Array<Async.Waiter.Resumption>)
 
+        // swift-format-ignore: UseShorthandTypeNames
         /// Hand off directly to waiter.
         case handOff(Async.Waiter.Resumption, skipped: Array<Async.Waiter.Resumption>)
     }

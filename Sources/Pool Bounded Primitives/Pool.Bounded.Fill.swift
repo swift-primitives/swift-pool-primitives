@@ -120,6 +120,12 @@ extension Pool.Bounded.Fill where Resource: ~Copyable {
                 state.metrics.fills += 1
 
                 // Local array for skipped resumptions (no external capture)
+                // reason: `[T]` sugar always means Swift.Array (requires Copyable);
+                // this module's `Array<E: ~Copyable>` (Array_Primitive front door) is
+                // what `Async.Waiter.Resumption` (~Copyable) actually needs — sugar
+                // breaks the build here ("does not conform to protocol 'Copyable'").
+                // swift-format-ignore: UseShorthandTypeNames
+                // swiftlint:disable:next syntactic_sugar
                 var skipped = Array<Async.Waiter.Resumption>(initialCapacity: 0)
 
                 // Check if we should hand off to a waiter directly

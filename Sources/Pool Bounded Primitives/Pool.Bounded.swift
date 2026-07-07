@@ -120,6 +120,9 @@ extension Pool {
             self.scope = Pool.Scope()
             self.policy = .eager(destroy)
             self._check = check
+            // force_try is safe: capacity.value is a validated Cardinal count,
+            // so Fixed<Entry>(count:initializingWith:) cannot fail here.
+            // swift-format-ignore: NeverUseForceTry
             self.entries = Tagged<Slot, Fixed<Entry>>(
                 try! Fixed<Entry>(
                     count: Index<Entry>.Count(capacity.value),
@@ -157,6 +160,9 @@ extension Pool {
                 self.scope = Pool.Scope()
                 self.policy = .lazy(Creation(create: create, destroy: destroy))
                 self._check = check
+                // force_try is safe: capacity.value is a validated Cardinal count,
+                // so Fixed<Entry>(count:initializingWith:) cannot fail here.
+                // swift-format-ignore: NeverUseForceTry
                 self.entries = Tagged<Slot, Fixed<Entry>>(
                     try! Fixed<Entry>(
                         count: Index<Entry>.Count(capacity.value),

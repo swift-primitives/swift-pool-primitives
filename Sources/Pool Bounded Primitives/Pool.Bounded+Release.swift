@@ -59,6 +59,12 @@ extension Pool.Bounded where Resource: ~Copyable {
             state.metrics.releases += 1
 
             // Local array for skipped resumptions (no external capture)
+            // reason: `[T]` sugar always means Swift.Array (requires Copyable);
+            // this module's `Array<E: ~Copyable>` (Array_Primitive front door) is
+            // what `Async.Waiter.Resumption` (~Copyable) actually needs — sugar
+            // breaks the build here ("does not conform to protocol 'Copyable'").
+            // swift-format-ignore: UseShorthandTypeNames
+            // swiftlint:disable:next syntactic_sugar
             var skipped = Array<Async.Waiter.Resumption>(initialCapacity: 0)
 
             // Try to hand off to waiter
@@ -126,6 +132,12 @@ extension Pool.Bounded where Resource: ~Copyable {
     @usableFromInline
     func pumpWaiters() {
         // Return resumptions from withLock (no external capture)
+        // reason: `[T]` sugar always means Swift.Array (requires Copyable);
+        // this module's `Array<E: ~Copyable>` (Array_Primitive front door) is
+        // what `Async.Waiter.Resumption` (~Copyable) actually needs — sugar
+        // breaks the build here ("does not conform to protocol 'Copyable'").
+        // swift-format-ignore: UseShorthandTypeNames
+        // swiftlint:disable:next syntactic_sugar
         var pending: Array<Async.Waiter.Resumption> = _state.withLock { state in
             state.reapFlaggedWaiters()
         }

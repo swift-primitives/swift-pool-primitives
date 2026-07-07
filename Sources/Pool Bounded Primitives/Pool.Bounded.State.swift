@@ -11,12 +11,12 @@ internal import Dimension_Primitives
 public import Fixed_Primitives
 internal import Memory_Allocator_Primitive
 internal import Memory_Heap_Primitives
+internal import Ownership_Shared_Primitive
 @_spi(Internal) internal import Pool_ID_Primitives
 @_spi(Internal) internal import Pool_Metrics_Primitives
 @_spi(Internal) internal import Pool_Scope_Primitives
 public import Queue_Primitive
 internal import Queue_Primitives
-internal import Ownership_Shared_Primitive
 public import Stack_Primitives
 internal import Storage_Contiguous_Primitives
 
@@ -84,7 +84,12 @@ extension Pool.Bounded where Resource: ~Copyable {
             )
             self.available = Stack<Slot.Index>.Bounded(capacity: slotCapacity)
             self.waiters = Async.Waiter.Queue.Unbounded()
+            // force_try is safe: `capacity` is a validated non-negative Int
+            // (the caller's Pool.Capacity invariant), so Slot.Index.Count(capacity)
+            // and Fixed<Slot>(count:initializingWith:) cannot fail here.
+            // swift-format-ignore: NeverUseForceTry
             let slotCount = try! Slot.Index.Count(capacity)
+            // swift-format-ignore: NeverUseForceTry
             self.slots = try! Fixed<Slot>(count: slotCount, initializingWith: { Slot(index: $0) })
             self.next = 0
             self.lifecycle = .open
@@ -264,6 +269,7 @@ extension Pool.Bounded.State where Resource: ~Copyable {
     @inlinable
     mutating func pushAvailable(_ index: Pool.Bounded<Resource>.Slot.Index) {
         // Invariant guarantees no overflow - capacity equals slot count
+        // swift-format-ignore: NeverUseForceTry
         try! available.push(index)
     }
 
@@ -319,6 +325,11 @@ extension Pool.Bounded.State where Resource: ~Copyable {
         return waiter
     }
 
+    // reason: `[T]` sugar always means Swift.Array (requires Copyable); this
+    // module's `Array<E: ~Copyable>` (Array_Primitive front door) is what
+    // `Async.Waiter.Resumption` (~Copyable) actually needs — sugar breaks the
+    // build here (verified: "does not conform to protocol 'Copyable'").
+    // swift-format-ignore: UseShorthandTypeNames
     /// Dequeues the first eligible waiter (not cancelled/timed out).
     ///
     /// Skipped waiters (cancelled/timed out) have their resumptions collected
@@ -328,6 +339,7 @@ extension Pool.Bounded.State where Resource: ~Copyable {
     /// - Returns: First eligible waiter, or nil.
     @usableFromInline
     mutating func dequeueEligibleWaiter(
+        // swiftlint:disable:next syntactic_sugar
         skipped: inout Array<Async.Waiter.Resumption>
     ) -> Pool.Bounded<Resource>.Waiter.Entry? {
         // Collect flagged entries
@@ -362,6 +374,11 @@ extension Pool.Bounded.State where Resource: ~Copyable {
         return entry
     }
 
+    // reason: `[T]` sugar always means Swift.Array (requires Copyable); this
+    // module's `Array<E: ~Copyable>` (Array_Primitive front door) is what
+    // `Async.Waiter.Resumption` (~Copyable) actually needs — sugar breaks the
+    // build here (verified: "does not conform to protocol 'Copyable'").
+    // swift-format-ignore: UseShorthandTypeNames
     /// Reaps all flagged waiters from the queue.
     ///
     /// Uses `Async.Waiter.Queue.reapFlagged` to scan+rebuild in one pass,
@@ -375,7 +392,10 @@ extension Pool.Bounded.State where Resource: ~Copyable {
     ///
     /// - Returns: Array of pending resumptions to execute outside the lock.
     @usableFromInline
+    // swiftlint:disable:next syntactic_sugar
     mutating func reapFlaggedWaiters() -> Array<Async.Waiter.Resumption> {
+        // swift-format-ignore: UseShorthandTypeNames
+        // swiftlint:disable:next syntactic_sugar
         var pending = Array<Async.Waiter.Resumption>(initialCapacity: 0)
 
         // Copy lifecycle to local to avoid capturing self
