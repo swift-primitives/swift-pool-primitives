@@ -3,9 +3,6 @@ public import Dimension_Primitives
 extension Pool {
     /// Unique identifier for a checked-out resource.
     public struct ID: Sendable, Hashable {
-        /// The raw identifier type.
-        public typealias RawValue = Tagged<Self, UInt64>
-
         /// The raw identifier value.
         @usableFromInline
         let raw: RawValue
@@ -21,4 +18,9 @@ extension Pool {
             self.scope = scope
         }
     }
+}
+
+extension Pool.ID {
+    /// The raw identifier type.
+    public typealias RawValue = Tagged<Self, UInt64>
 }

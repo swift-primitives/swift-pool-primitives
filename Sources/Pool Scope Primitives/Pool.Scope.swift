@@ -17,9 +17,6 @@ extension Pool {
     ///
     /// Used to validate that IDs belong to the correct pool.
     public struct Scope: Sendable, Hashable {
-        /// The raw scope value.
-        public typealias RawValue = Tagged<Self, UInt64>
-
         @usableFromInline
         let value: RawValue
 
@@ -39,4 +36,9 @@ extension Pool {
             #endif
         }
     }
+}
+
+extension Pool.Scope {
+    /// The raw scope value.
+    public typealias RawValue = Tagged<Self, UInt64>
 }

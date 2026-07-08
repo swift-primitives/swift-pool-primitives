@@ -4,10 +4,6 @@ extension Pool.Bounded where Resource: ~Copyable {
     /// A slot in the pool that can hold a resource.
     @usableFromInline
     struct Slot {
-        /// Typed index into the slots array.
-        @usableFromInline
-        typealias Index = Tagged<Self, Ordinal>
-
         /// The slot index.
         @usableFromInline
         let index: Index
@@ -23,4 +19,10 @@ extension Pool.Bounded where Resource: ~Copyable {
             self.state = .empty
         }
     }
+}
+
+extension Pool.Bounded.Slot where Resource: ~Copyable {
+    /// Typed index into the slots array.
+    @usableFromInline
+    typealias Index = Tagged<Self, Ordinal>
 }
