@@ -1,4 +1,5 @@
 import Async_Mutex_Primitives
+import Either_Primitives
 import Fixed_Primitives
 import Synchronization
 import Testing
@@ -35,12 +36,18 @@ private func makePrefilled(_ value: Int) -> TestPool {
 /// multiple escaping closures directly).
 private final class Counter: Sendable {
     let raw = Atomic<Int>(0)
+}
+
+extension Counter {
     func bump() { _ = raw.wrappingAdd(1, ordering: .relaxed) }
     var value: Int { raw.load(ordering: .sequentiallyConsistent) }
 }
 
 private final class Flag: Sendable {
     let raw = Atomic<Bool>(false)
+}
+
+extension Flag {
     func raise() { raw.store(true, ordering: .sequentiallyConsistent) }
     var isRaised: Bool { raw.load(ordering: .sequentiallyConsistent) }
 }
@@ -97,7 +104,7 @@ struct PoolConcurrencyTests {
         for _ in 0..<12 {
             waiters.append(
                 Task {
-                    do {
+                    do throws(Either<Pool.Lifecycle.Error, Never>) {
                         _ = try await pool.acquire { resource in resource }
                         completions.bump()
                     } catch {
@@ -145,7 +152,7 @@ struct PoolConcurrencyTests {
         for _ in 0..<10 {
             waiters.append(
                 Task {
-                    do {
+                    do throws(Either<Pool.Lifecycle.Error, Never>) {
                         _ = try await pool.acquire { resource in resource }
                         unexpected.bump()  // no slot can ever reach them
                     } catch {
@@ -166,7 +173,7 @@ struct PoolConcurrencyTests {
         #expect(held == 5)
         await pool.shutdown.wait()  // full drain completes
 
-        do {
+        do throws(Either<Pool.Lifecycle.Error, Never>) {
             _ = try await pool.acquire { resource in resource }
             #expect(Bool(false), "acquire after shutdown must throw")
         } catch {

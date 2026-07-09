@@ -341,7 +341,7 @@ extension PoolBoundedTests.Unit {
 
         @Sendable
         func makeOne() async throws(Pool.Lifecycle.Error) -> sending Int {
-            do {
+            do throws(Async.Lifecycle.Error) {
                 try await barrier.arrive()
             } catch {
                 throw Pool.Lifecycle.Error.creationFailed
