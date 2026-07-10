@@ -52,8 +52,8 @@ extension Flag {
     var isRaised: Bool { raw.load(ordering: .sequentiallyConsistent) }
 }
 
-@Suite("Pool concurrency (W3 rider)")
-struct PoolConcurrencyTests {
+@Suite
+struct `Pool.Concurrency Tests` {
 
     @Test(arguments: [8, 24])
     func `capacity-1 hand-off chain: every waiter resumes exactly once`(width: Int) async throws {

@@ -20,7 +20,7 @@ import Testing
 // externally via Task cancellation.
 
 @Suite(.serialized)
-struct PoolBoundedAsyncBodyTests {
+struct `Pool.Bounded.AsyncBody Tests` {
     @Suite struct Direct {}
     @Suite struct Cancellation {}
     @Suite struct Borrowing {}
@@ -44,7 +44,7 @@ private func makePrefilled(_ value: Int) -> TestPool {
 
 // MARK: - Direct Acquire
 
-extension PoolBoundedAsyncBodyTests.Direct {
+extension `Pool.Bounded.AsyncBody Tests`.Direct {
     @Test
     func `async body completes and returns`() async throws {
         let pool = makePrefilled(42)
@@ -122,7 +122,7 @@ extension PoolBoundedAsyncBodyTests.Direct {
 
 // MARK: - Cancellation
 
-extension PoolBoundedAsyncBodyTests.Cancellation {
+extension `Pool.Bounded.AsyncBody Tests`.Cancellation {
     #if DEBUG
         @Test
         func `cancellation while waiting throws cancelled`() async throws {
@@ -174,7 +174,7 @@ extension PoolBoundedAsyncBodyTests.Cancellation {
 
 // MARK: - Borrowing
 
-extension PoolBoundedAsyncBodyTests.Borrowing {
+extension `Pool.Bounded.AsyncBody Tests`.Borrowing {
     @Test
     func `inout resource borrowed across await`() async throws {
         // Verify inout Resource composes with await — the slot is held for

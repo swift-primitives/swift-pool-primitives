@@ -8,7 +8,7 @@ import Testing
 
 // Pool.Bounded.Slot.State is generic — parallel namespace per [TEST-004]
 @Suite
-struct PoolBoundedSlotStateTests {
+struct `Pool.Bounded.Slot.State Tests` {
     @Suite struct Unit {}
 }
 
@@ -19,7 +19,7 @@ private typealias SlotState = TestPool.Slot.State
 
 // MARK: - Unit Tests
 
-extension PoolBoundedSlotStateTests.Unit {
+extension `Pool.Bounded.Slot.State Tests`.Unit {
     @Test
     func `empty state has no ID`() {
         let state = SlotState.empty

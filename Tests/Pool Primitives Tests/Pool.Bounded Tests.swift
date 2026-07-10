@@ -13,9 +13,9 @@ import Testing
 
 // Pool.Bounded is generic — parallel namespace per [TEST-004]
 @Suite(.serialized)
-struct PoolBoundedTests {
+struct `Pool.Bounded Tests` {
     @Suite struct Unit {}
-    @Suite struct EdgeCase {}
+    @Suite struct `Edge Case` {}
     @Suite(.serialized) struct Performance {}
 }
 
@@ -25,7 +25,7 @@ private typealias TestPool = Pool.Bounded<Int>
 
 // MARK: - Acquire Tests
 
-extension PoolBoundedTests.Unit {
+extension `Pool.Bounded Tests`.Unit {
     @Test
     func `eager pool acquires filled resource`() async throws {
         let pool = TestPool(
@@ -99,7 +99,7 @@ extension PoolBoundedTests.Unit {
 
 // MARK: - Fill Tests
 
-extension PoolBoundedTests.Unit {
+extension `Pool.Bounded Tests`.Unit {
     @Test
     func `fill adds resource to empty slot`() async throws {
         let pool = TestPool(
@@ -159,7 +159,7 @@ extension PoolBoundedTests.Unit {
 
 // MARK: - Entry Independence (Regression: repeating-reference-type-aliasing)
 
-extension PoolBoundedTests.Unit {
+extension `Pool.Bounded Tests`.Unit {
     @Test
     func `entries are independent objects`() throws {
         let pool = TestPool(
@@ -177,7 +177,7 @@ extension PoolBoundedTests.Unit {
 
 // MARK: - Edge Cases
 
-extension PoolBoundedTests.EdgeCase {
+extension `Pool.Bounded Tests`.`Edge Case` {
     @Test
     func `shutdown rejects new acquisitions`() async throws {
         let pool = TestPool(
@@ -292,7 +292,7 @@ extension PoolBoundedTests.EdgeCase {
 
 // MARK: - Lazy Policy Tests
 
-extension PoolBoundedTests.Unit {
+extension `Pool.Bounded Tests`.Unit {
     @Test
     func `lazy pool creates resource on demand`() async throws {
         let createCount = Mutex(0)
@@ -386,7 +386,7 @@ extension PoolBoundedTests.Unit {
 
 // MARK: - Cancellation (replaces Timeout tests; deadlines compose externally)
 
-extension PoolBoundedTests.EdgeCase {
+extension `Pool.Bounded Tests`.`Edge Case` {
     #if DEBUG
         @Test
         func `cancellation while waiting throws cancelled`() async throws {
@@ -467,7 +467,7 @@ private struct NonSendableHandle: ~Copyable {
     var value: Int
 }
 
-extension PoolBoundedTests.Unit {
+extension `Pool.Bounded Tests`.Unit {
     @Test
     func `pool works with non-Sendable Resource`() async throws {
         let pool = Pool.Bounded<NonSendableHandle>(
@@ -492,7 +492,7 @@ extension PoolBoundedTests.Unit {
 
 // MARK: - Performance
 
-extension PoolBoundedTests.Performance {
+extension `Pool.Bounded Tests`.Performance {
     @Test
     func `acquire-release throughput`() async throws {
         let pool = TestPool(

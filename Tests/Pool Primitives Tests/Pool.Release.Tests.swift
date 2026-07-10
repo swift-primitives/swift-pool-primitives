@@ -15,11 +15,11 @@ private struct TestResource: Sendable {
 
 // Pool.Release is generic — parallel namespace per [TEST-004]
 @Suite
-struct PoolReleaseTests {
+struct `Pool.Release Tests` {
     @Suite struct Unit {}
 }
 
-extension PoolReleaseTests.Unit {
+extension `Pool.Release Tests`.Unit {
     @Test
     func `effect stores id as arguments`() {
         let scope = Pool.Scope()

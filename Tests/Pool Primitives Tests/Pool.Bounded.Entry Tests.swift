@@ -6,9 +6,9 @@ import Testing
 
 // Pool.Bounded.Entry is generic — parallel namespace per [TEST-004]
 @Suite
-struct PoolBoundedEntryTests {
+struct `Pool.Bounded.Entry Tests` {
     @Suite struct Unit {}
-    @Suite struct EdgeCase {}
+    @Suite struct `Edge Case` {}
 }
 
 // MARK: - Type Aliases
@@ -18,7 +18,7 @@ private typealias Entry = TestPool.Entry
 
 // MARK: - Unit Tests
 
-extension PoolBoundedEntryTests.Unit {
+extension `Pool.Bounded.Entry Tests`.Unit {
     @Test
     func `empty entry is empty`() {
         let entry = Entry()
@@ -58,7 +58,7 @@ extension PoolBoundedEntryTests.Unit {
 
 // MARK: - Edge Cases
 
-extension PoolBoundedEntryTests.EdgeCase {
+extension `Pool.Bounded.Entry Tests`.`Edge Case` {
     @Test
     func `multiple move cycles work correctly`() {
         let entry = Entry()

@@ -7,7 +7,7 @@ extension Pool.Lifecycle.Precedence {
     @Suite
     struct Test {
         @Suite struct Unit {}
-        @Suite struct EdgeCase {}
+        @Suite struct `Edge Case` {}
     }
 }
 
@@ -72,7 +72,7 @@ extension Pool.Lifecycle.Precedence.Test.Unit {
 
 // MARK: - Edge Cases
 
-extension Pool.Lifecycle.Precedence.Test.EdgeCase {
+extension Pool.Lifecycle.Precedence.Test.`Edge Case` {
     @Test
     func `all flags set returns shutdown`() {
         let result = Pool.Lifecycle.Precedence.apply(

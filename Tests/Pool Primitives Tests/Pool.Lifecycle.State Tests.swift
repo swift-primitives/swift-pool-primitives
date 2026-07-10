@@ -7,7 +7,7 @@ extension Pool.Lifecycle.State {
     @Suite
     struct Test {
         @Suite struct Unit {}
-        @Suite struct EdgeCase {}
+        @Suite struct `Edge Case` {}
     }
 }
 
@@ -76,7 +76,7 @@ extension Pool.Lifecycle.State.Test.Unit {
 
 // MARK: - Edge Cases
 
-extension Pool.Lifecycle.State.Test.EdgeCase {
+extension Pool.Lifecycle.State.Test.`Edge Case` {
     @Test
     func `closed state cannot transition further`() {
         var state = Pool.Lifecycle.State.closed
