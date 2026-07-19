@@ -6,7 +6,9 @@ extension Pool.Bounded where Resource: ~Copyable {
     /// destructor (via `Creation`).
     @usableFromInline
     enum Policy: Sendable {
-        /// Resources created only via `fill()`. Acquire waits for available.
+        /// Resources created only via `fill()`.
+        ///
+        /// Acquire waits for available.
         case eager(Destructor)
 
         #if !hasFeature(Embedded)
