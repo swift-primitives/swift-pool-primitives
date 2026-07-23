@@ -1,28 +1,29 @@
-public import Dimension_Primitives
+#if POOL_CONCURRENCY
+    public import Dimension_Primitives
 
-extension Pool.Bounded where Resource: ~Copyable {
-    /// A slot in the pool that can hold a resource.
-    @usableFromInline
-    struct Slot {
-        /// The slot index.
+    extension Pool.Bounded where Resource: ~Copyable {
+        /// A slot in the pool that can hold a resource.
         @usableFromInline
-        let index: Index
+        struct Slot {
+            /// The slot index.
+            @usableFromInline
+            let index: Index
 
-        /// Current state.
-        @usableFromInline
-        var state: State
+            /// Current state.
+            @usableFromInline
+            var state: State
 
-        /// Creates an empty slot.
-        @usableFromInline
-        init(index: Index) {
-            self.index = index
-            self.state = .empty
+            /// Creates an empty slot.
+            @usableFromInline
+            init(index: Index) {
+                self.index = index
+                self.state = .empty
+            }
         }
     }
-}
-
-extension Pool.Bounded.Slot where Resource: ~Copyable {
-    /// Typed index into the slots array.
-    @usableFromInline
-    typealias Index = Tagged<Self, Ordinal>
-}
+    extension Pool.Bounded.Slot where Resource: ~Copyable {
+        /// Typed index into the slots array.
+        @usableFromInline
+        typealias Index = Tagged<Self, Ordinal>
+    }
+#endif

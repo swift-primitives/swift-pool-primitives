@@ -9,7 +9,7 @@ let package = Package(
         .iOS(.v26),
         .tvOS(.v26),
         .watchOS(.v26),
-        .visionOS(.v26)
+        .visionOS(.v26),
     ],
     products: [
         // MARK: - Namespace + foundational
@@ -70,6 +70,13 @@ let package = Package(
         .library(
             name: "Pool Primitives Test Support",
             targets: ["Pool Primitives Test Support"]
+        ),
+    ],
+    traits: [
+        .default(enabledTraits: ["Concurrency"]),
+        .trait(
+            name: "Concurrency",
+            description: "Enable asynchronous bounded resource pooling."
         ),
     ],
     dependencies: [
@@ -147,7 +154,7 @@ let package = Package(
         .target(
             name: "Pool Metrics Primitives",
             dependencies: [
-                "Pool Primitive",
+                "Pool Primitive"
             ]
         ),
 
@@ -177,37 +184,40 @@ let package = Package(
         .target(
             name: "Pool Bounded Primitives",
             dependencies: [
-                "Pool Primitive",
-                "Pool Scope Primitives",
-                "Pool ID Primitives",
-                "Pool Error Primitives",
-                "Pool Capacity Primitives",
-                "Pool Lifecycle Primitives",
-                "Pool Metrics Primitives",
-                .product(name: "Column Primitives", package: "swift-column-primitives"),
-                .product(name: "Buffer Linear Bounded Primitive", package: "swift-buffer-linear-primitives"),
-                .product(name: "Buffer Linear Primitive", package: "swift-buffer-linear-primitives"),
-                .product(name: "Ownership Shared Primitive", package: "swift-ownership-shared-primitives"),
-                .product(name: "Storage Contiguous Primitives", package: "swift-storage-primitives"),
-                .product(name: "Memory Heap Primitives", package: "swift-memory-heap-primitives"),
-                .product(name: "Memory Allocator Primitive", package: "swift-memory-allocation-primitives"),
-                .product(name: "Buffer Primitive", package: "swift-buffer-primitives"),
-                .product(name: "Stack Primitives", package: "swift-stack-primitives"),
-                .product(name: "Array Primitive", package: "swift-array-primitives"),
-                .product(name: "Array Primitives", package: "swift-array-primitives"),
-                .product(name: "Fixed Primitives", package: "swift-fixed-primitives"),
-                .product(name: "Index Primitives", package: "swift-index-primitives"),
-                .product(name: "Iterable", package: "swift-iterator-primitives"),
-                .product(name: "Tagged Collection Primitives", package: "swift-tagged-collection-primitives"),
-                .product(name: "Async Primitives", package: "swift-async-primitives"),
-                .product(name: "Async Waiter Primitives", package: "swift-async-primitives"),
-                .product(name: "Async Mutex Primitives", package: "swift-async-primitives"),
-                .product(name: "Queue Primitive", package: "swift-queue-primitives"),
-                .product(name: "Queue Primitives", package: "swift-queue-primitives"),
-                .product(name: "Async Promise Primitives", package: "swift-async-primitives"),
-                .product(name: "Dimension Primitives", package: "swift-dimension-primitives"),
-                .product(name: "Ownership Primitives", package: "swift-ownership-primitives"),
-                .product(name: "Either Primitives", package: "swift-either-primitives"),
+                .target(name: "Pool Primitive", condition: .when(traits: ["Concurrency"])),
+                .target(name: "Pool Scope Primitives", condition: .when(traits: ["Concurrency"])),
+                .target(name: "Pool ID Primitives", condition: .when(traits: ["Concurrency"])),
+                .target(name: "Pool Error Primitives", condition: .when(traits: ["Concurrency"])),
+                .target(name: "Pool Capacity Primitives", condition: .when(traits: ["Concurrency"])),
+                .target(name: "Pool Lifecycle Primitives", condition: .when(traits: ["Concurrency"])),
+                .target(name: "Pool Metrics Primitives", condition: .when(traits: ["Concurrency"])),
+                .product(name: "Column Primitives", package: "swift-column-primitives", condition: .when(traits: ["Concurrency"])),
+                .product(name: "Buffer Linear Bounded Primitive", package: "swift-buffer-linear-primitives", condition: .when(traits: ["Concurrency"])),
+                .product(name: "Buffer Linear Primitive", package: "swift-buffer-linear-primitives", condition: .when(traits: ["Concurrency"])),
+                .product(name: "Ownership Shared Primitive", package: "swift-ownership-shared-primitives", condition: .when(traits: ["Concurrency"])),
+                .product(name: "Storage Contiguous Primitives", package: "swift-storage-primitives", condition: .when(traits: ["Concurrency"])),
+                .product(name: "Memory Heap Primitives", package: "swift-memory-heap-primitives", condition: .when(traits: ["Concurrency"])),
+                .product(name: "Memory Allocator Primitive", package: "swift-memory-allocation-primitives", condition: .when(traits: ["Concurrency"])),
+                .product(name: "Buffer Primitive", package: "swift-buffer-primitives", condition: .when(traits: ["Concurrency"])),
+                .product(name: "Stack Primitives", package: "swift-stack-primitives", condition: .when(traits: ["Concurrency"])),
+                .product(name: "Array Primitive", package: "swift-array-primitives", condition: .when(traits: ["Concurrency"])),
+                .product(name: "Array Primitives", package: "swift-array-primitives", condition: .when(traits: ["Concurrency"])),
+                .product(name: "Fixed Primitives", package: "swift-fixed-primitives", condition: .when(traits: ["Concurrency"])),
+                .product(name: "Index Primitives", package: "swift-index-primitives", condition: .when(traits: ["Concurrency"])),
+                .product(name: "Iterable", package: "swift-iterator-primitives", condition: .when(traits: ["Concurrency"])),
+                .product(name: "Tagged Collection Primitives", package: "swift-tagged-collection-primitives", condition: .when(traits: ["Concurrency"])),
+                .product(name: "Async Primitives", package: "swift-async-primitives", condition: .when(traits: ["Concurrency"])),
+                .product(name: "Async Waiter Primitives", package: "swift-async-primitives", condition: .when(traits: ["Concurrency"])),
+                .product(name: "Async Mutex Primitives", package: "swift-async-primitives", condition: .when(traits: ["Concurrency"])),
+                .product(name: "Queue Primitive", package: "swift-queue-primitives", condition: .when(traits: ["Concurrency"])),
+                .product(name: "Queue Primitives", package: "swift-queue-primitives", condition: .when(traits: ["Concurrency"])),
+                .product(name: "Async Promise Primitives", package: "swift-async-primitives", condition: .when(traits: ["Concurrency"])),
+                .product(name: "Dimension Primitives", package: "swift-dimension-primitives", condition: .when(traits: ["Concurrency"])),
+                .product(name: "Ownership Primitives", package: "swift-ownership-primitives", condition: .when(traits: ["Concurrency"])),
+                .product(name: "Either Primitives", package: "swift-either-primitives", condition: .when(traits: ["Concurrency"])),
+            ],
+            swiftSettings: [
+                .define("POOL_CONCURRENCY", .when(traits: ["Concurrency"]))
             ]
         ),
 
@@ -224,7 +234,10 @@ let package = Package(
                 "Pool Metrics Primitives",
                 "Pool Acquire Primitives",
                 "Pool Release Primitives",
-                "Pool Bounded Primitives",
+                .target(name: "Pool Bounded Primitives", condition: .when(traits: ["Concurrency"])),
+            ],
+            swiftSettings: [
+                .define("POOL_CONCURRENCY", .when(traits: ["Concurrency"]))
             ]
         ),
 

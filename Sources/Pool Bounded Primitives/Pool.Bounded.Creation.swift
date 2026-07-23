@@ -1,5 +1,5 @@
 // Creation requires async closure - only available on non-embedded platforms.
-#if !hasFeature(Embedded)
+#if POOL_CONCURRENCY
 
     extension Pool.Bounded where Resource: ~Copyable {
         /// Closures for lazy resource creation policy.
@@ -37,12 +37,12 @@
             let create: @Sendable () async throws(Pool.Lifecycle.Error) -> sending Resource
 
             @usableFromInline
-            let destroy: @Sendable (consuming Resource) -> Void
+            let destroy: @Sendable (consuming Resource) async -> Void
 
             @usableFromInline
             init(
                 create: @escaping @Sendable () async throws(Pool.Lifecycle.Error) -> sending Resource,
-                destroy: @escaping @Sendable (consuming Resource) -> Void
+                destroy: @escaping @Sendable (consuming Resource) async -> Void
             ) {
                 self.create = create
                 self.destroy = destroy

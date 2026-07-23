@@ -3,15 +3,16 @@
 ![Development Status](https://img.shields.io/badge/status-active--development-blue.svg)
 [![CI](https://github.com/swift-primitives/swift-pool-primitives/actions/workflows/ci.yml/badge.svg)](https://github.com/swift-primitives/swift-pool-primitives/actions/workflows/ci.yml)
 
-`Pool.Bounded<Resource>` — a bounded async resource pool. `acquire` borrows a resource for the duration of a closure and returns it to the pool afterward; when every resource is checked out, callers suspend until one is released (backpressure rather than over-allocation). Resources are `~Copyable`, so a pooled connection, buffer, or handle is moved in and out rather than copied, and a `destroy` hook reclaims each one at shutdown.
+`Pool.Bounded<Resource>` provides bounded asynchronous resource ownership with explicit reuse or invalidation and joined asynchronous disposal.
 
 ---
 
 ## Key Features
 
 - **Bounded capacity** — a fixed number of resources; `acquire` suspends when the pool is exhausted instead of allocating more.
-- **Scoped acquire / release** — `acquire { resource in … }` returns the resource automatically when the closure exits, on success or throw.
+- **Explicit terminal disposition** — every successful `acquire` body returns `.reusable(result)` or `.invalid(result)`; throws, cancellation, shutdown, and failed validation destroy the resource.
 - **Move-only resources** — `Resource: ~Copyable`; a resource is moved between the pool and the borrower, never duplicated.
+- **Joined async destruction** — fill rejection, invalidation, return validation, and shutdown await the same consuming destructor.
 - **Observable** — `metrics` reports live pool state (outstanding, available, waiters) for instrumentation.
 
 ---
@@ -21,19 +22,26 @@
 ```swift
 import Pool_Primitives
 
-final class Connection: Sendable {
-    func close() {}
+final class Connection {
+    var isHealthy = true
+
+    func close() async {}
     func send(_ request: Int) -> Int { request }
 }
 
-// A bounded pool of up to 4 connections; `destroy` reclaims a resource at shutdown.
-let pool = Pool.Bounded<Connection>(capacity: 4, destroy: { $0.close() })
-try pool.fill(Connection())                 // hand a resource to the pool
+let pool = Pool.Bounded<Connection>(
+    capacity: 4,
+    check: { $0.isHealthy },
+    destroy: { connection in await connection.close() }
+)
+try await pool.fill(Connection())
 
-// `acquire` borrows a resource for the closure, then returns it to the pool:
 let reply = try await pool.acquire { connection in
-    connection.send(200)
+    let reply = connection.send(200)
+    return connection.isHealthy ? .reusable(reply) : .invalid(reply)
 }
+
+await pool.shutdown()
 ```
 
 ---
@@ -55,6 +63,23 @@ dependencies: [
 )
 ```
 
+The `Concurrency` trait is enabled by default, so ordinary consumers receive
+`Pool.Bounded` without additional configuration. A consumer can make that
+choice explicit on its package dependency:
+
+```swift
+.package(
+    url: "https://github.com/swift-primitives/swift-pool-primitives.git",
+    branch: "main",
+    traits: ["Concurrency"]
+)
+```
+
+Freestanding consumers that do not use asynchronous bounded pooling can disable
+default traits with `traits: []`. In that graph, `Pool Primitives` does not
+depend on or re-export `Pool Bounded Primitives`, and the bounded target does not
+pull its concurrency dependencies.
+
 The package is pre-1.0 — depend on `branch: "main"` until `0.1.0` is tagged. Requires Swift 6.3 and macOS 26 / iOS 26 / tvOS 26 / watchOS 26 / visionOS 26 (or the corresponding Linux / Windows toolchain).
 
 ---
@@ -63,8 +88,8 @@ The package is pre-1.0 — depend on `branch: "main"` until `0.1.0` is tagged. R
 
 | Product | Contents | When to import |
 |---------|----------|----------------|
-| `Pool Primitives` | Umbrella — `Pool.Bounded`, the `Pool` namespace, and metrics | Most consumers |
-| `Pool Bounded Primitives` | `Pool.Bounded<Resource>` — the bounded resource pool | Just the bounded pool |
+| `Pool Primitives` | Umbrella — the `Pool` namespace and metrics; also `Pool.Bounded` when `Concurrency` is enabled | Most consumers |
+| `Pool Bounded Primitives` | `Pool.Bounded<Resource>` when `Concurrency` is enabled | Just the bounded pool |
 
 ---
 
@@ -76,13 +101,38 @@ The package is pre-1.0 — depend on `branch: "main"` until `0.1.0` is tagged. R
 | Linux            | Yes | Full support |
 | Windows          | Yes | Full support |
 | iOS/tvOS/watchOS | —   | Supported    |
-| Swift Embedded   | —   | Pending (nightly-toolchain follow-up) |
+| Swift Embedded   | Yes | Supported with default traits disabled |
+
+`Pool.Bounded` requires the default-enabled `Concurrency` trait and is therefore
+not part of an Embedded build with default traits disabled. Its lifecycle
+contract remains fully asynchronous; Embedded does not receive a synchronous or
+callback compatibility surface.
+
+---
+
+## Error Handling
+
+Acquisition separates lifecycle failures from body failures:
+
+```text
+Either<Pool.Lifecycle.Error, BodyError>
+├── .left(.shutdown)
+├── .left(.cancelled)
+├── .left(.creationFailed)
+└── .right(BodyError)
+```
+
+`fill` throws `Pool.Bounded<Resource>.Fill.Error`: `.notEager`, `.shutdown`,
+`.full`, or `.invalid`. A rejected resource is destroyed before the error is
+returned.
 
 ---
 
 ## Related Packages
 
-- [`swift-async-primitives`](https://github.com/swift-primitives/swift-async-primitives) — the async mutex and gate the pool coordinates acquisition and shutdown with.
+### Dependencies
+
+- [`swift-async-primitives`](https://github.com/swift-primitives/swift-async-primitives) — the async mutex and gate the pool coordinates acquisition and shutdown with when `Concurrency` is enabled.
 
 ---
 

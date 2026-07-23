@@ -9,17 +9,13 @@
 //
 // ===----------------------------------------------------------------------===//
 
-extension Pool.Bounded.Acquire.Callback where Resource: ~Copyable {
-    /// Actions computed under lock for callback-based acquisition.
-    @usableFromInline
-    enum Action {
-        /// Slot immediately available.
-        case immediate(Pool.Bounded<Resource>.Slot.Index, Pool.ID)
-
-        /// Need to wait for a slot.
-        case enqueue
-
-        /// Pool is shutting down.
-        case shutdown
+#if POOL_CONCURRENCY
+    extension Pool.Bounded.Release where Resource: ~Copyable {
+        /// Whether a checked-out resource may return to reusable storage.
+        @usableFromInline
+        enum Disposition {
+            case reusable
+            case invalid
+        }
     }
-}
+#endif
