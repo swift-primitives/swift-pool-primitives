@@ -47,7 +47,7 @@
         /// - Returns: A terminal lifecycle error, or `nil` after a reusable return.
         @usableFromInline
         func release(
-            _ resource: consuming Resource,
+            _ resource: consuming sending Resource,
             from slotIndex: Slot.Index,
             id: Pool.ID,
             as disposition: Release.Disposition
