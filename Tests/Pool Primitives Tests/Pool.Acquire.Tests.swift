@@ -17,6 +17,8 @@ private struct TestResource: Sendable {
 @Suite
 struct `Pool.Acquire Tests` {
     @Suite struct Unit {}
+    @Suite struct `Edge Case` {}
+    @Suite struct Integration {}
 }
 
 extension `Pool.Acquire Tests`.Unit {

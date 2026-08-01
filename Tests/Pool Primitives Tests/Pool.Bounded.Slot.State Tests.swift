@@ -10,6 +10,8 @@ import Testing
 @Suite
 struct `Pool.Bounded.Slot.State Tests` {
     @Suite struct Unit {}
+    @Suite struct `Edge Case` {}
+    @Suite struct Integration {}
 }
 
 // MARK: - Type Aliases
