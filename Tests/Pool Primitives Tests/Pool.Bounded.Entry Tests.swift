@@ -64,7 +64,7 @@ extension `Pool.Bounded.Entry Tests`.`Edge Case` {
     func `multiple move cycles work correctly`() {
         let entry = Entry()
 
-        for i in 0..<10 {
+        (0..<10).forEach { i in
             entry.move.in(i)
             let value = entry.move.out
             #expect(value == i)
