@@ -10,7 +10,7 @@
     @_spi(Internal) internal import Pool_Scope_Primitives
     internal import Tagged_Collection_Primitives
 
-    internal import Synchronization
+    package import Synchronization
     internal import Column_Primitives
     internal import Fixed_Primitives
     internal import Buffer_Linear_Bounded_Primitive
