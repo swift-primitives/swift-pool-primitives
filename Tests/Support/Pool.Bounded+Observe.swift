@@ -1,4 +1,4 @@
-#if DEBUG
+#if DEBUG && POOL_CONCURRENCY
     import Pool_Bounded_Primitives
 
     extension Pool.Bounded where Resource: ~Copyable {
