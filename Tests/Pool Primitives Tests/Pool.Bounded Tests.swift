@@ -270,6 +270,50 @@ extension `Pool.Bounded Tests`.`Edge Case` {
 #if DEBUG
     extension `Pool.Bounded Tests`.Integration {
         @Test
+        func `enqueue observation acknowledges queued acquisition`() async throws {
+            let entered = Async.Gate()
+            let release = Async.Gate()
+            let enqueued = Async.Gate()
+            let pool = TestPool(capacity: 1, destroy: { _ in })
+            try await pool.fill(1)
+
+            let holder = Task {
+                let _: Void = try await pool.acquire { _ in
+                    _ = entered.open()
+                    await release.wait()
+                    return .reusable(())
+                }
+            }
+            await entered.wait()
+
+            pool.observe(enqueue: { _ = enqueued.open() })
+            let waiter = Task {
+                let _: Void = try await pool.acquire { .reusable(()) }
+            }
+
+            await enqueued.wait()
+            #expect(pool.metrics.waiters == 1)
+            _ = release.open()
+            try await holder.value
+            try await waiter.value
+            await pool.shutdown()
+        }
+
+        @Test
+        func `enqueue observation excludes immediate acquisition`() async throws {
+            let enqueued = Async.Gate()
+            let pool = TestPool(capacity: 1, destroy: { _ in })
+            try await pool.fill(1)
+            pool.observe(enqueue: { _ = enqueued.open() })
+
+            let value: Int = try await pool.acquire { .reusable($0) }
+
+            #expect(value == 1)
+            #expect(!enqueued.isOpen)
+            await pool.shutdown()
+        }
+
+        @Test
         func `failed return validation replaces before waiter delivery`() async throws {
             let firstBody = Async.Gate()
             let releaseFirst = Async.Gate()
@@ -298,7 +342,7 @@ extension `Pool.Bounded Tests`.`Edge Case` {
             }
             await firstBody.wait()
 
-            pool.enqueue.withLock { $0 = { waiterEnqueued.open() } }
+            pool.observe(enqueue: { _ = waiterEnqueued.open() })
             let second = Task {
                 try await pool.acquire { resource in .reusable(resource) }
             }
@@ -342,7 +386,7 @@ extension `Pool.Bounded Tests`.`Edge Case` {
             }
             await firstBody.wait()
 
-            pool.enqueue.withLock { $0 = { waiterEnqueued.open() } }
+            pool.observe(enqueue: { _ = waiterEnqueued.open() })
             let second = Task {
                 do throws(Either<Pool.Lifecycle.Error, Never>) {
                     let _: Int = try await pool.acquire {

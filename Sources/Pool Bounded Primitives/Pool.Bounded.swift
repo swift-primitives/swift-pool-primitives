@@ -90,7 +90,7 @@
                 /// Test hook called immediately after a waiter is enqueued.
                 ///
                 /// Use for deterministic test synchronization instead of polling.
-                let enqueue = Mutex<(@Sendable () -> Void)?>(nil)
+                package let enqueue = Mutex<(@Sendable () -> Void)?>(nil)
             #endif
 
             /// Creates a fixed-capacity pool with eager policy.

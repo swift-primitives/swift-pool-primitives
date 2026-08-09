@@ -245,6 +245,7 @@ let package = Package(
             name: "Pool Primitives Test Support",
             dependencies: [
                 "Pool Primitives",
+                "Pool Bounded Primitives",
                 .product(name: "Index Primitives Test Support", package: "swift-index-primitives"),
             ],
             path: "Tests/Support"
