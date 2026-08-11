@@ -1,7 +1,4 @@
-// Creation requires async closure - only available on non-embedded platforms.
-#if POOL_CONCURRENCY
-
-    extension Pool.Bounded where Resource: ~Copyable {
+extension Pool.Bounded where Resource: ~Copyable {
         /// Closures for lazy resource creation policy.
         ///
         /// Contains both the factory closure for creating resources on-demand
@@ -49,4 +46,3 @@
             }
         }
     }
-#endif

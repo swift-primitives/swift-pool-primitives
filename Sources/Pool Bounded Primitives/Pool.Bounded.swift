@@ -1,4 +1,3 @@
-#if POOL_CONCURRENCY
     internal import Array_Primitive
     internal import Array_Primitives
     public import Async_Mutex_Primitives
@@ -6,8 +5,8 @@
     public import Async_Promise_Primitives
     internal import Async_Waiter_Primitives
     internal import Ownership_Primitives
-    @_spi(Internal) internal import Pool_Capacity_Primitives
-    @_spi(Internal) internal import Pool_Scope_Primitives
+    internal import Pool_Capacity_Primitives
+    internal import Pool_Scope_Primitives
     internal import Tagged_Collection_Primitives
 
     internal import Synchronization
@@ -76,6 +75,14 @@
             @usableFromInline
             let _check: (@Sendable (inout Resource) -> Bool)?
 
+            /// Synchronous fallback for an abandoned checked-out handle.
+            ///
+            /// A handle may be destroyed in any operation region. Captures are
+            /// therefore shared pool policy and must be `Sendable`; the unique
+            /// resource is transferred into exactly one invocation.
+            @usableFromInline
+            let _drop: @Sendable (consuming Resource) -> Void
+
             /// Immutable fixed-capacity storage for resources.
             ///
             /// Each Entry wraps a single resource slot. The array never changes
@@ -100,6 +107,7 @@
             /// - Parameters:
             ///   - capacity: Maximum number of resources.
             ///   - check: Optional validation closure.
+            ///   - drop: Synchronous fallback for an abandoned checked-out handle.
             ///   - destroy: Asynchronous consuming closure that disposes resources.
             ///     Captures are stored on the pool and must be `Sendable`; the
             ///     resource itself is not required to be `Sendable`. Every disposal
@@ -107,6 +115,7 @@
             public init(
                 capacity: Pool.Capacity,
                 check: (@Sendable (inout Resource) -> Bool)? = nil,
+                drop: @escaping @Sendable (consuming Resource) -> Void = { _ in },
                 destroy: @escaping @Sendable (consuming Resource) async -> Void
             ) {
                 self._state = Async.Mutex(State(capacity: capacity.value))
@@ -114,6 +123,7 @@
                 self.scope = Pool.Scope()
                 self.policy = .eager(destroy)
                 self._check = check
+                self._drop = drop
                 // force_try is safe: capacity.value is a validated Cardinal count,
                 // so Fixed<Entry>(count:initializingWith:) cannot fail here.
                 // swift-format-ignore: NeverUseForceTry
@@ -138,11 +148,13 @@
             ///     The factory's captures must be `Sendable` because the closure
             ///     is stored on the pool; the Resource it produces is `sending`
             ///     (transferred into the pool, not shared).
+            ///   - drop: Synchronous fallback for an abandoned checked-out handle.
             ///   - destroy: Asynchronous consuming closure that disposes resources.
             public init(
                 capacity: Pool.Capacity,
                 check: (@Sendable (inout Resource) -> Bool)? = nil,
                 create: @escaping @Sendable () async throws(Pool.Lifecycle.Error) -> sending Resource,
+                drop: @escaping @Sendable (consuming Resource) -> Void = { _ in },
                 destroy: @escaping @Sendable (consuming Resource) async -> Void
             ) {
                 self._state = Async.Mutex(State(capacity: capacity.value))
@@ -150,6 +162,7 @@
                 self.scope = Pool.Scope()
                 self.policy = .lazy(Creation(create: create, destroy: destroy))
                 self._check = check
+                self._drop = drop
                 // force_try is safe: capacity.value is a validated Cardinal count,
                 // so Fixed<Entry>(count:initializingWith:) cannot fail here.
                 // swift-format-ignore: NeverUseForceTry
@@ -217,5 +230,3 @@
             }
         }
     }
-
-#endif

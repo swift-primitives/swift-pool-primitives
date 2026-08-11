@@ -9,7 +9,6 @@
 //
 // ===----------------------------------------------------------------------===//
 
-#if POOL_CONCURRENCY
     extension Pool.Bounded.Release where Resource: ~Copyable {
         /// Whether a checked-out resource may return to reusable storage.
         @usableFromInline
@@ -18,4 +17,3 @@
             case invalid
         }
     }
-#endif

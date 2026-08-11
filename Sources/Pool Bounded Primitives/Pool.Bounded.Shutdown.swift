@@ -1,4 +1,3 @@
-#if POOL_CONCURRENCY
     // ===----------------------------------------------------------------------===//
     //
     // This source file is part of the swift-pools open source project
@@ -148,4 +147,3 @@
             }
         }
     }
-#endif

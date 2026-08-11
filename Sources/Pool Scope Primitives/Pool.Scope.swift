@@ -21,8 +21,7 @@ extension Pool {
         let value: RawValue
 
         /// Creates a new unique scope.
-        @_spi(Internal)
-        public init() {
+        package init() {
             #if !hasFeature(Embedded)
                 self.value = RawValue(_unchecked: _scopeCounter.wrappingAdd(1, ordering: .relaxed).oldValue)
             #else

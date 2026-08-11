@@ -9,7 +9,6 @@
 //
 // ===----------------------------------------------------------------------===//
 
-#if POOL_CONCURRENCY
     internal import Array_Primitive
     internal import Array_Primitives
     internal import Async_Mutex_Primitives
@@ -251,4 +250,3 @@
             return count
         }
     }
-#endif

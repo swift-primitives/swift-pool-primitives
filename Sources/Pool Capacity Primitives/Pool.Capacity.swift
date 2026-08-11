@@ -2,8 +2,7 @@ extension Pool {
     /// Pool capacity configuration.
     public struct Capacity: Sendable, Hashable {
         /// The capacity value.
-        @_spi(Internal)
-        public let value: Int
+        package let value: Int
 
         /// Creates a capacity.
         ///

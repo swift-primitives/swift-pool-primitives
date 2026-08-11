@@ -1,4 +1,3 @@
-#if POOL_CONCURRENCY
     extension Pool.Bounded.Slot where Resource: ~Copyable {
         /// Slot state machine.
         ///
@@ -37,4 +36,3 @@
             case disposing(Pool.ID)
         }
     }
-#endif

@@ -1,4 +1,3 @@
-#if POOL_CONCURRENCY
     extension Pool.Bounded where Resource: ~Copyable {
         /// Class wrapper for Resource storage.
         ///
@@ -14,4 +13,3 @@
         @usableFromInline
         typealias Entry = Ownership.Slot<Resource>
     }
-#endif

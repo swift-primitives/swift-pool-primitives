@@ -63,22 +63,9 @@ dependencies: [
 )
 ```
 
-The `Concurrency` trait is enabled by default, so ordinary consumers receive
-`Pool.Bounded` without additional configuration. A consumer can make that
-choice explicit on its package dependency:
-
-```swift
-.package(
-    url: "https://github.com/swift-primitives/swift-pool-primitives.git",
-    branch: "main",
-    traits: ["Concurrency"]
-)
-```
-
-Freestanding consumers that do not use asynchronous bounded pooling can disable
-default traits with `traits: []`. In that graph, `Pool Primitives` does not
-depend on or re-export `Pool Bounded Primitives`, and the bounded target does not
-pull its concurrency dependencies.
+`Pool.Bounded` is an ordinary package surface. Consumers select either the
+`Pool Primitives` umbrella or the narrower `Pool Bounded Primitives` product;
+no package trait or SPI is required.
 
 The package is pre-1.0 — depend on `branch: "main"` until `0.1.0` is tagged. Requires Swift 6.3 and macOS 26 / iOS 26 / tvOS 26 / watchOS 26 / visionOS 26 (or the corresponding Linux / Windows toolchain).
 
@@ -88,8 +75,8 @@ The package is pre-1.0 — depend on `branch: "main"` until `0.1.0` is tagged. R
 
 | Product | Contents | When to import |
 |---------|----------|----------------|
-| `Pool Primitives` | Umbrella — the `Pool` namespace and metrics; also `Pool.Bounded` when `Concurrency` is enabled | Most consumers |
-| `Pool Bounded Primitives` | `Pool.Bounded<Resource>` when `Concurrency` is enabled | Just the bounded pool |
+| `Pool Primitives` | Umbrella — the `Pool` namespace, metrics, and `Pool.Bounded` | Most consumers |
+| `Pool Bounded Primitives` | `Pool.Bounded<Resource>` | Just the bounded pool |
 
 ---
 
@@ -101,12 +88,10 @@ The package is pre-1.0 — depend on `branch: "main"` until `0.1.0` is tagged. R
 | Linux            | Yes | Full support |
 | Windows          | Yes | Full support |
 | iOS/tvOS/watchOS | —   | Supported    |
-| Swift Embedded   | Yes | Supported with default traits disabled |
+| Swift Embedded   | —   | Pending exact bounded-pool evidence |
 
-`Pool.Bounded` requires the default-enabled `Concurrency` trait and is therefore
-not part of an Embedded build with default traits disabled. Its lifecycle
-contract remains fully asynchronous; Embedded does not receive a synchronous or
-callback compatibility surface.
+`Pool.Bounded` has a fully asynchronous lifecycle. This source-only change does
+not claim Embedded compatibility; that requires a later exact toolchain build.
 
 ---
 
