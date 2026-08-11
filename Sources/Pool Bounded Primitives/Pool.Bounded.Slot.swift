@@ -1,4 +1,3 @@
-#if POOL_CONCURRENCY
     public import Dimension_Primitives
 
     extension Pool.Bounded where Resource: ~Copyable {
@@ -26,4 +25,3 @@
         @usableFromInline
         typealias Index = Tagged<Self, Ordinal>
     }
-#endif

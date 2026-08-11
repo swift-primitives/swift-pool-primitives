@@ -1,9 +1,7 @@
 // exports.swift
 // Pool Bounded Primitives module exports.
 
-#if POOL_CONCURRENCY
-    // External foundations used module-wide by Bounded's implementation files
-    // (restores the module-wide visibility the former Core target re-exported).
+    // External foundations used module-wide by Bounded's implementation files.
     @_exported public import Async_Primitives
     @_exported public import Dimension_Primitives
     @_exported public import Index_Primitives
@@ -15,4 +13,3 @@
     @_exported public import Pool_Metrics_Primitives
     @_exported public import Pool_Primitive
     @_exported public import Pool_Scope_Primitives
-#endif

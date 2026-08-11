@@ -1,4 +1,3 @@
-#if POOL_CONCURRENCY
     public import Array_Primitive
     public import Array_Primitives
     public import Async_Primitives
@@ -15,9 +14,9 @@
     internal import Memory_Allocator_Primitive
     internal import Memory_Heap_Primitives
     internal import Ownership_Shared_Primitive
-    @_spi(Internal) internal import Pool_ID_Primitives
-    @_spi(Internal) internal import Pool_Metrics_Primitives
-    @_spi(Internal) internal import Pool_Scope_Primitives
+    internal import Pool_ID_Primitives
+    internal import Pool_Metrics_Primitives
+    internal import Pool_Scope_Primitives
     public import Queue_Primitive
     internal import Queue_Primitives
     public import Stack_Primitives
@@ -469,4 +468,3 @@
             return pending
         }
     }
-#endif

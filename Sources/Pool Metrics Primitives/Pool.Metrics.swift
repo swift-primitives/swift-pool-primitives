@@ -33,8 +33,7 @@ extension Pool {
         public var waiters: Int
 
         /// Creates empty metrics.
-        @_spi(Internal)
-        public init() {
+        package init() {
             self.created = 0
             self.fills = 0
             self.closed = 0

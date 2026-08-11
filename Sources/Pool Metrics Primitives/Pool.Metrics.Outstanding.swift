@@ -8,8 +8,7 @@ extension Pool.Metrics {
         public var peak: Int
 
         /// Creates an empty outstanding counter.
-        @_spi(Internal)
-        public init() {
+        package init() {
             self.current = 0
             self.peak = 0
         }

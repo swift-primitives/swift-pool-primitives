@@ -1,4 +1,3 @@
-#if POOL_CONCURRENCY
     extension Pool.Bounded where Resource: ~Copyable {
         /// Resource creation policy.
         ///
@@ -16,4 +15,3 @@
             case lazy(Creation)
         }
     }
-#endif

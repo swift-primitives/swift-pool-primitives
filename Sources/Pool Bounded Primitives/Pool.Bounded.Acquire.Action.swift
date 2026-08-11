@@ -1,4 +1,3 @@
-#if POOL_CONCURRENCY
     // ===----------------------------------------------------------------------===//
     //
     // This source file is part of the swift-pools open source project
@@ -17,10 +16,8 @@
             /// Slot immediately available - return to caller.
             case immediate(Pool.Bounded<Resource>.Slot.Index, Pool.ID)
 
-            #if POOL_CONCURRENCY
-                /// Need to create resource lazily.
-                case create(Pool.Bounded<Resource>.Slot.Index, Pool.ID)
-            #endif
+            /// Need to create resource lazily.
+            case create(Pool.Bounded<Resource>.Slot.Index, Pool.ID)
 
             /// Need to suspend and wait for slot.
             case suspend
@@ -29,4 +26,3 @@
             case shutdown
         }
     }
-#endif

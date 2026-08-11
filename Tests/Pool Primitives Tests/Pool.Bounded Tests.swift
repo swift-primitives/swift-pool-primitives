@@ -6,7 +6,7 @@ import Synchronization
 import Testing
 
 @testable import Pool_Bounded_Primitives
-@_spi(Internal) @testable import Pool_Error_Primitives
+@testable import Pool_Error_Primitives
 
 @Suite(.serialized)
 struct `Pool.Bounded Tests` {
@@ -18,6 +18,45 @@ struct `Pool.Bounded Tests` {
 private typealias TestPool = Pool.Bounded<Int>
 
 extension `Pool.Bounded Tests`.Unit {
+    @Test
+    func `checked out handle borrows and returns a move-only resource`() async throws {
+        let pool = Pool.Bounded<Unique>(capacity: 1, destroy: { _ in })
+        try await pool.fill(Unique(value: 41))
+
+        var handle = try await pool.checkout()
+        handle.resource.value += 1
+        let result = Unique.Result(value: handle.resource.value)
+        let resolved = await handle.resolve(.reusable(result))
+
+        #expect(resolved.value == 42)
+        #expect(pool.metrics.outstanding.current == 0)
+
+        var second = try await pool.checkout()
+        let reused = second.resource.value
+        _ = await second.resolve(.reusable(()))
+        #expect(reused == 42)
+        await pool.shutdown()
+    }
+
+    @Test
+    func `abandoned handle synchronously invalidates its resource`() async throws {
+        let dropped = Mutex(0)
+        let pool = Pool.Bounded<Unique>(
+            capacity: 1,
+            drop: { _ in dropped.withLock { $0 += 1 } },
+            destroy: { _ in }
+        )
+        try await pool.fill(Unique(value: 1))
+
+        let handle = try await pool.checkout()
+        discard handle
+
+        #expect(dropped.withLock { $0 } == 1)
+        #expect(pool.metrics.outstanding.current == 0)
+        #expect(pool.metrics.closed == 1)
+        await pool.shutdown()
+    }
+
     @Test
     func `reusable disposition returns the resource to the pool`() async throws {
         let pool = TestPool(capacity: 1, destroy: { _ in })
@@ -269,6 +308,59 @@ extension `Pool.Bounded Tests`.`Edge Case` {
 
 #if DEBUG
     extension `Pool.Bounded Tests`.Integration {
+        @Test
+        func `cancelled checkout emits no handle`() async {
+            let waiterEnqueued = Async.Gate()
+            let pool = Pool.Bounded<Unique>(capacity: 1, destroy: { _ in })
+            pool.enqueue.withLock { $0 = { _ = waiterEnqueued.open() } }
+
+            let waiter = Task {
+                do throws(Pool.Lifecycle.Error) {
+                    let handle = try await pool.checkout()
+                    discard handle
+                    return Pool.Lifecycle.Error?.none
+                } catch {
+                    return error
+                }
+            }
+
+            await waiterEnqueued.wait()
+            waiter.cancel()
+
+            #expect(await waiter.value == .cancelled)
+            #expect(pool.metrics.outstanding.current == 0)
+            await pool.shutdown()
+        }
+
+        @Test
+        func `abandoned lazy handle fails queued checkout without detached replacement`() async throws {
+            let waiterEnqueued = Async.Gate()
+            let pool = Pool.Bounded<Unique>(
+                capacity: 1,
+                create: { Unique(value: 1) },
+                destroy: { _ in }
+            )
+            let handle = try await pool.checkout()
+
+            pool.enqueue.withLock { $0 = { _ = waiterEnqueued.open() } }
+            let waiter = Task {
+                do throws(Pool.Lifecycle.Error) {
+                    let next = try await pool.checkout()
+                    discard next
+                    return Pool.Lifecycle.Error?.none
+                } catch {
+                    return error
+                }
+            }
+
+            await waiterEnqueued.wait()
+            discard handle
+
+            #expect(await waiter.value == .creationFailed)
+            #expect(pool.metrics.outstanding.current == 0)
+            await pool.shutdown()
+        }
+
         @Test
         func `failed return validation replaces before waiter delivery`() async throws {
             let firstBody = Async.Gate()

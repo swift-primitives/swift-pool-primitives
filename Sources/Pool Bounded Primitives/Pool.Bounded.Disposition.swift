@@ -9,7 +9,6 @@
 //
 // ===----------------------------------------------------------------------===//
 
-#if POOL_CONCURRENCY
     extension Pool.Bounded where Resource: ~Copyable {
         /// The terminal resource disposition and result of a successful acquisition body.
         ///
@@ -23,4 +22,3 @@
             case invalid(Value)
         }
     }
-#endif

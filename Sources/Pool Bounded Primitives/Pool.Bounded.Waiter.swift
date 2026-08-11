@@ -1,4 +1,3 @@
-#if POOL_CONCURRENCY
     public import Async_Primitives
     public import Async_Waiter_Primitives
     internal import Dimension_Primitives
@@ -27,4 +26,3 @@
         @usableFromInline
         typealias Flagged = Async.Waiter.Queue.Flagged<Pool.Bounded<Resource>.Outcome, Metadata>
     }
-#endif

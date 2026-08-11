@@ -1,4 +1,3 @@
-#if POOL_CONCURRENCY
     // ===----------------------------------------------------------------------===//
     //
     // This source file is part of the swift-pools open source project
@@ -27,4 +26,3 @@
             case install(Pool.Bounded<Resource>.Slot.Index, Pool.ID)
         }
     }
-#endif

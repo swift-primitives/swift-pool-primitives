@@ -9,7 +9,6 @@
 //
 // ===----------------------------------------------------------------------===//
 
-#if POOL_CONCURRENCY
     internal import Array_Primitive
     internal import Array_Primitives
     internal import Async_Mutex_Primitives
@@ -32,6 +31,53 @@
     // MARK: - Slot Release
 
     extension Pool.Bounded where Resource: ~Copyable {
+        /// Synchronously invalidates an abandoned checked-out resource.
+        ///
+        /// This path is called from the handle storage's `deinit`, so it never
+        /// suspends, throws, or starts cleanup work in another task. The slot is
+        /// tracked as disposing while the shared fallback runs, preserving the
+        /// shutdown drain law under concurrent observation.
+        @usableFromInline
+        func abandon(
+            _ resource: consuming sending Resource,
+            from slotIndex: Slot.Index,
+            id: Pool.ID
+        ) {
+            _state.withLock { state in
+                guard case .out(let currentId) = state.slots[slotIndex].state,
+                    currentId == id
+                else {
+                    preconditionFailure("Abandoned handle has mismatched slot state or ID")
+                }
+                state.metrics.releases += 1
+                state.transition(slot: slotIndex, to: .disposing(id))
+            }
+
+            _drop(resource)
+
+            var pending = _state.withLock { state in
+                state.transition(slot: slotIndex, to: .empty)
+                state.metrics.closed += 1
+
+                guard case .lazy = policy else {
+                    // swift-format-ignore: UseShorthandTypeNames
+                    // swiftlint:disable:next syntactic_sugar
+                    return Array<Async.Waiter.Resumption>(initialCapacity: 0)
+                }
+                return state.fail(
+                    waitersWith: state.lifecycle.shutdown.isActive
+                        ? .shutdown
+                        : .creationFailed
+                )
+            }
+            pending.drain { $0.resume() }
+
+            let effect = _state.withLock { state in
+                state.checkShutdownComplete()
+            }
+            perform(effect)
+        }
+
         /// Releases a slot back to the pool using two-phase commit.
         ///
         /// ## Two-Phase Commit (Strict Stance)
@@ -219,4 +265,3 @@
             pending.drain { $0.resume() }
         }
     }
-#endif

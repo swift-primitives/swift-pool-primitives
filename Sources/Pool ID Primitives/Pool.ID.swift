@@ -12,8 +12,7 @@ extension Pool {
         let scope: Scope
 
         /// Creates a new ID within the given scope.
-        @_spi(Internal)
-        public init(raw: UInt64, scope: Pool.Scope) {
+        package init(raw: UInt64, scope: Pool.Scope) {
             self.raw = RawValue(_unchecked: raw)
             self.scope = scope
         }
