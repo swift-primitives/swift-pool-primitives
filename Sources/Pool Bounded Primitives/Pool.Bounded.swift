@@ -114,15 +114,23 @@
                 self.scope = Pool.Scope()
                 self.policy = .eager(destroy)
                 self._check = check
-                // force_try is safe: capacity.value is a validated Cardinal count,
-                // so Fixed<Entry>(count:initializingWith:) cannot fail here.
-                // swift-format-ignore: NeverUseForceTry
-                self.entries = Tagged<Slot, Fixed<Entry>>(
-                    try! Fixed<Entry>(
-                        count: Index<Entry>.Count(capacity.value),
-                        initializingWith: { _ in Entry() }
+                // INVARIANT: `Pool.Capacity` rejects values <= 0, so the entry
+                // count is always representable and the storage always sizeable.
+                do {
+                    self.entries = Tagged<Slot, Fixed<Entry>>(
+                        try Fixed<Entry>(
+                            count: Index<Entry>.Count(capacity.value),
+                            initializingWith: { _ in Entry() }
+                        )
                     )
-                )
+                } catch {
+                    preconditionFailure(
+                        """
+                        Pool.Bounded entry storage could not be sized \
+                        for capacity \(capacity.value): \(error)
+                        """
+                    )
+                }
             }
 
             /// Creates a fixed-capacity pool with lazy policy.
@@ -142,7 +150,8 @@
             public init(
                 capacity: Pool.Capacity,
                 check: (@Sendable (inout Resource) -> Bool)? = nil,
-                create: @escaping @Sendable () async throws(Pool.Lifecycle.Error) -> sending Resource,
+                create:
+                    @escaping @Sendable () async throws(Pool.Lifecycle.Error) -> sending Resource,
                 destroy: @escaping @Sendable (consuming Resource) async -> Void
             ) {
                 self._state = Async.Mutex(State(capacity: capacity.value))
@@ -150,15 +159,23 @@
                 self.scope = Pool.Scope()
                 self.policy = .lazy(Creation(create: create, destroy: destroy))
                 self._check = check
-                // force_try is safe: capacity.value is a validated Cardinal count,
-                // so Fixed<Entry>(count:initializingWith:) cannot fail here.
-                // swift-format-ignore: NeverUseForceTry
-                self.entries = Tagged<Slot, Fixed<Entry>>(
-                    try! Fixed<Entry>(
-                        count: Index<Entry>.Count(capacity.value),
-                        initializingWith: { _ in Entry() }
+                // INVARIANT: `Pool.Capacity` rejects values <= 0, so the entry
+                // count is always representable and the storage always sizeable.
+                do {
+                    self.entries = Tagged<Slot, Fixed<Entry>>(
+                        try Fixed<Entry>(
+                            count: Index<Entry>.Count(capacity.value),
+                            initializingWith: { _ in Entry() }
+                        )
                     )
-                )
+                } catch {
+                    preconditionFailure(
+                        """
+                        Pool.Bounded entry storage could not be sized \
+                        for capacity \(capacity.value): \(error)
+                        """
+                    )
+                }
             }
 
             deinit {

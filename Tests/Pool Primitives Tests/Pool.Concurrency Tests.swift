@@ -142,13 +142,16 @@ extension `Pool.Bounded Tests` {
             let metrics = pool.metrics
             #expect(metrics.releases == metrics.acquisitions)
             #expect(metrics.outstanding.current == 0)
-            let after = try await pool.acquire { .reusable($0 &* 10) }  // the resource survived the storm
+            // the resource survived the storm
+            let after = try await pool.acquire { .reusable($0 &* 10) }
             #expect(after == 30)
             await pool.shutdown()
         }
 
         @Test
-        func `shutdown drains every pending waiter and completes after the holder releases`() async throws {
+        func `shutdown drains every pending waiter and completes after the holder releases`()
+            async throws
+        {
             let pool = makePrefilled(5)
             let release = Flag()
             let occupantRunning = Flag()
@@ -217,7 +220,9 @@ extension `Pool.Bounded Tests` {
         }
 
         @Test
-        func `suspend racing disposal completion claims the empty lazy slot`() async throws(Pool.Lifecycle.Error) {
+        func `suspend racing disposal completion claims the empty lazy slot`()
+            async throws(Pool.Lifecycle.Error)
+        {
             // Lazy sibling of the lost-wakeup window: an acquirer decides `.suspend`
             // while the only slot is busy; the disposal then completes with no
             // queued waiter, so `complete(disposalAt:)` sees no demand and leaves

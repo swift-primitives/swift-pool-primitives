@@ -34,7 +34,10 @@
             // what `Async.Waiter.Resumption` (~Copyable) actually needs — sugar
             // breaks the build here ("does not conform to protocol 'Copyable'").
             // swift-format-ignore: UseShorthandTypeNames
-            case drain([(Pool.Bounded<Resource>.Slot.Index, Pool.ID)], resumptions: Array<Async.Waiter.Resumption>)
+            case drain(
+                [(Pool.Bounded<Resource>.Slot.Index, Pool.ID)],
+                resumptions: Array<Async.Waiter.Resumption>
+            )
             case alreadyShuttingDown
         }
     }

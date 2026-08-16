@@ -122,7 +122,8 @@
                 // Dispose each resource OUTSIDE lock (strict stance)
                 for (slotIndex, _) in slotsToDrain {
                     // Move resource out OUTSIDE lock
-                    let resource = pool.entries.underlying[slotIndex.retag(Pool.Bounded<Resource>.Entry.self)].move.out
+                    let entryIndex = slotIndex.retag(Pool.Bounded<Resource>.Entry.self)
+                    let resource = pool.entries.underlying[entryIndex].move.out
 
                     // Destroy resource OUTSIDE lock
                     await pool.destructor(resource)

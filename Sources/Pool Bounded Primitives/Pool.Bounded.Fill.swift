@@ -153,7 +153,8 @@
                 }
 
                 // Install resource OUTSIDE lock (strict stance)
-                pool.entries.underlying[slotIndex.retag(Pool.Bounded<Resource>.Entry.self)].move.in(resource)
+                let entryIndex = slotIndex.retag(Pool.Bounded<Resource>.Entry.self)
+                pool.entries.underlying[entryIndex].move.in(resource)
 
                 // Phase 3: Commit under lock
                 // All side-outputs embedded in Commit to avoid capturing
@@ -202,7 +203,8 @@
                     pool.perform(.waiter(.resume(resumption)))
 
                 case .dispose:
-                    let resource = pool.entries.underlying[slotIndex.retag(Pool.Bounded<Resource>.Entry.self)].move.out
+                    let entryIndex = slotIndex.retag(Pool.Bounded<Resource>.Entry.self)
+                    let resource = pool.entries.underlying[entryIndex].move.out
                     await pool.destructor(resource)
                     let effect = pool._state.withLock { state in
                         state.transition(slot: slotIndex, to: .empty)
