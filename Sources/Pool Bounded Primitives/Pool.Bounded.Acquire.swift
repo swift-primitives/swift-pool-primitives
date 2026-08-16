@@ -76,11 +76,11 @@
         /// - Returns: The value carried by the body's terminal disposition.
         /// - Throws: `Either<Pool.Lifecycle.Error, E>` where `.left` is a pool
         ///   failure and `.right` is a body failure.
-        nonisolated(nonsending)
-            public func callAsFunction<T: ~Copyable, E: Swift.Error>(
-                _ body: nonisolated(nonsending) (inout sending Resource) async throws(E) -> sending Pool.Bounded<Resource>.Disposition<T>
-            ) async throws(Either<Pool.Lifecycle.Error, E>) -> sending T
-        {
+        nonisolated(nonsending) public func callAsFunction<T: ~Copyable, E: Swift.Error>(
+            _ body:
+                nonisolated(nonsending) (inout sending Resource) async throws(E)
+                -> sending Pool.Bounded<Resource>.Disposition<T>
+        ) async throws(Either<Pool.Lifecycle.Error, E>) -> sending T {
             while true {
                 let slot: (Pool.Bounded<Resource>.Slot.Index, Pool.ID)
                 do throws(Pool.Lifecycle.Error) {

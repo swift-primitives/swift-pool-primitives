@@ -41,7 +41,8 @@
 
             @usableFromInline
             init(
-                create: @escaping @Sendable () async throws(Pool.Lifecycle.Error) -> sending Resource,
+                create:
+                    @escaping @Sendable () async throws(Pool.Lifecycle.Error) -> sending Resource,
                 destroy: @escaping @Sendable (consuming Resource) async -> Void
             ) {
                 self.create = create

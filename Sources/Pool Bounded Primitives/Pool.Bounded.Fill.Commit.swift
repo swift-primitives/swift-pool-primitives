@@ -36,7 +36,10 @@
         enum Commit: ~Copyable {
             // swift-format-ignore: UseShorthandTypeNames
             /// Add slot to available pool.
-            case addToPool(effect: Pool.Bounded<Resource>.Effect, skipped: Array<Async.Waiter.Resumption>)
+            case addToPool(
+                effect: Pool.Bounded<Resource>.Effect,
+                skipped: Array<Async.Waiter.Resumption>
+            )
 
             // swift-format-ignore: UseShorthandTypeNames
             /// Hand off directly to waiter.

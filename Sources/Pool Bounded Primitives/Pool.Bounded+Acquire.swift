@@ -100,7 +100,10 @@
         /// 3. Install resource OUTSIDE lock
         /// 4. Commit state transition under lock
         @usableFromInline
-        func createLazyResource(slotIndex: Slot.Index, id: Pool.ID) async throws(Pool.Lifecycle.Error) -> (Slot.Index, Pool.ID) {
+        func createLazyResource(
+            slotIndex: Slot.Index,
+            id: Pool.ID
+        ) async throws(Pool.Lifecycle.Error) -> (Slot.Index, Pool.ID) {
             // Get creator from policy
             guard case .lazy(let creation) = policy else {
                 preconditionFailure("createLazyResource called with non-lazy policy")

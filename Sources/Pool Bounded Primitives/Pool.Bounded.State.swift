@@ -84,19 +84,28 @@
             /// Creates state for a pool with the given capacity.
             @usableFromInline
             init(capacity: Int) {
+                // INVARIANT: `capacity` comes from `Pool.Capacity`, which rejects
+                // values <= 0, so every count derived from it is representable.
+                precondition(
+                    capacity >= 0,
+                    "Pool.Bounded.State requires a non-negative capacity, got \(capacity)"
+                )
                 // Pre-allocate fixed-capacity LIFO stack for available indices (starts empty)
                 let slotCapacity = Index<Slot.Index>.Count(
                     _unchecked: Cardinal(UInt(capacity))
                 )
                 self.available = Stack<Slot.Index>.Bounded(capacity: slotCapacity)
                 self.waiters = Async.Waiter.Queue.Unbounded()
-                // force_try is safe: `capacity` is a validated non-negative Int
-                // (the caller's Pool.Capacity invariant), so Slot.Index.Count(capacity)
-                // and Fixed<Slot>(count:initializingWith:) cannot fail here.
-                // swift-format-ignore: NeverUseForceTry
-                let slotCount = try! Slot.Index.Count(capacity)
-                // swift-format-ignore: NeverUseForceTry
-                self.slots = try! Fixed<Slot>(count: slotCount, initializingWith: { Slot(index: $0) })
+                let slots: Fixed<Slot>
+                do {
+                    let slotCount = try Slot.Index.Count(capacity)
+                    slots = try Fixed<Slot>(count: slotCount, initializingWith: { Slot(index: $0) })
+                } catch {
+                    preconditionFailure(
+                        "Pool.Bounded slot storage could not be sized for capacity \(capacity): \(error)"
+                    )
+                }
+                self.slots = slots
                 self.next = 0
                 self.lifecycle = .open
                 self.metrics = Pool.Metrics()
@@ -161,7 +170,10 @@
         ///
         /// This maintains counter invariants and metrics automatically.
         @usableFromInline
-        mutating func transition(slot index: Pool.Bounded<Resource>.Slot.Index, to newState: Pool.Bounded<Resource>.Slot.State) {
+        mutating func transition(
+            slot index: Pool.Bounded<Resource>.Slot.Index,
+            to newState: Pool.Bounded<Resource>.Slot.State
+        ) {
             let oldState = slots[index].state
 
             #if DEBUG
@@ -202,7 +214,10 @@
             switch (oldState, newState) {
             case (.available, .out), (.creating, .out):
                 metrics.outstanding.current += 1
-                metrics.outstanding.peak = max(metrics.outstanding.peak, metrics.outstanding.current)
+                metrics.outstanding.peak = max(
+                    metrics.outstanding.peak,
+                    metrics.outstanding.current
+                )
 
             case (.out, .available), (.out, .disposing):
                 metrics.outstanding.current -= 1
@@ -229,29 +244,33 @@
         /// Asserts that the transition is legal per the state machine.
         #if DEBUG
             @usableFromInline
-            func assertValidTransition(from oldState: Pool.Bounded<Resource>.Slot.State, to newState: Pool.Bounded<Resource>.Slot.State) {
+            func assertValidTransition(
+                from oldState: Pool.Bounded<Resource>.Slot.State,
+                to newState: Pool.Bounded<Resource>.Slot.State
+            ) {
                 let valid: Bool
                 switch (oldState, newState) {
                 // From empty
                 case (.empty, .creating): valid = true  // lazy reservation
                 case (.empty, .available): valid = true  // eager fill
 
-                // From creating
-                case (.creating(let old), .available(let new)) where old == new: valid = true  // creation succeeded
-                case (.creating(let old), .out(let new)) where old == new: valid = true  // lazy checkout
-                case (.creating, .empty): valid = true  // creation failed
-                case (.creating(let old), .disposing(let new)) where old == new: valid = true  // created resource rejected
+                // From creating: creation succeeded, lazy checkout, creation failed,
+                // or the created resource was rejected by `check`.
+                case (.creating(let old), .available(let new)) where old == new: valid = true
+                case (.creating(let old), .out(let new)) where old == new: valid = true
+                case (.creating, .empty): valid = true
+                case (.creating(let old), .disposing(let new)) where old == new: valid = true
 
-                // From available
-                case (.available(let old), .out(let new)) where old == new: valid = true  // checkout
-                case (.available(let old), .disposing(let new)) where old == new: valid = true  // shutdown drain
+                // From available: checkout, or shutdown drain.
+                case (.available(let old), .out(let new)) where old == new: valid = true
+                case (.available(let old), .disposing(let new)) where old == new: valid = true
 
-                // From out
-                case (.out(let old), .available(let new)) where old == new: valid = true  // return (open)
-                case (.out(let old), .disposing(let new)) where old == new: valid = true  // return during shutdown
+                // From out: return while open, or return during shutdown.
+                case (.out(let old), .available(let new)) where old == new: valid = true
+                case (.out(let old), .disposing(let new)) where old == new: valid = true
 
-                // From disposing
-                case (.disposing, .empty): valid = true  // disposal complete
+                // From disposing: disposal complete.
+                case (.disposing, .empty): valid = true
 
                 default: valid = false
                 }
@@ -287,9 +306,14 @@
         /// - Parameter index: The slot index to push.
         @inlinable
         mutating func pushAvailable(_ index: Pool.Bounded<Resource>.Slot.Index) {
-            // Invariant guarantees no overflow - capacity equals slot count
-            // swift-format-ignore: NeverUseForceTry
-            try! available.push(index)
+            do {
+                // Invariant guarantees no overflow - capacity equals slot count
+                try available.push(index)
+            } catch {
+                preconditionFailure(
+                    "Pool.Bounded free-list overflow: a slot index was pushed twice (\(error))"
+                )
+            }
         }
 
         /// Pops a slot index from the available free-list (LIFO).
@@ -456,8 +480,11 @@
         // swift-format-ignore: UseShorthandTypeNames
         /// Removes every eligible waiter with the supplied error.
         @usableFromInline
-        // swiftlint:disable:next syntactic_sugar
-        mutating func fail(waitersWith error: Pool.Lifecycle.Error) -> Array<Async.Waiter.Resumption> {
+        // swiftlint:disable syntactic_sugar
+        mutating func fail(
+            waitersWith error: Pool.Lifecycle.Error
+        ) -> Array<Async.Waiter.Resumption> {
+            // swiftlint:enable syntactic_sugar
             // swift-format-ignore: UseShorthandTypeNames
             // swiftlint:disable:next syntactic_sugar
             var pending = Array<Async.Waiter.Resumption>(initialCapacity: 0)
