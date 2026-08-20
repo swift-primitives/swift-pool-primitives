@@ -404,9 +404,13 @@ let package = Package(
             name: "Pool Primitives Test Support",
             dependencies: [
                 "Pool Primitives",
+                .target(name: "Pool Bounded Primitives", condition: .when(traits: ["Concurrency"])),
                 .product(name: "Index Primitives Test Support", package: "swift-index-primitives"),
             ],
-            path: "Tests/Support"
+            path: "Tests/Support",
+            swiftSettings: [
+                .define("POOL_CONCURRENCY", .when(traits: ["Concurrency"]))
+            ]
         ),
 
         // MARK: - Tests

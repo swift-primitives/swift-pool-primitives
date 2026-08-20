@@ -10,7 +10,7 @@
     @_spi(Internal) internal import Pool_Scope_Primitives
     internal import Tagged_Collection_Primitives
 
-    internal import Synchronization
+    package import Synchronization
     internal import Column_Primitives
     internal import Fixed_Primitives
     internal import Buffer_Linear_Bounded_Primitive
@@ -90,7 +90,7 @@
                 /// Test hook called immediately after a waiter is enqueued.
                 ///
                 /// Use for deterministic test synchronization instead of polling.
-                let enqueue = Mutex<(@Sendable () -> Void)?>(nil)
+                package let enqueue = Mutex<(@Sendable () -> Void)?>(nil)
             #endif
 
             /// Creates a fixed-capacity pool with eager policy.
