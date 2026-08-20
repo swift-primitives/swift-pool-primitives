@@ -1,15 +1,15 @@
-// swift-tools-version: 6.3.3
+// swift-tools-version: 6.4
 
 import PackageDescription
 
 let package = Package(
     name: "swift-pool-primitives",
     platforms: [
-        .macOS("27"),
-        .iOS("27"),
-        .tvOS("27"),
-        .watchOS("27"),
-        .visionOS("27"),
+        .macOS(.v27),
+        .iOS(.v27),
+        .tvOS(.v27),
+        .watchOS(.v27),
+        .visionOS(.v27),
     ],
     products: [
         // MARK: - Namespace + foundational
@@ -80,25 +80,82 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/swift-primitives/swift-async-primitives.git", branch: "main"),
-        .package(url: "https://github.com/swift-primitives/swift-queue-primitives.git", branch: "main"),
-        .package(url: "https://github.com/swift-primitives/swift-stack-primitives.git", branch: "main"),
-        .package(url: "https://github.com/swift-primitives/swift-array-primitives.git", branch: "main"),
-        .package(url: "https://github.com/swift-primitives/swift-fixed-primitives.git", branch: "main"),
-        .package(url: "https://github.com/swift-primitives/swift-column-primitives.git", branch: "main"),
-        .package(url: "https://github.com/swift-primitives/swift-buffer-linear-primitives.git", branch: "main"),
-        .package(url: "https://github.com/swift-primitives/swift-ownership-shared-primitives.git", branch: "main"),
-        .package(url: "https://github.com/swift-primitives/swift-storage-primitives.git", branch: "main"),
-        .package(url: "https://github.com/swift-primitives/swift-memory-heap-primitives.git", branch: "main"),
-        .package(url: "https://github.com/swift-primitives/swift-memory-allocation-primitives.git", branch: "main"),
-        .package(url: "https://github.com/swift-primitives/swift-buffer-primitives.git", branch: "main"),
-        .package(url: "https://github.com/swift-primitives/swift-tagged-collection-primitives.git", branch: "main"),
-        .package(url: "https://github.com/swift-primitives/swift-dimension-primitives.git", branch: "main"),
-        .package(url: "https://github.com/swift-primitives/swift-ownership-primitives.git", branch: "main"),
-        .package(url: "https://github.com/swift-primitives/swift-effect-primitives.git", branch: "main"),
-        .package(url: "https://github.com/swift-primitives/swift-index-primitives.git", branch: "main"),
-        .package(url: "https://github.com/swift-primitives/swift-iterator-primitives.git", branch: "main"),
-        .package(url: "https://github.com/swift-primitives/swift-either-primitives.git", branch: "main"),
+        .package(
+            url: "https://github.com/swift-primitives/swift-async-primitives.git",
+            branch: "main"
+        ),
+        .package(
+            url: "https://github.com/swift-primitives/swift-queue-primitives.git",
+            branch: "main"
+        ),
+        .package(
+            url: "https://github.com/swift-primitives/swift-stack-primitives.git",
+            branch: "main"
+        ),
+        .package(
+            url: "https://github.com/swift-primitives/swift-array-primitives.git",
+            branch: "main"
+        ),
+        .package(
+            url: "https://github.com/swift-primitives/swift-fixed-primitives.git",
+            branch: "main"
+        ),
+        .package(
+            url: "https://github.com/swift-primitives/swift-column-primitives.git",
+            branch: "main"
+        ),
+        .package(
+            url: "https://github.com/swift-primitives/swift-buffer-linear-primitives.git",
+            branch: "main"
+        ),
+        .package(
+            url: "https://github.com/swift-primitives/swift-ownership-shared-primitives.git",
+            branch: "main"
+        ),
+        .package(
+            url: "https://github.com/swift-primitives/swift-storage-primitives.git",
+            branch: "main"
+        ),
+        .package(
+            url: "https://github.com/swift-primitives/swift-memory-heap-primitives.git",
+            branch: "main"
+        ),
+        .package(
+            url: "https://github.com/swift-primitives/swift-memory-allocation-primitives.git",
+            branch: "main"
+        ),
+        .package(
+            url: "https://github.com/swift-primitives/swift-buffer-primitives.git",
+            branch: "main"
+        ),
+        .package(
+            url: "https://github.com/swift-primitives/swift-tagged-collection-primitives.git",
+            branch: "main"
+        ),
+        .package(
+            url: "https://github.com/swift-primitives/swift-dimension-primitives.git",
+            branch: "main"
+        ),
+        .package(
+            url: "https://github.com/swift-primitives/swift-ownership-primitives.git",
+            branch: "main"
+        ),
+        .package(
+            url: "https://github.com/swift-primitives/swift-effect-primitives.git",
+            branch: "main"
+        ),
+        .package(
+            url: "https://github.com/swift-primitives/swift-index-primitives.git",
+            branch: "main"
+        ),
+        .package(
+            url: "https://github.com/swift-primitives/swift-iterator-primitives.git",
+            branch: "main"
+        ),
+        .package(
+            url: "https://github.com/swift-primitives/swift-either-primitives.git",
+            branch: "main"
+        ),
     ],
     targets: [
         // MARK: - Namespace + foundational
@@ -188,33 +245,135 @@ let package = Package(
                 .target(name: "Pool Scope Primitives", condition: .when(traits: ["Concurrency"])),
                 .target(name: "Pool ID Primitives", condition: .when(traits: ["Concurrency"])),
                 .target(name: "Pool Error Primitives", condition: .when(traits: ["Concurrency"])),
-                .target(name: "Pool Capacity Primitives", condition: .when(traits: ["Concurrency"])),
-                .target(name: "Pool Lifecycle Primitives", condition: .when(traits: ["Concurrency"])),
+                .target(
+                    name: "Pool Capacity Primitives",
+                    condition: .when(traits: ["Concurrency"])
+                ),
+                .target(
+                    name: "Pool Lifecycle Primitives",
+                    condition: .when(traits: ["Concurrency"])
+                ),
                 .target(name: "Pool Metrics Primitives", condition: .when(traits: ["Concurrency"])),
-                .product(name: "Column Primitives", package: "swift-column-primitives", condition: .when(traits: ["Concurrency"])),
-                .product(name: "Buffer Linear Bounded Primitive", package: "swift-buffer-linear-primitives", condition: .when(traits: ["Concurrency"])),
-                .product(name: "Buffer Linear Primitive", package: "swift-buffer-linear-primitives", condition: .when(traits: ["Concurrency"])),
-                .product(name: "Ownership Shared Primitive", package: "swift-ownership-shared-primitives", condition: .when(traits: ["Concurrency"])),
-                .product(name: "Storage Contiguous Primitives", package: "swift-storage-primitives", condition: .when(traits: ["Concurrency"])),
-                .product(name: "Memory Heap Primitives", package: "swift-memory-heap-primitives", condition: .when(traits: ["Concurrency"])),
-                .product(name: "Memory Allocator Primitive", package: "swift-memory-allocation-primitives", condition: .when(traits: ["Concurrency"])),
-                .product(name: "Buffer Primitive", package: "swift-buffer-primitives", condition: .when(traits: ["Concurrency"])),
-                .product(name: "Stack Primitives", package: "swift-stack-primitives", condition: .when(traits: ["Concurrency"])),
-                .product(name: "Array Primitive", package: "swift-array-primitives", condition: .when(traits: ["Concurrency"])),
-                .product(name: "Array Primitives", package: "swift-array-primitives", condition: .when(traits: ["Concurrency"])),
-                .product(name: "Fixed Primitives", package: "swift-fixed-primitives", condition: .when(traits: ["Concurrency"])),
-                .product(name: "Index Primitives", package: "swift-index-primitives", condition: .when(traits: ["Concurrency"])),
-                .product(name: "Iterable", package: "swift-iterator-primitives", condition: .when(traits: ["Concurrency"])),
-                .product(name: "Tagged Collection Primitives", package: "swift-tagged-collection-primitives", condition: .when(traits: ["Concurrency"])),
-                .product(name: "Async Primitives", package: "swift-async-primitives", condition: .when(traits: ["Concurrency"])),
-                .product(name: "Async Waiter Primitives", package: "swift-async-primitives", condition: .when(traits: ["Concurrency"])),
-                .product(name: "Async Mutex Primitives", package: "swift-async-primitives", condition: .when(traits: ["Concurrency"])),
-                .product(name: "Queue Primitive", package: "swift-queue-primitives", condition: .when(traits: ["Concurrency"])),
-                .product(name: "Queue Primitives", package: "swift-queue-primitives", condition: .when(traits: ["Concurrency"])),
-                .product(name: "Async Promise Primitives", package: "swift-async-primitives", condition: .when(traits: ["Concurrency"])),
-                .product(name: "Dimension Primitives", package: "swift-dimension-primitives", condition: .when(traits: ["Concurrency"])),
-                .product(name: "Ownership Primitives", package: "swift-ownership-primitives", condition: .when(traits: ["Concurrency"])),
-                .product(name: "Either Primitives", package: "swift-either-primitives", condition: .when(traits: ["Concurrency"])),
+                .product(
+                    name: "Column Primitives",
+                    package: "swift-column-primitives",
+                    condition: .when(traits: ["Concurrency"])
+                ),
+                .product(
+                    name: "Buffer Linear Bounded Primitive",
+                    package: "swift-buffer-linear-primitives",
+                    condition: .when(traits: ["Concurrency"])
+                ),
+                .product(
+                    name: "Buffer Linear Primitive",
+                    package: "swift-buffer-linear-primitives",
+                    condition: .when(traits: ["Concurrency"])
+                ),
+                .product(
+                    name: "Ownership Shared Primitive",
+                    package: "swift-ownership-shared-primitives",
+                    condition: .when(traits: ["Concurrency"])
+                ),
+                .product(
+                    name: "Storage Contiguous Primitives",
+                    package: "swift-storage-primitives",
+                    condition: .when(traits: ["Concurrency"])
+                ),
+                .product(
+                    name: "Memory Heap Primitives",
+                    package: "swift-memory-heap-primitives",
+                    condition: .when(traits: ["Concurrency"])
+                ),
+                .product(
+                    name: "Memory Allocator Primitive",
+                    package: "swift-memory-allocation-primitives",
+                    condition: .when(traits: ["Concurrency"])
+                ),
+                .product(
+                    name: "Buffer Primitive",
+                    package: "swift-buffer-primitives",
+                    condition: .when(traits: ["Concurrency"])
+                ),
+                .product(
+                    name: "Stack Primitives",
+                    package: "swift-stack-primitives",
+                    condition: .when(traits: ["Concurrency"])
+                ),
+                .product(
+                    name: "Array Primitive",
+                    package: "swift-array-primitives",
+                    condition: .when(traits: ["Concurrency"])
+                ),
+                .product(
+                    name: "Array Primitives",
+                    package: "swift-array-primitives",
+                    condition: .when(traits: ["Concurrency"])
+                ),
+                .product(
+                    name: "Fixed Primitives",
+                    package: "swift-fixed-primitives",
+                    condition: .when(traits: ["Concurrency"])
+                ),
+                .product(
+                    name: "Index Primitives",
+                    package: "swift-index-primitives",
+                    condition: .when(traits: ["Concurrency"])
+                ),
+                .product(
+                    name: "Iterable",
+                    package: "swift-iterator-primitives",
+                    condition: .when(traits: ["Concurrency"])
+                ),
+                .product(
+                    name: "Tagged Collection Primitives",
+                    package: "swift-tagged-collection-primitives",
+                    condition: .when(traits: ["Concurrency"])
+                ),
+                .product(
+                    name: "Async Primitives",
+                    package: "swift-async-primitives",
+                    condition: .when(traits: ["Concurrency"])
+                ),
+                .product(
+                    name: "Async Waiter Primitives",
+                    package: "swift-async-primitives",
+                    condition: .when(traits: ["Concurrency"])
+                ),
+                .product(
+                    name: "Async Mutex Primitives",
+                    package: "swift-async-primitives",
+                    condition: .when(traits: ["Concurrency"])
+                ),
+                .product(
+                    name: "Queue Primitive",
+                    package: "swift-queue-primitives",
+                    condition: .when(traits: ["Concurrency"])
+                ),
+                .product(
+                    name: "Queue Primitives",
+                    package: "swift-queue-primitives",
+                    condition: .when(traits: ["Concurrency"])
+                ),
+                .product(
+                    name: "Async Promise Primitives",
+                    package: "swift-async-primitives",
+                    condition: .when(traits: ["Concurrency"])
+                ),
+                .product(
+                    name: "Dimension Primitives",
+                    package: "swift-dimension-primitives",
+                    condition: .when(traits: ["Concurrency"])
+                ),
+                .product(
+                    name: "Ownership Primitives",
+                    package: "swift-ownership-primitives",
+                    condition: .when(traits: ["Concurrency"])
+                ),
+                .product(
+                    name: "Either Primitives",
+                    package: "swift-either-primitives",
+                    condition: .when(traits: ["Concurrency"])
+                ),
             ],
             swiftSettings: [
                 .define("POOL_CONCURRENCY", .when(traits: ["Concurrency"]))
@@ -259,7 +418,10 @@ let package = Package(
                 .product(name: "Async Primitives", package: "swift-async-primitives"),
                 .product(name: "Array Primitives", package: "swift-array-primitives"),
                 .product(name: "Fixed Primitives", package: "swift-fixed-primitives"),
-                .product(name: "Tagged Collection Primitives", package: "swift-tagged-collection-primitives"),
+                .product(
+                    name: "Tagged Collection Primitives",
+                    package: "swift-tagged-collection-primitives"
+                ),
             ],
             path: "Tests/Pool Primitives Tests"
         ),
