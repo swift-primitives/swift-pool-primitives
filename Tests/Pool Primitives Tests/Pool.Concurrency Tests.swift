@@ -7,20 +7,8 @@ import Testing
 @testable import Pool_Bounded_Primitives
 @_spi(Internal) @testable import Pool_Error_Primitives
 
-// W3 rider — POOL's own composition under concurrency (arc-1,
-// GOAL-tower-arc-shared-soundness §W3): the W5-3 leg (`e4d8e6c`) carries waiter
-// hand-off through DIRECT-column resumption arrays
-// (`Array<Column.Heap<Async.Waiter.Resumption>>`), mutated under `_state.withLock`
-// and executed after unlock. The rider hammers exactly that lane: capacity-1
-// hand-off chains, cancellation racing resumption (Pool.Lifecycle.Precedence),
-// and shutdown draining pending waiters — with `pool.metrics` as the exact
-// accounting oracle. Race-TOLERANT assertions where precedence makes either
-// outcome lawful (a waiter cancelled after being resumed may complete); the
-// invariants asserted are the ones that must hold under EVERY interleaving.
-
 private typealias TestPool = Pool.Bounded<Int>
 
-/// Prefills a capacity-1 pool (the Pool.Bounded.AsyncBody Tests idiom).
 private func makePrefilled(_ value: Int) -> TestPool {
     let pool = TestPool(capacity: 1, destroy: { _ in })
     pool._state.withLock { state in
@@ -32,8 +20,6 @@ private func makePrefilled(_ value: Int) -> TestPool {
     return pool
 }
 
-/// Reference-typed atomic carriers (move-only `Atomic` cannot be captured by
-/// multiple escaping closures directly).
 private final class Counter: Sendable {
     let raw = Atomic<Int>(0)
 }
@@ -64,7 +50,7 @@ extension `Pool.Bounded Tests` {
                     do throws(Either<Pool.Lifecycle.Error, Never>) {
                         return try await pool.acquire { resource in
                             bodies.bump()
-                            await Task.yield()  // hold the slot across a suspension
+                            await Task.yield()
                             return .reusable(resource &* 2)
                         }
                     } catch {
@@ -77,23 +63,18 @@ extension `Pool.Bounded Tests` {
             return out
         }
         #expect(results.count == width)
-        #expect(results.allSatisfy { $0 == 14 })  // everyone saw THE resource
-        #expect(bodies.value == width)  // no lost, no double hand-off
+        #expect(results.allSatisfy { $0 == 14 })
+        #expect(bodies.value == width)
         let metrics = pool.metrics
         #expect(metrics.acquisitions == UInt64(width))
         #expect(metrics.releases == UInt64(width))
         #expect(metrics.outstanding.current == 0)
-        let after = try await pool.acquire { .reusable($0 &+ 1) }  // still serviceable
+        let after = try await pool.acquire { .reusable($0 &+ 1) }
         #expect(after == 8)
         await pool.shutdown()
     }
 }
 
-// The remaining tests key deterministic synchronization off `pool.enqueue`,
-// a `#if DEBUG`-only test hook on `Pool.Bounded` (see Pool.Bounded.swift). It
-// does not exist in release builds, so — matching the same gating already
-// established for the equivalent hook usages in `Pool.Bounded Tests.swift`
-// (its `Integration` extension) — these tests are DEBUG-only.
 #if DEBUG
     extension `Pool.Bounded Tests` {
         @Test
@@ -127,22 +108,20 @@ extension `Pool.Bounded Tests` {
                     }
                 )
             }
-            while queued.value < 12 { await Task.yield() }  // deterministic: enqueue hook
+            while queued.value < 12 { await Task.yield() }
             for (index, waiter) in waiters.enumerated() where index % 2 == 0 {
-                waiter.cancel()  // cancel half, racing the queue
+                waiter.cancel()
             }
-            release.raise()  // hand-off chain starts
+            release.raise()
             for waiter in waiters { await waiter.value }
             _ = try await occupant.value
 
-            // Precedence makes per-waiter outcomes racy (cancelled-after-resumed may
-            // complete); the EVERY-interleaving invariants:
             #expect(completions.value + cancellations.value == 12)
-            #expect(completions.value >= 6)  // uncancelled waiters always complete
+            #expect(completions.value >= 6)
             let metrics = pool.metrics
             #expect(metrics.releases == metrics.acquisitions)
             #expect(metrics.outstanding.current == 0)
-            // the resource survived the storm
+
             let after = try await pool.acquire { .reusable($0 &* 10) }
             #expect(after == 30)
             await pool.shutdown()
@@ -182,21 +161,21 @@ extension `Pool.Bounded Tests` {
                     Task {
                         do throws(Either<Pool.Lifecycle.Error, Never>) {
                             _ = try await pool.acquire { resource in .reusable(resource) }
-                            unexpected.bump()  // no slot can ever reach them
+                            unexpected.bump()
                         } catch {
                             drained.bump()
                         }
                     }
                 )
             }
-            while queued.value < 10 { await Task.yield() }  // deterministic: enqueue hook
+            while queued.value < 10 { await Task.yield() }
 
             let shutdown = Task { await pool.shutdown() }
-            for waiter in waiters { await waiter.value }  // liveness: nobody is stranded
+            for waiter in waiters { await waiter.value }
             #expect(drained.value == 10)
             #expect(unexpected.value == 0)
 
-            release.raise()  // holder releases into shutdown
+            release.raise()
             switch await occupant.value {
             case .failure(.shutdown):
                 break
@@ -223,12 +202,7 @@ extension `Pool.Bounded Tests` {
         func `suspend racing disposal completion claims the empty lazy slot`()
             async throws(Pool.Lifecycle.Error)
         {
-            // Lazy sibling of the lost-wakeup window: an acquirer decides `.suspend`
-            // while the only slot is busy; the disposal then completes with no
-            // queued waiter, so `complete(disposalAt:)` sees no demand and leaves
-            // the slot `.empty` with no replacement. The acquirer's pre-enqueue
-            // re-check must claim the empty slot and create on its own behalf —
-            // enqueueing would strand it until unrelated future traffic.
+
             let created = Counter()
             let pool = TestPool(
                 capacity: 1,
@@ -239,10 +213,6 @@ extension `Pool.Bounded Tests` {
                 destroy: { _ in }
             )
 
-            // Produce the post-window state through a real disposal: the acquire
-            // creates the resource, `.invalid` disposes it, and with zero queued
-            // waiters `complete(disposalAt:)` declines replacement — the slot is
-            // left `.empty`.
             let first: Int
             do throws(Either<Pool.Lifecycle.Error, Never>) {
                 first = try await pool.acquire { resource in .invalid(resource) }
@@ -255,17 +225,13 @@ extension `Pool.Bounded Tests` {
             #expect(first == 10)
             #expect(created.value == 1)
 
-            // The rescued acquirer must claim, never enqueue.
             let enqueued = Flag()
             pool.enqueue.withLock { $0 = { enqueued.raise() } }
 
-            // Drive the suspension path directly: this IS the acquirer whose
-            // `.suspend` decision predates the disposal completion above (the
-            // decision arm mutates no state, so the pool cannot distinguish).
             let (slot, id) = try await pool.suspendForSlot()
             let value = pool.entries.underlying[0].move.out
-            #expect(value == 20)  // created on the waiter's own behalf
-            #expect(enqueued.isRaised == false)  // rescued via claim, not enqueue
+            #expect(value == 20)
+            #expect(enqueued.isRaised == false)
             #expect(created.value == 2)
             _ = await pool.release(value, from: slot, id: id, as: .reusable)
 

@@ -1,6 +1,3 @@
-// exports.swift
-// Pool Primitives umbrella module exports.
-
 @_exported public import Pool_Acquire_Primitives
 @_exported public import Pool_Capacity_Primitives
 @_exported public import Pool_Error_Primitives

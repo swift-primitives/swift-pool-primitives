@@ -12,13 +12,12 @@ let package = Package(
         .visionOS(.v27),
     ],
     products: [
-        // MARK: - Namespace + foundational
+
         .library(
             name: "Pool Primitive",
             targets: ["Pool Primitive"]
         ),
 
-        // MARK: - Identity & configuration vocabulary
         .library(
             name: "Pool Scope Primitives",
             targets: ["Pool Scope Primitives"]
@@ -36,7 +35,6 @@ let package = Package(
             targets: ["Pool Capacity Primitives"]
         ),
 
-        // MARK: - Lifecycle & metrics
         .library(
             name: "Pool Lifecycle Primitives",
             targets: ["Pool Lifecycle Primitives"]
@@ -46,7 +44,6 @@ let package = Package(
             targets: ["Pool Metrics Primitives"]
         ),
 
-        // MARK: - Effects
         .library(
             name: "Pool Acquire Primitives",
             targets: ["Pool Acquire Primitives"]
@@ -56,13 +53,11 @@ let package = Package(
             targets: ["Pool Release Primitives"]
         ),
 
-        // MARK: - Variants
         .library(
             name: "Pool Bounded Primitives",
             targets: ["Pool Bounded Primitives"]
         ),
 
-        // MARK: - Umbrella
         .library(
             name: "Pool Primitives",
             targets: ["Pool Primitives"]
@@ -158,16 +153,12 @@ let package = Package(
         ),
     ],
     targets: [
-        // MARK: - Namespace + foundational
+
         .target(
             name: "Pool Primitive",
             dependencies: []
         ),
 
-        // MARK: - Identity & configuration vocabulary
-        // Genuine depth-4 chain Capacity→Error→ID→Scope (each embeds/throws the
-        // next); [MOD-007] depth≤3 is ADVISORY (2026-06-17 / GR4) — maximize-split
-        // favors width over fused depth here, not number-chasing.
         .target(
             name: "Pool Scope Primitives",
             dependencies: [
@@ -200,7 +191,6 @@ let package = Package(
             ]
         ),
 
-        // MARK: - Lifecycle & metrics
         .target(
             name: "Pool Lifecycle Primitives",
             dependencies: [
@@ -215,7 +205,6 @@ let package = Package(
             ]
         ),
 
-        // MARK: - Effects
         .target(
             name: "Pool Acquire Primitives",
             dependencies: [
@@ -237,7 +226,6 @@ let package = Package(
             ]
         ),
 
-        // MARK: - Variants
         .target(
             name: "Pool Bounded Primitives",
             dependencies: [
@@ -380,7 +368,6 @@ let package = Package(
             ]
         ),
 
-        // MARK: - Umbrella
         .target(
             name: "Pool Primitives",
             dependencies: [
@@ -409,7 +396,6 @@ let package = Package(
             path: "Tests/Support"
         ),
 
-        // MARK: - Tests
         .testTarget(
             name: "Pool Primitives Tests",
             dependencies: [

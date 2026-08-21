@@ -1,6 +1,3 @@
-// exports.swift
-// Pool Acquire Primitives module exports.
-
 @_exported public import Effect_Primitives
 @_exported public import Ownership_Primitives
 @_exported public import Pool_Error_Primitives

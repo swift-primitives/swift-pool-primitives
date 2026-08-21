@@ -24,73 +24,45 @@
     internal import Storage_Contiguous_Primitives
 
     extension Pool.Bounded where Resource: ~Copyable {
-        /// Internal synchronized state for the pool.
-        ///
-        /// ~Copyable because it contains the waiter queue which is ~Copyable.
-        /// Resource is stored ONLY in Entry (class wrapper with manual storage).
+
         @usableFromInline
         struct State: ~Copyable {
-            /// Fixed-capacity LIFO stack for available slot indices.
-            ///
-            /// Contains indices of slots in `.available(id)` state only.
-            ///
-            /// Uses `Stack.Bounded` for Copyable COW semantics with no stdlib arrays.
+
             @usableFromInline
             var available: Stack<Slot.Index>.Bounded
 
-            /// FIFO queue of waiters.
-            ///
-            /// Uses `Async.Waiter.Queue.Unbounded` as substrate for atomic flagging and
-            /// deferred resumption. Pool retains ownership of metrics and precedence.
-            ///
-            /// **INVARIANT:** Must only be mutated via `addWaiter()`, `popWaiter()`,
-            /// and `reapFlaggedWaiters()`. Direct mutation bypasses metrics tracking.
             @usableFromInline
             var waiters: Async.Waiter.Queue.Unbounded<Outcome, Waiter.Metadata>
 
-            /// Slot states by index.
             @usableFromInline
             var slots: Fixed<Slot>
 
-            /// Next ID counter.
             @usableFromInline
             var next: UInt64
 
-            /// Current lifecycle state.
             @usableFromInline
             var lifecycle: Pool.Lifecycle.State
 
-            /// Runtime metrics.
             @usableFromInline
             var metrics: Pool.Metrics
 
-            // MARK: - Slot State Counters
-
-            /// Number of slots in `.out` state.
             @usableFromInline
             var outstanding: Int
 
-            /// Number of slots in `.creating` state (lazy only).
             @usableFromInline
             var creating: Int
 
-            /// Number of tracked asynchronous disposals.
-            ///
-            /// Includes slots in `.disposing` state and incoming resources rejected
-            /// by `fill` before they acquire a slot.
             @usableFromInline
             var disposing: Int
 
-            /// Creates state for a pool with the given capacity.
             @usableFromInline
             init(capacity: Int) {
-                // INVARIANT: `capacity` comes from `Pool.Capacity`, which rejects
-                // values <= 0, so every count derived from it is representable.
+
                 precondition(
                     capacity >= 0,
                     "Pool.Bounded.State requires a non-negative capacity, got \(capacity)"
                 )
-                // Pre-allocate fixed-capacity LIFO stack for available indices (starts empty)
+
                 let slotCapacity = Index<Slot.Index>.Count(
                     _unchecked: Cardinal(UInt(capacity))
                 )
@@ -116,24 +88,8 @@
         }
     }
 
-    // MARK: - Shutdown Completion Predicate
-
     extension Pool.Bounded.State where Resource: ~Copyable {
-        /// Whether shutdown is complete.
-        ///
-        /// Shutdown is complete when:
-        /// - Lifecycle is closing
-        /// - No outstanding checkouts
-        /// - No in-flight creations
-        /// - No in-progress disposals
-        /// - No queued waiters
-        ///
-        /// The waiter clause enforces the drain law — shutdown drains every
-        /// pending waiter — so the gate can never open above a live suspended
-        /// waiter. `suspendForSlot` re-checks shutdown under the same lock
-        /// before enqueueing and `shutdown()` drains the queue at begin, so
-        /// the queue is empty for the whole closing phase; this clause is the
-        /// completeness guard for that invariant.
+
         @usableFromInline
         var isShutdownComplete: Bool {
             lifecycle == .closing
@@ -143,13 +99,6 @@
                 && waiters.isEmpty
         }
 
-        /// Checks if shutdown is complete and returns the appropriate Effect.
-        ///
-        /// **CRITICAL:** Every path that decrements `creating`, `disposing`, or
-        /// `outstanding` MUST call this method and execute the returned Effect.
-        /// Missing a single site prevents `shutdown()` from completing.
-        ///
-        /// - Returns: `.gate(.open)` if shutdown is complete, `.none` otherwise.
         @usableFromInline
         mutating func checkShutdownComplete() -> Pool.Bounded<Resource>.Effect {
             if isShutdownComplete {
@@ -160,15 +109,8 @@
         }
     }
 
-    // MARK: - Centralized Transition Helper
-
     extension Pool.Bounded.State where Resource: ~Copyable {
-        /// Transitions a slot to a new state.
-        ///
-        /// **INVARIANT:** ALL slot state changes MUST go through this helper.
-        /// Never modify `slots[i].state` directly.
-        ///
-        /// This maintains counter invariants and metrics automatically.
+
         @usableFromInline
         mutating func transition(
             slot index: Pool.Bounded<Resource>.Slot.Index,
@@ -180,7 +122,6 @@
                 assertValidTransition(from: oldState, to: newState)
             #endif
 
-            // Decrement old state counter
             switch oldState {
             case .out: outstanding -= 1
             case .creating: creating -= 1
@@ -188,7 +129,6 @@
             case .empty, .available: break
             }
 
-            // Increment new state counter
             switch newState {
             case .out: outstanding += 1
             case .creating: creating += 1
@@ -196,21 +136,6 @@
             case .empty, .available: break
             }
 
-            // Update metrics on explicit edges only (future-proof against edge set expansion)
-            //
-            // Valid edges per state machine:
-            //   empty → creating(id)      lazy reservation
-            //   empty → available(id)     eager fill
-            //   creating → available      creation succeeded
-            //   creating → out            lazy checkout (immediate handoff to caller)
-            //   creating → empty          creation failed
-            //   available → out           checkout
-            //   available → disposing     shutdown drain
-            //   out → available           return (open)
-            //   out → disposing           return during shutdown
-            //   disposing → empty         disposal complete
-
-            // outstanding: increment on available→out or creating→out, decrement on out→available/disposing
             switch (oldState, newState) {
             case (.available, .out), (.creating, .out):
                 metrics.outstanding.current += 1
@@ -225,7 +150,6 @@
             default: break
             }
 
-            // available: increment on empty/creating/out→available, decrement on available→out/disposing
             switch (oldState, newState) {
             case (.empty, .available), (.creating, .available), (.out, .available):
                 metrics.available += 1
@@ -239,9 +163,6 @@
             slots[index].state = newState
         }
 
-        /// Debug-only transition validation.
-        ///
-        /// Asserts that the transition is legal per the state machine.
         #if DEBUG
             @usableFromInline
             func assertValidTransition(
@@ -250,26 +171,21 @@
             ) {
                 let valid: Bool
                 switch (oldState, newState) {
-                // From empty
-                case (.empty, .creating): valid = true  // lazy reservation
-                case (.empty, .available): valid = true  // eager fill
 
-                // From creating: creation succeeded, lazy checkout, creation failed,
-                // or the created resource was rejected by `check`.
+                case (.empty, .creating): valid = true
+                case (.empty, .available): valid = true
+
                 case (.creating(let old), .available(let new)) where old == new: valid = true
                 case (.creating(let old), .out(let new)) where old == new: valid = true
                 case (.creating, .empty): valid = true
                 case (.creating(let old), .disposing(let new)) where old == new: valid = true
 
-                // From available: checkout, or shutdown drain.
                 case (.available(let old), .out(let new)) where old == new: valid = true
                 case (.available(let old), .disposing(let new)) where old == new: valid = true
 
-                // From out: return while open, or return during shutdown.
                 case (.out(let old), .available(let new)) where old == new: valid = true
                 case (.out(let old), .disposing(let new)) where old == new: valid = true
 
-                // From disposing: disposal complete.
                 case (.disposing, .empty): valid = true
 
                 default: valid = false
@@ -282,10 +198,8 @@
         #endif
     }
 
-    // MARK: - ID Generation
-
     extension Pool.Bounded.State where Resource: ~Copyable {
-        /// Generates the next Pool.ID.
+
         @usableFromInline
         mutating func nextID(scope: Pool.Scope) -> Pool.ID {
             let id = Pool.ID(raw: next, scope: scope)
@@ -294,20 +208,12 @@
         }
     }
 
-    // MARK: - Available Free-List Helpers
-
     extension Pool.Bounded.State where Resource: ~Copyable {
-        /// Pushes a slot index to the available free-list (LIFO).
-        ///
-        /// **INVARIANT:** Each slot index appears in `available` at most once.
-        /// Push cannot overflow because pool has N slots, storage has capacity N,
-        /// and each slot index is pushed only on state transition to available.
-        ///
-        /// - Parameter index: The slot index to push.
+
         @inlinable
         mutating func pushAvailable(_ index: Pool.Bounded<Resource>.Slot.Index) {
             do {
-                // Invariant guarantees no overflow - capacity equals slot count
+
                 try available.push(index)
             } catch {
                 preconditionFailure(
@@ -316,21 +222,14 @@
             }
         }
 
-        /// Pops a slot index from the available free-list (LIFO).
-        ///
-        /// - Returns: The top slot index, or nil if empty.
         @inlinable
         mutating func popAvailable() -> Pool.Bounded<Resource>.Slot.Index? {
             available.pop()
         }
     }
 
-    // MARK: - Slot Lookup
-
     extension Pool.Bounded.State where Resource: ~Copyable {
-        /// Finds an empty slot for lazy creation.
-        ///
-        /// - Returns: The index of an empty slot, or nil if none available.
+
         @usableFromInline
         func findEmptySlot() -> Pool.Bounded<Resource>.Slot.Index? {
             slots.first { slot in
@@ -340,25 +239,14 @@
         }
     }
 
-    // MARK: - Waiter Management with Metrics
-
     extension Pool.Bounded.State where Resource: ~Copyable {
-        /// Adds a waiter to the queue and updates metrics.
+
         @usableFromInline
         mutating func addWaiter(_ waiter: consuming Pool.Bounded<Resource>.Waiter.Entry) {
             waiters.enqueue(waiter)
             metrics.waiters += 1
         }
 
-        /// Removes the first waiter from the queue and updates metrics.
-        ///
-        /// **CRITICAL INVARIANT (Resume-After-Removal):**
-        /// A waiter MUST be removed from the queue BEFORE its continuation is resumed.
-        /// This ensures no waiter is ever resumed while still enqueued, which would
-        /// violate the single-resumption guarantee. All code paths that resume a waiter
-        /// must first call `popWaiter()` or otherwise remove it from the queue.
-        ///
-        /// - Returns: The removed waiter, or `nil` if queue is empty.
         @usableFromInline
         mutating func popWaiter() -> Pool.Bounded<Resource>.Waiter.Entry? {
             guard let waiter = waiters.dequeue() else {
@@ -368,126 +256,74 @@
             return waiter
         }
 
-        // reason: `[T]` sugar always means Swift.Array (requires Copyable); this
-        // module's `Array<E: ~Copyable>` (Array_Primitive front door) is what
-        // `Async.Waiter.Resumption` (~Copyable) actually needs — sugar breaks the
-        // build here (verified: "does not conform to protocol 'Copyable'").
-        // swift-format-ignore: UseShorthandTypeNames
-        /// Dequeues the first eligible waiter (not cancelled/timed out).
-        ///
-        /// Skipped waiters (cancelled/timed out) have their resumptions collected
-        /// for execution outside the lock.
-        ///
-        /// - Parameter skipped: Array to collect resumptions for skipped waiters.
-        /// - Returns: First eligible waiter, or nil.
         @usableFromInline
         mutating func dequeueEligibleWaiter(
-            // swiftlint:disable:next syntactic_sugar
-            skipped: inout Array<Async.Waiter.Resumption>
+
+            skipped: inout [Async.Waiter.Resumption]
         ) -> Pool.Bounded<Resource>.Waiter.Entry? {
-            // Collect flagged entries
+
             var flagged = Async.Waiter.Queue.Drain<Pool.Bounded<Resource>.Waiter.Flagged>()
             let entry = waiters.popEligible(flaggedInto: &flagged)
 
-            // Process flagged entries into resumptions.
-            // Pool no longer distinguishes timeout from cancellation — both are
-            // surfaced as `.cancelled` per the composition-not-deadline design.
             let currentLifecycle = lifecycle
             var removedCount = entry != nil ? 1 : 0
             flagged.drain { flaggedEntry in
                 removedCount += 1
 
-                // Deconstruct in one step - explicit ownership transition
                 let split = flaggedEntry.split()
 
-                // Apply Pool's precedence: shutdown > cancel
                 let outcome: Pool.Bounded<Resource>.Outcome = Pool.Lifecycle.Precedence.apply(
                     lifecycle: currentLifecycle,
                     cancelled: true,
                     outcome: .failure(.cancelled)
                 )
 
-                // Create resumption from consumed entry
                 skipped.append(split.entry.resumption(with: outcome))
             }
 
-            // Update metrics for removed entries
             metrics.waiters -= removedCount
 
             return entry
         }
 
-        // reason: `[T]` sugar always means Swift.Array (requires Copyable); this
-        // module's `Array<E: ~Copyable>` (Array_Primitive front door) is what
-        // `Async.Waiter.Resumption` (~Copyable) actually needs — sugar breaks the
-        // build here (verified: "does not conform to protocol 'Copyable'").
-        // swift-format-ignore: UseShorthandTypeNames
-        /// Reaps all flagged waiters from the queue.
-        ///
-        /// Uses `Async.Waiter.Queue.reapFlagged` to scan+rebuild in one pass,
-        /// removing waiters that have `cancelled` or `timedOut` flags set.
-        /// Remaining unflagged waiters are preserved in FIFO order.
-        ///
-        /// This is the reaping mechanism for timeout/cancel. It ensures flagged
-        /// waiters are resumed even if no resource ever becomes available.
-        ///
-        /// **Must be called with the pool lock held. Does not resume.**
-        ///
-        /// - Returns: Array of pending resumptions to execute outside the lock.
         @usableFromInline
-        // swiftlint:disable:next syntactic_sugar
-        mutating func reapFlaggedWaiters() -> Array<Async.Waiter.Resumption> {
-            // swift-format-ignore: UseShorthandTypeNames
-            // swiftlint:disable:next syntactic_sugar
-            var pending = Array<Async.Waiter.Resumption>(initialCapacity: 0)
 
-            // Copy lifecycle to local to avoid capturing self
+        mutating func reapFlaggedWaiters() -> [Async.Waiter.Resumption] {
+
+            var pending = [Async.Waiter.Resumption](initialCapacity: 0)
+
             let currentLifecycle = lifecycle
 
-            // Collect flagged entries
             var flagged = Async.Waiter.Queue.Drain<Pool.Bounded<Resource>.Waiter.Flagged>()
             waiters.reapFlagged(into: &flagged)
 
-            // Process flagged entries into resumptions. Pool no longer
-            // distinguishes timeout from cancellation — both surface as
-            // `.cancelled` per the composition-not-deadline design.
             var reapedCount = 0
             flagged.drain { flaggedEntry in
                 reapedCount += 1
 
-                // Deconstruct in one step - explicit ownership transition
                 let split = flaggedEntry.split()
 
-                // Apply Pool's precedence: shutdown > cancel
                 let outcome: Pool.Bounded<Resource>.Outcome = Pool.Lifecycle.Precedence.apply(
                     lifecycle: currentLifecycle,
                     cancelled: true,
                     outcome: .failure(.cancelled)
                 )
 
-                // Create resumption from consumed entry
                 pending.append(split.entry.resumption(with: outcome))
             }
 
-            // Update metrics
             metrics.waiters -= reapedCount
 
             return pending
         }
 
-        // reason: `[T]` sugar means `Swift.Array`, which requires `Copyable`;
-        // `Async.Waiter.Resumption` is move-only and requires Array_Primitive.
-        // swift-format-ignore: UseShorthandTypeNames
-        /// Removes every eligible waiter with the supplied error.
         @usableFromInline
-        // swiftlint:disable syntactic_sugar
+
         mutating func fail(
             waitersWith error: Pool.Lifecycle.Error
-        ) -> Array<Async.Waiter.Resumption> {
-            // swiftlint:enable syntactic_sugar
-            // swift-format-ignore: UseShorthandTypeNames
-            // swiftlint:disable:next syntactic_sugar
-            var pending = Array<Async.Waiter.Resumption>(initialCapacity: 0)
+        ) -> [Async.Waiter.Resumption] {
+
+            var pending = [Async.Waiter.Resumption](initialCapacity: 0)
 
             while let waiter = dequeueEligibleWaiter(skipped: &pending) {
                 pending.append(waiter.resumption(with: .failure(error)))

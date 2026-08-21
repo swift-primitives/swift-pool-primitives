@@ -5,15 +5,10 @@ import Testing
 @_spi(Internal) @testable import Pool_ID_Primitives
 @_spi(Internal) @testable import Pool_Scope_Primitives
 
-// MARK: - Test Resource
-
 private struct TestResource: Sendable {
     let id: Int
 }
 
-// MARK: - Tests
-
-// Pool.Release is generic — parallel namespace per [TEST-004]
 @Suite
 struct `Pool.Release Tests` {
     @Suite struct Unit {}

@@ -2,7 +2,6 @@ import Pool_Primitives
 import Pool_Primitives_Test_Support
 import Testing
 
-// Pool.Lifecycle.Precedence is non-generic — type extension per [TEST-003]
 extension Pool.Lifecycle.Precedence {
     @Suite
     struct Test {
@@ -10,8 +9,6 @@ extension Pool.Lifecycle.Precedence {
         @Suite struct `Edge Case` {}
     }
 }
-
-// MARK: - Unit Tests
 
 extension Pool.Lifecycle.Precedence.Test.Unit {
     @Test
@@ -69,8 +66,6 @@ extension Pool.Lifecycle.Precedence.Test.Unit {
         #expect(result == .failure(.creationFailed))
     }
 }
-
-// MARK: - Edge Cases
 
 extension Pool.Lifecycle.Precedence.Test.`Edge Case` {
     @Test

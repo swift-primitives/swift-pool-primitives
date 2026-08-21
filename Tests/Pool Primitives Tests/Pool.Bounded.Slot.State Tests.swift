@@ -6,7 +6,6 @@ import Testing
 @_spi(Internal) @testable import Pool_ID_Primitives
 @_spi(Internal) @testable import Pool_Scope_Primitives
 
-// Pool.Bounded.Slot.State is generic — parallel namespace per [TEST-004]
 @Suite
 struct `Pool.Bounded.Slot.State Tests` {
     @Suite struct Unit {}
@@ -14,12 +13,8 @@ struct `Pool.Bounded.Slot.State Tests` {
     @Suite struct Integration {}
 }
 
-// MARK: - Type Aliases
-
 private typealias TestPool = Pool.Bounded<Int>
 private typealias SlotState = TestPool.Slot.State
-
-// MARK: - Unit Tests
 
 extension `Pool.Bounded.Slot.State Tests`.Unit {
     @Test
@@ -27,7 +22,7 @@ extension `Pool.Bounded.Slot.State Tests`.Unit {
         let state = SlotState.empty
 
         if case .empty = state {
-            // Expected
+
         } else {
             Issue.record("Expected empty state")
         }

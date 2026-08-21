@@ -1,36 +1,7 @@
-// Creation requires async closure - only available on non-embedded platforms.
 #if POOL_CONCURRENCY
 
     extension Pool.Bounded where Resource: ~Copyable {
-        /// Closures for lazy resource creation policy.
-        ///
-        /// Contains both the factory closure for creating resources on-demand
-        /// and the destructor closure for disposing them. Stored directly on
-        /// the pool — no `Ownership.Immutable` wrap. Closures are already
-        /// reference-typed in Swift; the extra heap indirection that
-        /// `Ownership.Immutable` would provide is gratuitous here.
-        ///
-        /// ## Factory error contract
-        ///
-        /// The factory closure throws `Pool.Lifecycle.Error` directly — never
-        /// an existential error type. Per [API-ERR-001], typed throws is
-        /// mandatory and an existential throwing clause is forbidden. The
-        /// user wraps their domain errors at the boundary:
-        ///
-        /// ```swift
-        /// create: {
-        ///     do {
-        ///         return try await openConnection()
-        ///     } catch {
-        ///         throw Pool.Lifecycle.Error.creationFailed
-        ///     }
-        /// }
-        /// ```
-        ///
-        /// The user retains full visibility into their own errors before the
-        /// `throw .creationFailed` boundary; they can log, transform, or react
-        /// to the original error type. The pool sees only `.creationFailed`
-        /// and propagates it through `Pool.Lifecycle.Error`.
+
         @usableFromInline
         struct Creation: Sendable {
             @usableFromInline

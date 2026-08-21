@@ -2,7 +2,6 @@ import Pool_Primitives
 import Pool_Primitives_Test_Support
 import Testing
 
-// Pool.Lifecycle.State is non-generic — type extension per [TEST-003]
 extension Pool.Lifecycle.State {
     @Suite
     struct Test {
@@ -10,8 +9,6 @@ extension Pool.Lifecycle.State {
         @Suite struct `Edge Case` {}
     }
 }
-
-// MARK: - Unit Tests
 
 extension Pool.Lifecycle.State.Test.Unit {
     @Test
@@ -73,8 +70,6 @@ extension Pool.Lifecycle.State.Test.Unit {
         #expect(closedIsActive)
     }
 }
-
-// MARK: - Edge Cases
 
 extension Pool.Lifecycle.State.Test.`Edge Case` {
     @Test

@@ -4,7 +4,6 @@ import Testing
 
 @testable import Pool_Bounded_Primitives
 
-// Pool.Bounded.Entry is generic — parallel namespace per [TEST-004]
 @Suite
 struct `Pool.Bounded.Entry Tests` {
     @Suite struct Unit {}
@@ -12,12 +11,8 @@ struct `Pool.Bounded.Entry Tests` {
     @Suite struct Integration {}
 }
 
-// MARK: - Type Aliases
-
 private typealias TestPool = Pool.Bounded<Int>
 private typealias Entry = TestPool.Entry
-
-// MARK: - Unit Tests
 
 extension `Pool.Bounded.Entry Tests`.Unit {
     @Test
@@ -56,8 +51,6 @@ extension `Pool.Bounded.Entry Tests`.Unit {
         #expect(entry.move.out == 100)
     }
 }
-
-// MARK: - Edge Cases
 
 extension `Pool.Bounded.Entry Tests`.`Edge Case` {
     @Test

@@ -1,38 +1,25 @@
 extension Pool {
-    /// Runtime statistics for pool monitoring.
+
     public struct Metrics: Sendable {
-        /// Total resources created (lazy policy).
+
         public var created: UInt64
 
-        /// Total resources filled (eager policy).
         public var fills: UInt64
 
-        /// Total resources closed.
         public var closed: UInt64
 
-        /// Total acquisitions.
         public var acquisitions: UInt64
 
-        /// Total releases.
         public var releases: UInt64
 
-        /// Total cancellations (waiters cancelled before acquiring a slot).
-        ///
-        /// Pool no longer distinguishes timeouts from cancellations — both
-        /// are surfaced as `.cancelled`. Callers wanting timeout semantics
-        /// compose externally via Task cancellation.
         public var cancellations: UInt64
 
-        /// Outstanding (currently checked-out) resource counts.
         public var outstanding: Outstanding
 
-        /// Current available count.
         public var available: Int
 
-        /// Current waiter queue depth.
         public var waiters: Int
 
-        /// Creates empty metrics.
         @_spi(Internal)
         public init() {
             self.created = 0
